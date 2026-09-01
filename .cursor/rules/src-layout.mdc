@@ -1,0 +1,19 @@
+---
+description: src는 core / render / ui 레이어로만 구성한다
+alwaysApply: true
+---
+
+# Source layout
+
+새 코드는 아래 세 레이어에만 둔다. Vue 기본 `components/`·`views/`에 게임 로직을 쌓지 않는다.
+
+```
+src/core/      순수 TS. 그리드, A*, tick, 페이즈, 세이브
+src/render/    PixiJS. 타일·유닛·경로 그리기, 포인터 → 그리드 좌표
+src/ui/        Vue 3. 로비, HUD, 샵, 퀘스트. Pinia는 요약 스냅샷만
+```
+
+- 배틀 화면: `src/ui/`가 캔버스 슬롯 + HUD를 붙이고, Pixi 앱은 `src/render/`에서 생성한다.
+- Pinia/store에 유닛 목록·타일 맵을 넣지 않는다. 그 상태는 `src/core/`다.
+- 파일 위치가 애매하면 core에 둘지 먼저 판단한다. 렌더/UI 전용이 아니면 `src/core/`다.
+- 레이어를 새로 만들거나 `src/game/`, `src/lib/`로 우회하지 않는다.

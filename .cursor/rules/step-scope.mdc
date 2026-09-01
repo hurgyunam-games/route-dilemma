@@ -1,0 +1,13 @@
+---
+description: README 개발 가이드의 지정 Step만 구현한다
+alwaysApply: true
+---
+
+# Step scope
+
+README.md의 Phase/Step을 따른다. 사용자가 Step을 지정하면 **그 Step만** 구현한다.
+
+- 다른 Phase/Step 기능, 리팩터, 아트, 사운드, 타워 추가를 같이 넣지 않는다.
+- Step이 안 적혀 있으면 README 체크박스에서 다음 미완료 Step을 확인하고, 한 Step만 진행한다고 명시한 뒤 구현한다.
+- 해당 Step에 필요한 core 함수가 없으면 core를 먼저 만들고, 화면(Pixi/Vue)은 그 Step의 핵심 동작을 보이는 데 필요한 만큼만 추가한다.
+- “나중에 필요할 것 같아서” 인접 Step을 선구현하지 않는다.

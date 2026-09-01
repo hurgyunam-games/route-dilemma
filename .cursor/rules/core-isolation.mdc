@@ -1,0 +1,24 @@
+---
+description: 게임 로직(core)은 Vue/Pixi에 의존하지 않는다
+alwaysApply: true
+---
+
+# Core isolation
+
+`src/core/`는 순수 TypeScript 시뮬레이션이다. Vue, PixiJS, DOM, Pinia를 import하지 않는다.
+
+```ts
+// BAD — src/core 안에서
+import { ref } from "vue";
+import { Sprite } from "pixi.js";
+
+// GOOD — src/core는 그리드/경로/틱/세이브만
+export function placeTower(grid: Grid, x: number, y: number): Grid { /* ... */ }
+export function findPath(grid: Grid): Path | null { /* ... */ }
+export function tick(state: SimState, dt: number): SimState { /* ... */ }
+```
+
+- 유닛 좌표·HP·페이즈는 `core`가 소유한다. Vue `ref`/`reactive`에 유닛 배열을 두지 않는다.
+- Pixi는 `core` 스냅샷을 그려기만 한다. 경로 재계산·데미지·골드 지급을 렌더러에 넣지 않는다.
+- UI는 `sim.placeTower()` 같은 커맨드만 호출하고, HUD는 요약 스냅샷만 읽는다.
+- 새 기능은 core → render → Vue 순서로 붙인다.
