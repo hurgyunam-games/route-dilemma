@@ -21,6 +21,7 @@ import {
   type TileKind,
   type Unit,
 } from "@/core";
+import type { EnemySheets } from "@/render/enemy-sprites";
 
 const START_FILL = 0x2f6fb3;
 const BASE_FILL = 0xb45a28;
@@ -28,10 +29,14 @@ const TILE_BORDER = 0x161c16;
 const LABEL_FILL = 0xf4f1ea;
 const PATH_FILL = 0xc9a227;
 const PATH_LINE = 0xf4d35e;
-const UNIT_FILL = 0x7ad0ff;
-const UNIT_STROKE = 0x163040;
 const TOWER_ANIMATION_SPEED = 0.08;
 const TOWER_WIDTH_IN_TILE = 1.05;
+const ENEMY_ANIMATION_SPEED = 0.14;
+const ENEMY_ATTACK_ANIMATION_SPEED = 0.18;
+const ENEMY_WIDTH_IN_TILE = 1.35;
+/** Feet sit near y=37 in the 48px walk/attack frames. */
+const ENEMY_ANCHOR_Y = 38 / 48;
+const UNIT_MOVE_EPS = 0.002;
 
 function markerFill(kind: TileKind): number | null {
   if (kind === "start") {
@@ -101,16 +106,39 @@ function drawPath(graphics: Graphics, layout: GridLayout, path: Path): void {
   });
 }
 
-function drawUnits(graphics: Graphics, layout: GridLayout, units: readonly Unit[]): void {
-  const radius = Math.max(4, layout.tileSize * 0.28);
-  for (const unit of units) {
-    const x = layout.originX + (unit.x + 0.5) * layout.tileSize;
-    const y = layout.originY + (unit.y + 0.5) * layout.tileSize;
-    graphics.circle(x, y, radius).fill({ color: UNIT_FILL }).stroke({
-      width: Math.max(2, layout.tileSize * 0.04),
-      color: UNIT_STROKE,
-    });
+type EnemyClip = "walk" | "attack";
+
+type UnitSprite = {
+  sprite: AnimatedSprite;
+  lastX: number;
+  lastY: number;
+  facing: 1 | -1;
+  clip: EnemyClip;
+};
+
+function horizontalFacing(dx: number, fallback: 1 | -1): 1 | -1 {
+  if (dx > UNIT_MOVE_EPS) {
+    return -1;
   }
+  if (dx < -UNIT_MOVE_EPS) {
+    return 1;
+  }
+  return fallback;
+}
+
+function layoutEnemySprite(
+  sprite: AnimatedSprite,
+  layout: GridLayout,
+  unit: Unit,
+  facing: 1 | -1,
+): void {
+  const sizeScale = (layout.tileSize * ENEMY_WIDTH_IN_TILE) / sprite.texture.width;
+  sprite.scale.set(sizeScale * facing, sizeScale);
+  sprite.position.set(
+    layout.originX + (unit.x + 0.5) * layout.tileSize,
+    layout.originY + (unit.y + 0.78) * layout.tileSize,
+  );
+  sprite.zIndex = unit.y;
 }
 
 function hpFill(ratio: number): number {
@@ -176,7 +204,11 @@ function layoutFloor(
   );
 }
 
-export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
+export function createGridView(
+  towerFrames: Texture[],
+  floorTexture: Texture,
+  enemySheets: EnemySheets,
+): {
   readonly container: Container;
   sync(
     grid: Grid,
@@ -199,9 +231,11 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
   towerLayer.sortableChildren = true;
   const hpGraphics = new Graphics();
   hpGraphics.eventMode = "none";
-  const unitGraphics = new Graphics();
-  unitGraphics.eventMode = "none";
+  const unitLayer = new Container();
+  unitLayer.sortableChildren = true;
+  unitLayer.eventMode = "none";
   const towers = new Map<string, AnimatedSprite>();
+  const unitSprites = new Map<number, UnitSprite>();
   let lastLayout: GridLayout | null = null;
   const startLabel = new Text({
     text: "Start",
@@ -229,7 +263,7 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
     hpGraphics,
     startLabel,
     baseLabel,
-    unitGraphics,
+    unitLayer,
   );
 
   const hideTowers = (): void => {
@@ -247,7 +281,6 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
     graphics.clear();
     pathGraphics.clear();
     hpGraphics.clear();
-    unitGraphics.clear();
     const layout = fitGridToViewport(grid, viewportWidth, viewportHeight);
     lastLayout = layout;
     if (layout.tileSize <= 0) {
@@ -255,6 +288,10 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
       startLabel.visible = false;
       baseLabel.visible = false;
       hideTowers();
+      for (const record of unitSprites.values()) {
+        record.sprite.visible = false;
+        record.sprite.stop();
+      }
       return;
     }
     layoutFloor(floor, floorTexture, layout);
@@ -308,12 +345,68 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
     if (path) {
       drawPath(pathGraphics, layout, path);
     }
-    drawUnits(unitGraphics, layout, units);
+
+    const liveUnits = new Set<number>();
+    for (const unit of units) {
+      liveUnits.add(unit.id);
+      let record = unitSprites.get(unit.id);
+      if (!record) {
+        const sprite = new AnimatedSprite({
+          textures: enemySheets.walk,
+          animationSpeed: ENEMY_ANIMATION_SPEED,
+          loop: true,
+          autoPlay: false,
+        });
+        sprite.anchor.set(0.5, ENEMY_ANCHOR_Y);
+        sprite.eventMode = "none";
+        unitLayer.addChild(sprite);
+        record = {
+          sprite,
+          lastX: unit.x,
+          lastY: unit.y,
+          facing: -1,
+          clip: "walk",
+        };
+        unitSprites.set(unit.id, record);
+      }
+      const dx = unit.x - record.lastX;
+      const moving = Math.hypot(dx, unit.y - record.lastY) > UNIT_MOVE_EPS;
+      if (unit.attackTile) {
+        record.facing = horizontalFacing(unit.attackTile.x - unit.x, record.facing);
+      } else {
+        record.facing = horizontalFacing(dx, record.facing);
+      }
+      const clip: EnemyClip = unit.attackTile ? "attack" : "walk";
+      if (record.clip !== clip) {
+        record.clip = clip;
+        record.sprite.textures =
+          clip === "attack" ? enemySheets.attack : enemySheets.walk;
+        record.sprite.animationSpeed =
+          clip === "attack" ? ENEMY_ATTACK_ANIMATION_SPEED : ENEMY_ANIMATION_SPEED;
+      }
+      record.sprite.visible = true;
+      layoutEnemySprite(record.sprite, layout, unit, record.facing);
+      if (clip === "attack" || moving) {
+        if (!record.sprite.playing) {
+          record.sprite.play();
+        }
+      } else if (record.sprite.playing) {
+        record.sprite.stop();
+      }
+      record.lastX = unit.x;
+      record.lastY = unit.y;
+    }
 
     for (const [key, sprite] of towers) {
       if (!liveTowers.has(key)) {
         sprite.destroy();
         towers.delete(key);
+      }
+    }
+    for (const [id, record] of unitSprites) {
+      if (!liveUnits.has(id)) {
+        record.sprite.destroy();
+        unitSprites.delete(id);
       }
     }
 

@@ -1,6 +1,7 @@
 import { Application, Rectangle, type FederatedPointerEvent } from "pixi.js";
 import type { Grid, Unit } from "@/core";
 import { createGridView } from "@/render/draw-grid";
+import { loadEnemyFrames } from "@/render/enemy-sprites";
 import { loadFloorTexture } from "@/render/floor-tile";
 import { loadTowerFrames } from "@/render/tower-sprites";
 
@@ -27,11 +28,12 @@ export async function createGameApp(
   });
   host.appendChild(app.canvas);
 
-  const [towerFrames, floorTexture] = await Promise.all([
+  const [towerFrames, floorTexture, enemySheets] = await Promise.all([
     loadTowerFrames(),
     loadFloorTexture(),
+    loadEnemyFrames(),
   ]);
-  const gridView = createGridView(towerFrames, floorTexture);
+  const gridView = createGridView(towerFrames, floorTexture, enemySheets);
   app.stage.addChild(gridView.container);
   app.stage.eventMode = "static";
   app.stage.cursor = "pointer";

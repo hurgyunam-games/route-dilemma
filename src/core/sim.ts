@@ -35,6 +35,8 @@ export type Unit = {
   readonly id: number;
   readonly x: number;
   readonly y: number;
+  /** Tower being hit; null while walking or waiting. */
+  readonly attackTile: TileCoord | null;
 };
 
 export type SimState = {
@@ -158,7 +160,7 @@ function tickPhaseClock(
 }
 
 function spawnUnit(id: number, tile: TileCoord): Unit {
-  return { id, x: tile.x, y: tile.y };
+  return { id, x: tile.x, y: tile.y, attackTile: null };
 }
 
 function reachedBase(unit: Unit, grid: Grid): boolean {
@@ -180,7 +182,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
   const target = attackTarget(grid, tile);
   if (target && isOrthAdjacent(tile, target)) {
     return {
-      unit: { id: unit.id, x, y },
+      unit: { id: unit.id, x, y, attackTile: { x: target.x, y: target.y } },
       grid: damageTower(grid, target.x, target.y, UNIT_ATTACK_DPS * dt),
     };
   }
@@ -215,7 +217,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
     remaining -= step;
   }
 
-  return { unit: { id: unit.id, x, y }, grid };
+  return { unit: { id: unit.id, x, y, attackTile: null }, grid };
 }
 
 function nextWaypoint(

@@ -36,6 +36,7 @@ describe("tick unit movement", () => {
     const tile = unitTile(unit);
     expect(unit.x).toBeGreaterThan(sim.grid.start.x + 2);
     expect(Math.abs(unit.y - sim.grid.start.y)).toBeLessThan(0.15);
+    expect(unit.attackTile).toBeNull();
     expect(path.some((step) => step.x === tile.x && step.y === tile.y)).toBe(true);
     expect(tile).not.toEqual(sim.grid.base);
   });
@@ -104,6 +105,7 @@ describe("blocked path tower breaking", () => {
     expect(hp).toBeDefined();
     expect(hp!).toBeLessThan(TOWER_MAX_HP);
     expect(hp!).toBeCloseTo(TOWER_MAX_HP - UNIT_ATTACK_DPS * 0.5, 5);
+    expect(sim.units[0]!.attackTile).toEqual(target);
     expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
   });
 
