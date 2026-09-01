@@ -5,7 +5,10 @@ import {
   DEFAULT_GRID_ROWS,
   fitGridToViewport,
   forEachTile,
+  hasTower,
   tileKind,
+  toggleTower,
+  viewportToTile,
 } from "./grid";
 
 describe("createGrid", () => {
@@ -15,6 +18,7 @@ describe("createGrid", () => {
     expect(grid.rows).toBe(DEFAULT_GRID_ROWS);
     expect(grid.cols).toBe(12);
     expect(grid.rows).toBe(8);
+    expect(grid.towers).toEqual([]);
   });
 
   it("accepts a custom size", () => {
@@ -41,12 +45,55 @@ describe("createGrid", () => {
 });
 
 describe("tileKind", () => {
-  it("distinguishes Start, Base, and empty tiles", () => {
+  it("distinguishes Start, Base, empty, and tower tiles", () => {
     const grid = createGrid(12, 8);
     expect(tileKind(grid, 0, 3)).toBe("start");
     expect(tileKind(grid, 11, 3)).toBe("base");
     expect(tileKind(grid, 1, 3)).toBe("empty");
     expect(tileKind(grid, 0, 0)).toBe("empty");
+    expect(tileKind(toggleTower(grid, 1, 3), 1, 3)).toBe("tower");
+  });
+});
+
+describe("toggleTower", () => {
+  it("places a tower on an empty tile", () => {
+    const next = toggleTower(createGrid(12, 8), 1, 3);
+    expect(hasTower(next, 1, 3)).toBe(true);
+    expect(tileKind(next, 1, 3)).toBe("tower");
+  });
+
+  it("removes a tower when the same tile is toggled again", () => {
+    const placed = toggleTower(createGrid(12, 8), 4, 2);
+    const cleared = toggleTower(placed, 4, 2);
+    expect(hasTower(cleared, 4, 2)).toBe(false);
+    expect(tileKind(cleared, 4, 2)).toBe("empty");
+    expect(cleared.towers).toEqual([]);
+  });
+
+  it("does not place a tower on Start or Base", () => {
+    const grid = createGrid(12, 8);
+    expect(toggleTower(grid, grid.start.x, grid.start.y)).toBe(grid);
+    expect(toggleTower(grid, grid.base.x, grid.base.y)).toBe(grid);
+    expect(hasTower(toggleTower(grid, 0, 3), 0, 3)).toBe(false);
+    expect(hasTower(toggleTower(grid, 11, 3), 11, 3)).toBe(false);
+  });
+
+  it("places towers even when they would block Start to Base", () => {
+    const grid = createGrid(12, 8);
+    const wallX = 1;
+    let next = grid;
+    for (let y = 0; y < grid.rows; y += 1) {
+      next = toggleTower(next, wallX, y);
+      expect(hasTower(next, wallX, y)).toBe(true);
+    }
+    expect(next.towers).toHaveLength(grid.rows);
+  });
+
+  it("ignores out-of-bounds clicks", () => {
+    const grid = createGrid(12, 8);
+    expect(toggleTower(grid, -1, 0)).toBe(grid);
+    expect(toggleTower(grid, 12, 0)).toBe(grid);
+    expect(toggleTower(grid, 0, 8)).toBe(grid);
   });
 });
 
@@ -93,5 +140,21 @@ describe("fitGridToViewport", () => {
     expect(layout.originY).toBeGreaterThanOrEqual(0);
     expect(layout.originX + layout.width).toBeLessThanOrEqual(vw);
     expect(layout.originY + layout.height).toBeLessThanOrEqual(vh);
+  });
+});
+
+describe("viewportToTile", () => {
+  it("maps a pixel inside a tile to that tile", () => {
+    const layout = fitGridToViewport(createGrid(10, 5), 1000, 400, 0);
+    expect(viewportToTile(layout, 100 + 40, 40)).toEqual({ x: 0, y: 0 });
+    expect(viewportToTile(layout, 100 + 80 + 1, 80 + 1)).toEqual({ x: 1, y: 1 });
+    expect(viewportToTile(layout, 100 + 799, 399)).toEqual({ x: 9, y: 4 });
+  });
+
+  it("returns null outside the grid", () => {
+    const layout = fitGridToViewport(createGrid(10, 5), 1000, 400, 0);
+    expect(viewportToTile(layout, 99, 0)).toBeNull();
+    expect(viewportToTile(layout, 100 + 800, 0)).toBeNull();
+    expect(viewportToTile(layout, 100, -1)).toBeNull();
   });
 });

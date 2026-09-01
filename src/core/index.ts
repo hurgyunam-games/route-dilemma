@@ -6,6 +6,11 @@ export {
   DEFAULT_VIEWPORT_PADDING,
   fitGridToViewport,
   forEachTile,
+  hasTower,
+  inBounds,
+  sameTile,
   tileKind,
+  toggleTower,
+  viewportToTile,
 } from "./grid";
 export type { Grid, GridLayout, TileCoord, TileKind } from "./grid";
