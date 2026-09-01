@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import type { Application } from "pixi.js";
+import { createGrid } from "@/core";
 import { createGameApp, destroyGameApp } from "@/render/create-game-app";
 
 const hostRef = ref<HTMLElement | null>(null);
+const grid = createGrid();
 let app: Application | null = null;
 
 onMounted(async () => {
   if (!hostRef.value) {
     return;
   }
-  app = await createGameApp(hostRef.value);
+  app = await createGameApp(hostRef.value, grid);
 });
 
 onUnmounted(() => {
