@@ -51,32 +51,34 @@ function lowestFKey(
   return bestKey;
 }
 
-/** Shortest orthogonal path from Start to Base, or null if none. */
-export function findPath(grid: Grid): Path | null {
-  if (!isWalkable(grid, grid.start.x, grid.start.y)) {
+/** Shortest orthogonal path between two walkable tiles, or null if none. */
+export function findPath(
+  grid: Grid,
+  from: TileCoord = grid.start,
+  to: TileCoord = grid.base,
+): Path | null {
+  if (!isWalkable(grid, from.x, from.y)) {
     return null;
   }
-  if (!isWalkable(grid, grid.base.x, grid.base.y)) {
+  if (!isWalkable(grid, to.x, to.y)) {
     return null;
   }
-  if (sameTile(grid.start, grid.base)) {
-    return [grid.start];
+  if (sameTile(from, to)) {
+    return [from];
   }
 
-  const startKey = tileKey(grid.start.x, grid.start.y);
+  const startKey = tileKey(from.x, from.y);
   const gScore = new Map<string, number>([[startKey, 0]]);
-  const fScore = new Map<string, number>([
-    [startKey, manhattan(grid.start, grid.base)],
-  ]);
+  const fScore = new Map<string, number>([[startKey, manhattan(from, to)]]);
   const cameFrom = new Map<string, TileCoord>();
-  const coords = new Map<string, TileCoord>([[startKey, grid.start]]);
+  const coords = new Map<string, TileCoord>([[startKey, from]]);
   const open = new Set<string>([startKey]);
   const closed = new Set<string>();
 
   while (open.size > 0) {
     const currentKey = lowestFKey(open, fScore);
     const current = coords.get(currentKey)!;
-    if (sameTile(current, grid.base)) {
+    if (sameTile(current, to)) {
       return reconstruct(cameFrom, current);
     }
 
@@ -101,7 +103,7 @@ export function findPath(grid: Grid): Path | null {
       cameFrom.set(nextKey, current);
       coords.set(nextKey, next);
       gScore.set(nextKey, tentativeG);
-      fScore.set(nextKey, tentativeG + manhattan(next, grid.base));
+      fScore.set(nextKey, tentativeG + manhattan(next, to));
       open.add(nextKey);
     }
   }

@@ -16,3 +16,10 @@ export {
 export type { Grid, GridLayout, TileCoord, TileKind } from "./grid";
 export { findPath, isWalkable } from "./path";
 export type { Path } from "./path";
+export {
+  createSim,
+  simToggleTower,
+  tick,
+  unitTile,
+} from "./sim";
+export type { SimState, Unit } from "./sim";

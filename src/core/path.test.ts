@@ -64,4 +64,12 @@ describe("findPath", () => {
     expect(next.towers).toHaveLength(grid.rows);
     expect(findPath(next)).toBeNull();
   });
+
+  it("finds a path from a mid-map tile to Base", () => {
+    const grid = createGrid(12, 8);
+    const from = { x: 4, y: 3 };
+    const path = findPath(grid, from, grid.base)!;
+    expect(path[0]).toEqual(from);
+    expect(path[path.length - 1]).toEqual(grid.base);
+  });
 });

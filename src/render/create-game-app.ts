@@ -1,12 +1,12 @@
 import { Application, Rectangle, type FederatedPointerEvent } from "pixi.js";
-import type { Grid } from "@/core";
+import type { Grid, Unit } from "@/core";
 import { createGridView } from "@/render/draw-grid";
 import { loadFloorTexture } from "@/render/floor-tile";
 import { loadTowerFrames } from "@/render/tower-sprites";
 
 type GameSession = {
   cleanup: () => void;
-  setGrid: (grid: Grid) => void;
+  setView: (grid: Grid, units: readonly Unit[]) => void;
 };
 
 const sessions = new WeakMap<Application, GameSession>();
@@ -14,6 +14,7 @@ const sessions = new WeakMap<Application, GameSession>();
 export async function createGameApp(
   host: HTMLElement,
   grid: Grid,
+  units: readonly Unit[],
   onTileClick: (x: number, y: number) => void,
 ): Promise<Application> {
   const app = new Application();
@@ -36,13 +37,14 @@ export async function createGameApp(
   app.stage.cursor = "pointer";
 
   let currentGrid = grid;
+  let currentUnits = units;
 
   const syncHitArea = (): void => {
     app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
   };
 
   const sync = (): void => {
-    gridView.sync(currentGrid, app.screen.width, app.screen.height);
+    gridView.sync(currentGrid, app.screen.width, app.screen.height, currentUnits);
     syncHitArea();
   };
   sync();
@@ -65,8 +67,9 @@ export async function createGameApp(
       app.stage.off("pointertap", onPointerTap);
       app.renderer.off("resize", onResize);
     },
-    setGrid: (nextGrid: Grid) => {
+    setView: (nextGrid, nextUnits) => {
       currentGrid = nextGrid;
+      currentUnits = nextUnits;
       sync();
     },
   });
@@ -74,8 +77,8 @@ export async function createGameApp(
   return app;
 }
 
-export function setGameGrid(app: Application, grid: Grid): void {
-  sessions.get(app)?.setGrid(grid);
+export function setGameView(app: Application, grid: Grid, units: readonly Unit[]): void {
+  sessions.get(app)?.setView(grid, units);
 }
 
 export function destroyGameApp(app: Application): void {

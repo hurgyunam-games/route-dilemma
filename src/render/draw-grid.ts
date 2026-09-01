@@ -17,6 +17,7 @@ import {
   type Path,
   type TileCoord,
   type TileKind,
+  type Unit,
 } from "@/core";
 
 const START_FILL = 0x2f6fb3;
@@ -25,6 +26,8 @@ const TILE_BORDER = 0x161c16;
 const LABEL_FILL = 0xf4f1ea;
 const PATH_FILL = 0xc9a227;
 const PATH_LINE = 0xf4d35e;
+const UNIT_FILL = 0x7ad0ff;
+const UNIT_STROKE = 0x163040;
 const TOWER_ANIMATION_SPEED = 0.08;
 const TOWER_WIDTH_IN_TILE = 1.05;
 
@@ -96,6 +99,18 @@ function drawPath(graphics: Graphics, layout: GridLayout, path: Path): void {
   });
 }
 
+function drawUnits(graphics: Graphics, layout: GridLayout, units: readonly Unit[]): void {
+  const radius = Math.max(4, layout.tileSize * 0.28);
+  for (const unit of units) {
+    const x = layout.originX + (unit.x + 0.5) * layout.tileSize;
+    const y = layout.originY + (unit.y + 0.5) * layout.tileSize;
+    graphics.circle(x, y, radius).fill({ color: UNIT_FILL }).stroke({
+      width: Math.max(2, layout.tileSize * 0.04),
+      color: UNIT_STROKE,
+    });
+  }
+}
+
 function layoutTowerSprite(
   sprite: AnimatedSprite,
   layout: GridLayout,
@@ -128,7 +143,12 @@ function layoutFloor(
 
 export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
   readonly container: Container;
-  sync(grid: Grid, viewportWidth: number, viewportHeight: number): void;
+  sync(
+    grid: Grid,
+    viewportWidth: number,
+    viewportHeight: number,
+    units?: readonly Unit[],
+  ): void;
   tileAt(px: number, py: number): TileCoord | null;
 } {
   const container = new Container();
@@ -142,6 +162,8 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
   const pathGraphics = new Graphics();
   const towerLayer = new Container();
   towerLayer.sortableChildren = true;
+  const unitGraphics = new Graphics();
+  unitGraphics.eventMode = "none";
   const towers = new Map<string, AnimatedSprite>();
   let lastLayout: GridLayout | null = null;
   const startLabel = new Text({
@@ -162,7 +184,7 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
       align: "center",
     },
   });
-  container.addChild(floor, graphics, pathGraphics, towerLayer, startLabel, baseLabel);
+  container.addChild(floor, graphics, pathGraphics, towerLayer, startLabel, baseLabel, unitGraphics);
 
   const hideTowers = (): void => {
     for (const sprite of towers.values()) {
@@ -174,9 +196,11 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
     grid: Grid,
     viewportWidth: number,
     viewportHeight: number,
+    units: readonly Unit[] = [],
   ): void => {
     graphics.clear();
     pathGraphics.clear();
+    unitGraphics.clear();
     const layout = fitGridToViewport(grid, viewportWidth, viewportHeight);
     lastLayout = layout;
     if (layout.tileSize <= 0) {
@@ -233,6 +257,7 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
     if (path) {
       drawPath(pathGraphics, layout, path);
     }
+    drawUnits(unitGraphics, layout, units);
 
     for (const [key, sprite] of towers) {
       if (!liveTowers.has(key)) {

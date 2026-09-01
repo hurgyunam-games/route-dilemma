@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import type { Application } from "pixi.js";
-import { createGrid, findPath, toggleTower } from "@/core";
+import { createSim, findPath, simToggleTower, tick } from "@/core";
 import {
   createGameApp,
   destroyGameApp,
-  setGameGrid,
+  setGameView,
 } from "@/render/create-game-app";
 
 const hostRef = ref<HTMLElement | null>(null);
-let grid = createGrid();
-const hasPath = ref(findPath(grid) !== null);
+let sim = createSim();
+const hasPath = ref(findPath(sim.grid) !== null);
 let app: Application | null = null;
+let raf = 0;
+let lastTs = 0;
 
-const applyGrid = (next: typeof grid): void => {
-  grid = next;
-  hasPath.value = findPath(grid) !== null;
+const pushView = (): void => {
   if (app) {
-    setGameGrid(app, grid);
+    setGameView(app, sim.grid, sim.units);
   }
 };
 
@@ -25,19 +25,30 @@ onMounted(async () => {
   if (!hostRef.value) {
     return;
   }
-  app = await createGameApp(hostRef.value, grid, (x, y) => {
-    if (!app) {
+  app = await createGameApp(hostRef.value, sim.grid, sim.units, (x, y) => {
+    const next = simToggleTower(sim, x, y);
+    if (next === sim) {
       return;
     }
-    const next = toggleTower(grid, x, y);
-    if (next === grid) {
-      return;
-    }
-    applyGrid(next);
+    sim = next;
+    hasPath.value = findPath(sim.grid) !== null;
+    pushView();
   });
+
+  const loop = (ts: number): void => {
+    raf = requestAnimationFrame(loop);
+    const dt = lastTs === 0 ? 0 : Math.min(0.05, (ts - lastTs) / 1000);
+    lastTs = ts;
+    if (dt > 0) {
+      sim = tick(sim, dt);
+      pushView();
+    }
+  };
+  raf = requestAnimationFrame(loop);
 });
 
 onUnmounted(() => {
+  cancelAnimationFrame(raf);
   if (app) {
     destroyGameApp(app);
     app = null;
