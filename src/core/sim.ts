@@ -2,20 +2,22 @@
 
 import {
   createGrid,
+  damageTower,
+  getTower,
   inBounds,
   sameTile,
   toggleTower,
   type Grid,
   type TileCoord,
+  type Tower,
 } from "./grid";
 import { findPath, isWalkable } from "./path";
 
 export const UNIT_SPEED_TILES_PER_SEC = 2.75;
-export const WANDER_RADIUS = 1;
+export const UNIT_ATTACK_DPS = 4;
 
 const ARRIVE_EPS = 0.05;
 const MAX_MOVE_ITERS = 24;
-const WANDER_HOLD_SEC = 0.8;
 
 const ORTHOGONAL: readonly TileCoord[] = [
   { x: 1, y: 0 },
@@ -35,6 +37,11 @@ export type SimState = {
   readonly units: readonly Unit[];
   readonly nextUnitId: number;
   readonly time: number;
+};
+
+type StepResult = {
+  readonly unit: Unit;
+  readonly grid: Grid;
 };
 
 export function unitTile(unit: Pick<Unit, "x" | "y">): TileCoord {
@@ -74,18 +81,19 @@ export function tick(state: SimState, dt: number): SimState {
 
 function tickOnce(state: SimState, dt: number): SimState {
   const time = state.time + dt;
-  const grid = state.grid;
+  let grid = state.grid;
   const units: Unit[] = [];
   let nextUnitId = state.nextUnitId;
 
   for (const unit of state.units) {
-    const moved = stepUnit(unit, grid, dt, time);
-    if (reachedBase(moved, grid)) {
+    const moved = stepUnit(unit, grid, dt);
+    grid = moved.grid;
+    if (reachedBase(moved.unit, grid)) {
       units.push(spawnUnit(nextUnitId, grid.start));
       nextUnitId += 1;
       continue;
     }
-    units.push(moved);
+    units.push(moved.unit);
   }
 
   return { grid, units, nextUnitId, time };
@@ -99,21 +107,37 @@ function reachedBase(unit: Unit, grid: Grid): boolean {
   return Math.hypot(unit.x - grid.base.x, unit.y - grid.base.y) <= ARRIVE_EPS;
 }
 
-function stepUnit(unit: Unit, grid: Grid, dt: number, time: number): Unit {
+function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
   let x = unit.x;
   let y = unit.y;
-  let remaining = UNIT_SPEED_TILES_PER_SEC * dt;
 
+  const stuck = unitTile({ x, y });
+  if (!isWalkable(grid, stuck.x, stuck.y)) {
+    const safe = nearestWalkable(grid, stuck) ?? grid.start;
+    x = safe.x;
+    y = safe.y;
+  }
+
+  const tile = unitTile({ x, y });
+  const target = attackTarget(grid, tile);
+  if (target && isOrthAdjacent(tile, target)) {
+    return {
+      unit: { id: unit.id, x, y },
+      grid: damageTower(grid, target.x, target.y, UNIT_ATTACK_DPS * dt),
+    };
+  }
+
+  let remaining = UNIT_SPEED_TILES_PER_SEC * dt;
   for (let iter = 0; iter < MAX_MOVE_ITERS && remaining > 1e-6; iter += 1) {
-    const tile = unitTile({ x, y });
-    if (!isWalkable(grid, tile.x, tile.y)) {
-      const safe = nearestWalkable(grid, tile) ?? grid.start;
+    const here = unitTile({ x, y });
+    if (!isWalkable(grid, here.x, here.y)) {
+      const safe = nearestWalkable(grid, here) ?? grid.start;
       x = safe.x;
       y = safe.y;
       continue;
     }
 
-    const waypoint = nextWaypoint(grid, x, y, tile, time);
+    const waypoint = nextWaypoint(grid, x, y, here);
     if (!waypoint || !isWalkable(grid, waypoint.x, waypoint.y)) {
       break;
     }
@@ -133,7 +157,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number, time: number): Unit {
     remaining -= step;
   }
 
-  return { id: unit.id, x, y };
+  return { unit: { id: unit.id, x, y }, grid };
 }
 
 function nextWaypoint(
@@ -141,9 +165,8 @@ function nextWaypoint(
   x: number,
   y: number,
   tile: TileCoord,
-  time: number,
 ): TileCoord | null {
-  const route = routeForTile(grid, tile, time);
+  const route = routeForTile(grid, tile);
   if (!route || route.length === 0) {
     return null;
   }
@@ -169,12 +192,21 @@ function nextWaypoint(
   return null;
 }
 
-function routeForTile(grid: Grid, from: TileCoord, time: number): readonly TileCoord[] | null {
+function routeForTile(grid: Grid, from: TileCoord): readonly TileCoord[] | null {
   const shared = findPath(grid);
   if (shared) {
-    return joinSharedPath(grid, from, shared);
+    const joined = joinSharedPath(grid, from, shared);
+    if (joined) {
+      return joined;
+    }
   }
-  return blockedRoute(grid, from, time);
+
+  const local = findPath(grid, from, grid.base);
+  if (local) {
+    return local;
+  }
+
+  return approachTowerRoute(grid, from);
 }
 
 function joinSharedPath(
@@ -202,36 +234,133 @@ function joinSharedPath(
   return best;
 }
 
-function blockedRoute(grid: Grid, from: TileCoord, time: number): readonly TileCoord[] {
-  const home = findPath(grid, from, grid.start);
-  if (home && home.length > 1) {
-    return home;
+function attackTarget(grid: Grid, from: TileCoord): Tower | null {
+  if (findPath(grid, from, grid.base)) {
+    return null;
   }
-
-  const neighborhood = startNeighborhood(grid);
-  if (neighborhood.length === 0) {
-    return [from];
-  }
-  const target = neighborhood[Math.floor(time / WANDER_HOLD_SEC) % neighborhood.length]!;
-  if (sameTile(from, target)) {
-    return [from];
-  }
-  return findPath(grid, from, target) ?? [from];
+  return nearestChokepointTower(grid, from);
 }
 
-function startNeighborhood(grid: Grid): TileCoord[] {
-  const tiles: TileCoord[] = [grid.start];
+function approachTowerRoute(grid: Grid, from: TileCoord): readonly TileCoord[] | null {
+  const target = nearestChokepointTower(grid, from);
+  if (!target) {
+    return null;
+  }
+  const stand = standingTile(grid, from, target);
+  if (!stand) {
+    return null;
+  }
+  if (sameTile(from, stand)) {
+    return [from];
+  }
+  return findPath(grid, from, stand);
+}
+
+function nearestChokepointTower(grid: Grid, from: TileCoord): Tower | null {
+  const reachable = walkableRegion(grid, from);
+  const candidates: Tower[] = [];
+  const seen = new Set<string>();
+  for (const tile of reachable) {
+    for (const step of ORTHOGONAL) {
+      const x = tile.x + step.x;
+      const y = tile.y + step.y;
+      const tower = getTower(grid, x, y);
+      if (!tower) {
+        continue;
+      }
+      const key = `${x},${y}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      candidates.push(tower);
+    }
+  }
+  const pool = candidates.length > 0 ? candidates : [...grid.towers];
+  if (pool.length === 0) {
+    return null;
+  }
+  return pool.reduce((best, tower) =>
+    betterTarget(tower, best, from, grid.base) ? tower : best,
+  );
+}
+
+function betterTarget(
+  candidate: Tower,
+  current: Tower,
+  from: TileCoord,
+  base: TileCoord,
+): boolean {
+  const candidateDist = manhattan(candidate, from);
+  const currentDist = manhattan(current, from);
+  if (candidateDist !== currentDist) {
+    return candidateDist < currentDist;
+  }
+  const candidateToBase = manhattan(candidate, base);
+  const currentToBase = manhattan(current, base);
+  if (candidateToBase !== currentToBase) {
+    return candidateToBase < currentToBase;
+  }
+  if (candidate.y !== current.y) {
+    return candidate.y < current.y;
+  }
+  return candidate.x < current.x;
+}
+
+function standingTile(grid: Grid, from: TileCoord, tower: Tower): TileCoord | null {
+  let best: TileCoord | null = null;
+  let bestLength = Infinity;
   for (const step of ORTHOGONAL) {
-    const x = grid.start.x + step.x;
-    const y = grid.start.y + step.y;
-    if (
-      isWalkable(grid, x, y) &&
-      Math.abs(x - grid.start.x) + Math.abs(y - grid.start.y) <= WANDER_RADIUS
-    ) {
-      tiles.push({ x, y });
+    const tile = { x: tower.x + step.x, y: tower.y + step.y };
+    if (!isWalkable(grid, tile.x, tile.y)) {
+      continue;
+    }
+    const path = findPath(grid, from, tile);
+    if (!path) {
+      continue;
+    }
+    if (path.length < bestLength) {
+      bestLength = path.length;
+      best = tile;
+    }
+  }
+  return best;
+}
+
+function walkableRegion(grid: Grid, from: TileCoord): TileCoord[] {
+  const start = isWalkable(grid, from.x, from.y) ? from : nearestWalkable(grid, from);
+  if (!start) {
+    return [];
+  }
+  const tiles: TileCoord[] = [];
+  const queue: TileCoord[] = [start];
+  const seen = new Set<string>([`${start.x},${start.y}`]);
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    tiles.push(current);
+    for (const step of ORTHOGONAL) {
+      const x = current.x + step.x;
+      const y = current.y + step.y;
+      if (!isWalkable(grid, x, y)) {
+        continue;
+      }
+      const key = `${x},${y}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      queue.push({ x, y });
     }
   }
   return tiles;
+}
+
+function isOrthAdjacent(a: TileCoord, b: TileCoord): boolean {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+}
+
+function manhattan(a: TileCoord, b: TileCoord): number {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
 function nearestWalkable(grid: Grid, from: TileCoord): TileCoord | null {

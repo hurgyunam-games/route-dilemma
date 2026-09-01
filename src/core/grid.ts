@@ -3,10 +3,17 @@
 export const DEFAULT_GRID_COLS = 12;
 export const DEFAULT_GRID_ROWS = 8;
 export const DEFAULT_VIEWPORT_PADDING = 24;
+export const TOWER_MAX_HP = 8;
 
 export type TileCoord = {
   readonly x: number;
   readonly y: number;
+};
+
+export type Tower = {
+  readonly x: number;
+  readonly y: number;
+  readonly hp: number;
 };
 
 export type TileKind = "empty" | "start" | "base" | "tower";
@@ -16,7 +23,7 @@ export type Grid = {
   readonly rows: number;
   readonly start: TileCoord;
   readonly base: TileCoord;
-  readonly towers: readonly TileCoord[];
+  readonly towers: readonly Tower[];
 };
 
 export type GridLayout = {
@@ -52,8 +59,33 @@ export function sameTile(a: TileCoord, b: TileCoord): boolean {
   return a.x === b.x && a.y === b.y;
 }
 
+export function getTower(grid: Grid, x: number, y: number): Tower | undefined {
+  return grid.towers.find((tower) => tower.x === x && tower.y === y);
+}
+
 export function hasTower(grid: Grid, x: number, y: number): boolean {
-  return grid.towers.some((tower) => tower.x === x && tower.y === y);
+  return getTower(grid, x, y) !== undefined;
+}
+
+/** Reduce tower HP. At 0 or below the tower is removed. */
+export function damageTower(grid: Grid, x: number, y: number, amount: number): Grid {
+  const tower = getTower(grid, x, y);
+  if (!tower || !(amount > 0)) {
+    return grid;
+  }
+  const hp = tower.hp - amount;
+  if (hp <= 0) {
+    return {
+      ...grid,
+      towers: grid.towers.filter((entry) => entry.x !== x || entry.y !== y),
+    };
+  }
+  return {
+    ...grid,
+    towers: grid.towers.map((entry) =>
+      entry.x === x && entry.y === y ? { ...entry, hp } : entry,
+    ),
+  };
 }
 
 export function tileKind(grid: Grid, x: number, y: number): TileKind {
@@ -85,7 +117,7 @@ export function toggleTower(grid: Grid, x: number, y: number): Grid {
   }
   return {
     ...grid,
-    towers: [...grid.towers, { x, y }],
+    towers: [...grid.towers, { x, y, hp: TOWER_MAX_HP }],
   };
 }
 

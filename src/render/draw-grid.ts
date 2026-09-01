@@ -10,7 +10,9 @@ import {
   findPath,
   fitGridToViewport,
   forEachTile,
+  getTower,
   tileKind,
+  TOWER_MAX_HP,
   viewportToTile,
   type Grid,
   type GridLayout,
@@ -111,6 +113,39 @@ function drawUnits(graphics: Graphics, layout: GridLayout, units: readonly Unit[
   }
 }
 
+function hpFill(ratio: number): number {
+  if (ratio > 0.5) {
+    return 0x5aae61;
+  }
+  if (ratio > 0.25) {
+    return 0xd4a017;
+  }
+  return 0xc4452d;
+}
+
+function drawTowerHp(
+  graphics: Graphics,
+  layout: GridLayout,
+  x: number,
+  y: number,
+  hp: number,
+): void {
+  const width = layout.tileSize * 0.7;
+  const height = Math.max(4, Math.round(layout.tileSize * 0.1));
+  const left = layout.originX + (x + 0.5) * layout.tileSize - width / 2;
+  const top = layout.originY + y * layout.tileSize + Math.max(3, layout.tileSize * 0.05);
+  const ratio = Math.max(0, Math.min(1, hp / TOWER_MAX_HP));
+  graphics.rect(left, top, width, height).fill({ color: 0x1a1412, alpha: 0.9 });
+  if (ratio > 0) {
+    graphics.rect(left, top, width * ratio, height).fill({ color: hpFill(ratio) });
+  }
+  graphics.rect(left, top, width, height).stroke({
+    width: 1,
+    color: 0xf4f1ea,
+    alpha: 0.85,
+  });
+}
+
 function layoutTowerSprite(
   sprite: AnimatedSprite,
   layout: GridLayout,
@@ -162,6 +197,8 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
   const pathGraphics = new Graphics();
   const towerLayer = new Container();
   towerLayer.sortableChildren = true;
+  const hpGraphics = new Graphics();
+  hpGraphics.eventMode = "none";
   const unitGraphics = new Graphics();
   unitGraphics.eventMode = "none";
   const towers = new Map<string, AnimatedSprite>();
@@ -184,7 +221,16 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
       align: "center",
     },
   });
-  container.addChild(floor, graphics, pathGraphics, towerLayer, startLabel, baseLabel, unitGraphics);
+  container.addChild(
+    floor,
+    graphics,
+    pathGraphics,
+    towerLayer,
+    hpGraphics,
+    startLabel,
+    baseLabel,
+    unitGraphics,
+  );
 
   const hideTowers = (): void => {
     for (const sprite of towers.values()) {
@@ -200,6 +246,7 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
   ): void => {
     graphics.clear();
     pathGraphics.clear();
+    hpGraphics.clear();
     unitGraphics.clear();
     const layout = fitGridToViewport(grid, viewportWidth, viewportHeight);
     lastLayout = layout;
@@ -251,6 +298,10 @@ export function createGridView(towerFrames: Texture[], floorTexture: Texture): {
       }
       sprite.visible = true;
       layoutTowerSprite(sprite, layout, x, y);
+      const tower = getTower(grid, x, y);
+      if (tower) {
+        drawTowerHp(hpGraphics, layout, x, y, tower.hp);
+      }
     });
 
     const path = findPath(grid);

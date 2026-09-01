@@ -41,6 +41,7 @@ onMounted(async () => {
     lastTs = ts;
     if (dt > 0) {
       sim = tick(sim, dt);
+      hasPath.value = findPath(sim.grid) !== null;
       pushView();
     }
   };

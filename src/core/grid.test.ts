@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   createGrid,
+  damageTower,
   DEFAULT_GRID_COLS,
   DEFAULT_GRID_ROWS,
   fitGridToViewport,
   forEachTile,
+  getTower,
   hasTower,
   tileKind,
   toggleTower,
+  TOWER_MAX_HP,
   viewportToTile,
 } from "./grid";
 
@@ -60,6 +63,7 @@ describe("toggleTower", () => {
     const next = toggleTower(createGrid(12, 8), 1, 3);
     expect(hasTower(next, 1, 3)).toBe(true);
     expect(tileKind(next, 1, 3)).toBe("tower");
+    expect(getTower(next, 1, 3)?.hp).toBe(TOWER_MAX_HP);
   });
 
   it("removes a tower when the same tile is toggled again", () => {
@@ -94,6 +98,19 @@ describe("toggleTower", () => {
     expect(toggleTower(grid, -1, 0)).toBe(grid);
     expect(toggleTower(grid, 12, 0)).toBe(grid);
     expect(toggleTower(grid, 0, 8)).toBe(grid);
+  });
+});
+
+describe("damageTower", () => {
+  it("lowers HP and removes the tower at 0", () => {
+    const placed = toggleTower(createGrid(12, 8), 2, 3);
+    const damaged = damageTower(placed, 2, 3, 3);
+    expect(getTower(damaged, 2, 3)?.hp).toBe(TOWER_MAX_HP - 3);
+    expect(hasTower(damaged, 2, 3)).toBe(true);
+
+    const gone = damageTower(damaged, 2, 3, TOWER_MAX_HP);
+    expect(hasTower(gone, 2, 3)).toBe(false);
+    expect(tileKind(gone, 2, 3)).toBe("empty");
   });
 });
 
