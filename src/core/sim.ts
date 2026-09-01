@@ -15,6 +15,11 @@ import { findPath, isWalkable } from "./path";
 
 export const UNIT_SPEED_TILES_PER_SEC = 2.75;
 export const UNIT_ATTACK_DPS = 4;
+export const PHASE_DURATION_SEC = 15;
+export const TIME_SCALES = [0, 1, 2, 3] as const;
+
+export type Phase = "enemy" | "ally";
+export type TimeScale = (typeof TIME_SCALES)[number];
 
 const ARRIVE_EPS = 0.05;
 const MAX_MOVE_ITERS = 24;
@@ -37,6 +42,16 @@ export type SimState = {
   readonly units: readonly Unit[];
   readonly nextUnitId: number;
   readonly time: number;
+  readonly phase: Phase;
+  readonly phaseTimeLeft: number;
+  readonly timeScale: TimeScale;
+};
+
+export type HudSnapshot = {
+  readonly phase: Phase;
+  readonly phaseTimeLeft: number;
+  readonly hasPath: boolean;
+  readonly timeScale: TimeScale;
 };
 
 type StepResult = {
@@ -54,7 +69,26 @@ export function createSim(grid: Grid = createGrid()): SimState {
     units: [spawnUnit(1, grid.start)],
     nextUnitId: 2,
     time: 0,
+    phase: "enemy",
+    phaseTimeLeft: PHASE_DURATION_SEC,
+    timeScale: 1,
   };
+}
+
+export function hudSnapshot(state: SimState): HudSnapshot {
+  return {
+    phase: state.phase,
+    phaseTimeLeft: state.phaseTimeLeft,
+    hasPath: findPath(state.grid) !== null,
+    timeScale: state.timeScale,
+  };
+}
+
+export function setTimeScale(state: SimState, timeScale: TimeScale): SimState {
+  if (state.timeScale === timeScale) {
+    return state;
+  }
+  return { ...state, timeScale };
 }
 
 export function simToggleTower(state: SimState, x: number, y: number): SimState {
@@ -66,11 +100,12 @@ export function simToggleTower(state: SimState, x: number, y: number): SimState 
 }
 
 export function tick(state: SimState, dt: number): SimState {
-  if (!(dt > 0)) {
+  const scaled = dt * state.timeScale;
+  if (!(scaled > 0)) {
     return state;
   }
   let current = state;
-  let remaining = Math.min(dt, 4);
+  let remaining = Math.min(scaled, 4);
   while (remaining > 1e-9) {
     const stepped = Math.min(0.05, remaining);
     current = tickOnce(current, stepped);
@@ -81,6 +116,7 @@ export function tick(state: SimState, dt: number): SimState {
 
 function tickOnce(state: SimState, dt: number): SimState {
   const time = state.time + dt;
+  const clock = tickPhaseClock(state.phase, state.phaseTimeLeft, dt);
   let grid = state.grid;
   const units: Unit[] = [];
   let nextUnitId = state.nextUnitId;
@@ -96,7 +132,29 @@ function tickOnce(state: SimState, dt: number): SimState {
     units.push(moved.unit);
   }
 
-  return { grid, units, nextUnitId, time };
+  return {
+    grid,
+    units,
+    nextUnitId,
+    time,
+    phase: clock.phase,
+    phaseTimeLeft: clock.phaseTimeLeft,
+    timeScale: state.timeScale,
+  };
+}
+
+function tickPhaseClock(
+  phase: Phase,
+  timeLeft: number,
+  dt: number,
+): { phase: Phase; phaseTimeLeft: number } {
+  let nextPhase = phase;
+  let remaining = timeLeft - dt;
+  while (remaining <= 0) {
+    nextPhase = nextPhase === "enemy" ? "ally" : "enemy";
+    remaining += PHASE_DURATION_SEC;
+  }
+  return { phase: nextPhase, phaseTimeLeft: remaining };
 }
 
 function spawnUnit(id: number, tile: TileCoord): Unit {

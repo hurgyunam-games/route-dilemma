@@ -21,9 +21,13 @@ export { findPath, isWalkable } from "./path";
 export type { Path } from "./path";
 export {
   createSim,
+  hudSnapshot,
+  PHASE_DURATION_SEC,
+  setTimeScale,
   simToggleTower,
   tick,
+  TIME_SCALES,
   UNIT_ATTACK_DPS,
   unitTile,
 } from "./sim";
-export type { SimState, Unit } from "./sim";
+export type { HudSnapshot, Phase, SimState, TimeScale, Unit } from "./sim";

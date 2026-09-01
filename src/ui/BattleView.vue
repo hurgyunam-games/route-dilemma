@@ -1,24 +1,57 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { Application } from "pixi.js";
-import { createSim, findPath, simToggleTower, tick } from "@/core";
+import {
+  createSim,
+  hudSnapshot,
+  setTimeScale,
+  simToggleTower,
+  tick,
+  type HudSnapshot,
+  type TimeScale,
+} from "@/core";
 import {
   createGameApp,
   destroyGameApp,
   setGameView,
 } from "@/render/create-game-app";
 
+const TIME_CONTROLS: readonly { scale: TimeScale; label: string }[] = [
+  { scale: 0, label: "일시정지" },
+  { scale: 1, label: "1배속" },
+  { scale: 2, label: "2배속" },
+  { scale: 3, label: "3배속" },
+];
+
 const hostRef = ref<HTMLElement | null>(null);
 let sim = createSim();
-const hasPath = ref(findPath(sim.grid) !== null);
+const hud = ref<HudSnapshot>(hudSnapshot(sim));
 let app: Application | null = null;
 let raf = 0;
 let lastTs = 0;
+
+const phaseLabel = computed(() =>
+  hud.value.phase === "enemy" ? "Enemy Phase" : "Ally Phase",
+);
+const phaseTimeLabel = computed(() => `${hud.value.phaseTimeLeft.toFixed(1)}s`);
+
+const pushHud = (): void => {
+  hud.value = hudSnapshot(sim);
+};
 
 const pushView = (): void => {
   if (app) {
     setGameView(app, sim.grid, sim.units);
   }
+};
+
+const onTimeScale = (scale: TimeScale): void => {
+  const next = setTimeScale(sim, scale);
+  if (next === sim) {
+    return;
+  }
+  sim = next;
+  pushHud();
 };
 
 onMounted(async () => {
@@ -31,7 +64,7 @@ onMounted(async () => {
       return;
     }
     sim = next;
-    hasPath.value = findPath(sim.grid) !== null;
+    pushHud();
     pushView();
   });
 
@@ -41,7 +74,7 @@ onMounted(async () => {
     lastTs = ts;
     if (dt > 0) {
       sim = tick(sim, dt);
-      hasPath.value = findPath(sim.grid) !== null;
+      pushHud();
       pushView();
     }
   };
@@ -64,12 +97,36 @@ onUnmounted(() => {
       class="canvas-host"
     />
     <div class="hud">
-      <p
-        v-if="!hasPath"
-        class="blocked"
+      <div class="phase-stack">
+        <div
+          class="phase-bar"
+          :class="hud.phase"
+        >
+          <span class="phase-name">{{ phaseLabel }}</span>
+          <span class="phase-timer">{{ phaseTimeLabel }}</span>
+        </div>
+        <p
+          v-if="!hud.hasPath"
+          class="blocked"
+        >
+          길이 없습니다
+        </p>
+      </div>
+      <div
+        class="time-controls"
+        role="group"
+        aria-label="타임 컨트롤러"
       >
-        길이 없습니다
-      </p>
+        <button
+          v-for="option in TIME_CONTROLS"
+          :key="option.scale"
+          type="button"
+          :class="{ active: hud.timeScale === option.scale }"
+          @click="onTimeScale(option.scale)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -98,14 +155,80 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
+.phase-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.phase-bar,
 .blocked {
-  margin: 16px auto 0;
   width: fit-content;
   padding: 8px 14px;
   border-radius: 6px;
   background: rgba(20, 12, 10, 0.82);
-  color: #f3d7c4;
   font: 700 14px/1.3 "Segoe UI", sans-serif;
   letter-spacing: 0.02em;
+}
+
+.phase-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.phase-bar.enemy {
+  color: #f0b4a8;
+  box-shadow: inset 0 0 0 1px rgba(232, 96, 72, 0.45);
+}
+
+.phase-bar.ally {
+  color: #b8e0c8;
+  box-shadow: inset 0 0 0 1px rgba(72, 176, 120, 0.45);
+}
+
+.phase-timer {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.92;
+}
+
+.blocked {
+  margin: 0;
+  color: #f3d7c4;
+}
+
+.time-controls {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.time-controls button {
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(20, 12, 10, 0.82);
+  color: #d8cfc6;
+  font: 700 13px/1.2 "Segoe UI", sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(216, 207, 198, 0.16);
+}
+
+.time-controls button.active {
+  color: #f7efe6;
+  background: rgba(56, 38, 28, 0.95);
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.7);
+}
+
+.time-controls button:focus-visible {
+  outline: 2px solid #e8b060;
+  outline-offset: 2px;
 }
 </style>
