@@ -14,3 +14,5 @@ export {
   viewportToTile,
 } from "./grid";
 export type { Grid, GridLayout, TileCoord, TileKind } from "./grid";
+export { findPath, isWalkable } from "./path";
+export type { Path } from "./path";
