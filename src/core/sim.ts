@@ -17,6 +17,8 @@ export const UNIT_SPEED_TILES_PER_SEC = 2.75;
 export const UNIT_ATTACK_DPS = 4;
 export const PHASE_DURATION_SEC = 15;
 export const ALLY_GOLD_REWARD = 10;
+export const BASE_MAX_HP = 20;
+export const ENEMY_BASE_DAMAGE = 1;
 export const TIME_SCALES = [0, 1, 2, 3] as const;
 
 export type Phase = "enemy" | "ally";
@@ -51,6 +53,7 @@ export type SimState = {
   readonly phaseTimeLeft: number;
   readonly timeScale: TimeScale;
   readonly gold: number;
+  readonly baseHp: number;
 };
 
 export type HudSnapshot = {
@@ -59,6 +62,7 @@ export type HudSnapshot = {
   readonly hasPath: boolean;
   readonly timeScale: TimeScale;
   readonly gold: number;
+  readonly baseHp: number;
 };
 
 type StepResult = {
@@ -80,6 +84,7 @@ export function createSim(grid: Grid = createGrid()): SimState {
     phaseTimeLeft: PHASE_DURATION_SEC,
     timeScale: 1,
     gold: 0,
+    baseHp: BASE_MAX_HP,
   };
 }
 
@@ -90,6 +95,7 @@ export function hudSnapshot(state: SimState): HudSnapshot {
     hasPath: findPath(state.grid) !== null,
     timeScale: state.timeScale,
     gold: state.gold,
+    baseHp: state.baseHp,
   };
 }
 
@@ -128,6 +134,7 @@ function tickOnce(state: SimState, dt: number): SimState {
   const clock = tickPhaseClock(state.phase, state.phaseTimeLeft, dt);
   let grid = state.grid;
   let gold = state.gold;
+  let baseHp = state.baseHp;
   let nextUnitId = state.nextUnitId;
   const units: Unit[] = [];
 
@@ -137,6 +144,8 @@ function tickOnce(state: SimState, dt: number): SimState {
     if (reachedBase(moved.unit, grid)) {
       if (moved.unit.kind === "ally") {
         gold += ALLY_GOLD_REWARD;
+      } else {
+        baseHp = Math.max(0, baseHp - ENEMY_BASE_DAMAGE);
       }
       continue;
     }
@@ -157,6 +166,7 @@ function tickOnce(state: SimState, dt: number): SimState {
     phaseTimeLeft: clock.phaseTimeLeft,
     timeScale: state.timeScale,
     gold,
+    baseHp,
   };
 }
 

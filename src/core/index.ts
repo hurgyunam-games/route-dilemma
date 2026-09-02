@@ -21,7 +21,9 @@ export { findPath, isWalkable } from "./path";
 export type { Path } from "./path";
 export {
   ALLY_GOLD_REWARD,
+  BASE_MAX_HP,
   createSim,
+  ENEMY_BASE_DAMAGE,
   hudSnapshot,
   PHASE_DURATION_SEC,
   setTimeScale,

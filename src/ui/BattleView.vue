@@ -35,6 +35,7 @@ const phaseLabel = computed(() =>
 );
 const phaseTimeLabel = computed(() => `${hud.value.phaseTimeLeft.toFixed(1)}s`);
 const goldLabel = computed(() => `골드 ${hud.value.gold}`);
+const baseHpLabel = computed(() => `본진 HP ${hud.value.baseHp}`);
 
 const pushHud = (): void => {
   hud.value = hudSnapshot(sim);
@@ -107,6 +108,7 @@ onUnmounted(() => {
           <span class="phase-timer">{{ phaseTimeLabel }}</span>
         </div>
         <p class="gold">{{ goldLabel }}</p>
+        <p class="base-hp">{{ baseHpLabel }}</p>
         <p
           v-if="!hud.hasPath"
           class="blocked"
@@ -167,6 +169,7 @@ onUnmounted(() => {
 
 .phase-bar,
 .gold,
+.base-hp,
 .blocked {
   width: fit-content;
   padding: 8px 14px;
@@ -197,10 +200,18 @@ onUnmounted(() => {
   opacity: 0.92;
 }
 
-.gold {
+.gold,
+.base-hp {
   margin: 0;
-  color: #e8d48a;
   font-variant-numeric: tabular-nums;
+}
+
+.gold {
+  color: #e8d48a;
+}
+
+.base-hp {
+  color: #f0b4a8;
 }
 
 .blocked {

@@ -3,7 +3,9 @@ import { createGrid, getTower, hasTower, toggleTower, TOWER_MAX_HP } from "./gri
 import { findPath } from "./path";
 import {
   ALLY_GOLD_REWARD,
+  BASE_MAX_HP,
   createSim,
+  ENEMY_BASE_DAMAGE,
   hudSnapshot,
   PHASE_DURATION_SEC,
   setTimeScale,
@@ -28,6 +30,7 @@ describe("createSim", () => {
     expect(sim.units[0]!.kind).toBe("enemy");
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
     expect(sim.gold).toBe(0);
+    expect(sim.baseHp).toBe(BASE_MAX_HP);
   });
 });
 
@@ -318,5 +321,61 @@ describe("ally phase gold", () => {
     expect(sim.units.every((unit) => unit.kind !== "ally")).toBe(true);
     expect(sim.gold).toBe(0);
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
+  });
+});
+
+describe("enemy phase base damage", () => {
+  it("spawns an enemy at Start during Enemy Phase", () => {
+    const sim = createSim();
+    expect(sim.phase).toBe("enemy");
+    expect(sim.units).toHaveLength(1);
+    expect(sim.units[0]!.kind).toBe("enemy");
+    expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
+    expect(sim.baseHp).toBe(BASE_MAX_HP);
+    expect(hudSnapshot(sim).baseHp).toBe(BASE_MAX_HP);
+  });
+
+  it("does not decrease base HP while the enemy is still walking", () => {
+    const sim = tick(createSim(createGrid(12, 8)), 1.2);
+    expect(sim.units[0]!.kind).toBe("enemy");
+    expect(sim.units[0]!.x).toBeGreaterThan(sim.grid.start.x + 2);
+    expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
+    expect(sim.baseHp).toBe(BASE_MAX_HP);
+  });
+
+  it("decreases base HP only after the enemy reaches Base", () => {
+    const sim = advance(createSim(createGrid(12, 8)), 4.2);
+    expect(sim.baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE);
+    expect(hudSnapshot(sim).baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE);
+    expect(sim.units[0]!.kind).toBe("enemy");
+    expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
+  });
+
+  it("does not damage the base while enemies are breaking a blocked wall", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = { ...sim, grid: wallColumn(sim.grid, 1) };
+    const target = { x: 1, y: sim.grid.start.y };
+    const id = sim.units[0]!.id;
+
+    sim = tick(sim, 0.5);
+    expect(sim.units[0]!.id).toBe(id);
+    expect(sim.units[0]!.kind).toBe("enemy");
+    expect(sim.units[0]!.attackTile).toEqual(target);
+    expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
+    expect(getTower(sim.grid, target.x, target.y)?.hp).toBeLessThan(TOWER_MAX_HP);
+    expect(sim.baseHp).toBe(BASE_MAX_HP);
+  });
+
+  it("damages the base after the broken wall opens and the enemy reaches Base", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = { ...sim, grid: wallColumn(sim.grid, 1) };
+    sim = tick(sim, TOWER_MAX_HP / UNIT_ATTACK_DPS + 0.05);
+    expect(findPath(sim.grid)).not.toBeNull();
+    expect(sim.baseHp).toBe(BASE_MAX_HP);
+    expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
+
+    sim = advance(sim, 4.5);
+    expect(sim.baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE);
+    expect(hudSnapshot(sim).baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE);
   });
 });
