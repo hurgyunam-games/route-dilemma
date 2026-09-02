@@ -20,6 +20,7 @@ export type { Grid, GridLayout, TileCoord, TileKind, Tower } from "./grid";
 export { findPath, isWalkable } from "./path";
 export type { Path } from "./path";
 export {
+  ALLY_GOLD_REWARD,
   createSim,
   hudSnapshot,
   PHASE_DURATION_SEC,
@@ -30,4 +31,4 @@ export {
   UNIT_ATTACK_DPS,
   unitTile,
 } from "./sim";
-export type { HudSnapshot, Phase, SimState, TimeScale, Unit } from "./sim";
+export type { HudSnapshot, Phase, SimState, TimeScale, Unit, UnitKind } from "./sim";

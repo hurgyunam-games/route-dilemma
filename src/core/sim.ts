@@ -16,9 +16,11 @@ import { findPath, isWalkable } from "./path";
 export const UNIT_SPEED_TILES_PER_SEC = 2.75;
 export const UNIT_ATTACK_DPS = 4;
 export const PHASE_DURATION_SEC = 15;
+export const ALLY_GOLD_REWARD = 10;
 export const TIME_SCALES = [0, 1, 2, 3] as const;
 
 export type Phase = "enemy" | "ally";
+export type UnitKind = Phase;
 export type TimeScale = (typeof TIME_SCALES)[number];
 
 const ARRIVE_EPS = 0.05;
@@ -33,6 +35,7 @@ const ORTHOGONAL: readonly TileCoord[] = [
 
 export type Unit = {
   readonly id: number;
+  readonly kind: UnitKind;
   readonly x: number;
   readonly y: number;
   /** Tower being hit; null while walking or waiting. */
@@ -47,6 +50,7 @@ export type SimState = {
   readonly phase: Phase;
   readonly phaseTimeLeft: number;
   readonly timeScale: TimeScale;
+  readonly gold: number;
 };
 
 export type HudSnapshot = {
@@ -54,6 +58,7 @@ export type HudSnapshot = {
   readonly phaseTimeLeft: number;
   readonly hasPath: boolean;
   readonly timeScale: TimeScale;
+  readonly gold: number;
 };
 
 type StepResult = {
@@ -68,12 +73,13 @@ export function unitTile(unit: Pick<Unit, "x" | "y">): TileCoord {
 export function createSim(grid: Grid = createGrid()): SimState {
   return {
     grid,
-    units: [spawnUnit(1, grid.start)],
+    units: [spawnUnit(1, grid.start, "enemy")],
     nextUnitId: 2,
     time: 0,
     phase: "enemy",
     phaseTimeLeft: PHASE_DURATION_SEC,
     timeScale: 1,
+    gold: 0,
   };
 }
 
@@ -83,6 +89,7 @@ export function hudSnapshot(state: SimState): HudSnapshot {
     phaseTimeLeft: state.phaseTimeLeft,
     hasPath: findPath(state.grid) !== null,
     timeScale: state.timeScale,
+    gold: state.gold,
   };
 }
 
@@ -120,18 +127,25 @@ function tickOnce(state: SimState, dt: number): SimState {
   const time = state.time + dt;
   const clock = tickPhaseClock(state.phase, state.phaseTimeLeft, dt);
   let grid = state.grid;
-  const units: Unit[] = [];
+  let gold = state.gold;
   let nextUnitId = state.nextUnitId;
+  const units: Unit[] = [];
 
-  for (const unit of state.units) {
+  for (const unit of unitsForPhase(state.units, clock.phase)) {
     const moved = stepUnit(unit, grid, dt);
     grid = moved.grid;
     if (reachedBase(moved.unit, grid)) {
-      units.push(spawnUnit(nextUnitId, grid.start));
-      nextUnitId += 1;
+      if (moved.unit.kind === "ally") {
+        gold += ALLY_GOLD_REWARD;
+      }
       continue;
     }
     units.push(moved.unit);
+  }
+
+  if (!units.some((unit) => unit.kind === clock.phase)) {
+    units.push(spawnUnit(nextUnitId, grid.start, clock.phase));
+    nextUnitId += 1;
   }
 
   return {
@@ -142,6 +156,7 @@ function tickOnce(state: SimState, dt: number): SimState {
     phase: clock.phase,
     phaseTimeLeft: clock.phaseTimeLeft,
     timeScale: state.timeScale,
+    gold,
   };
 }
 
@@ -159,8 +174,12 @@ function tickPhaseClock(
   return { phase: nextPhase, phaseTimeLeft: remaining };
 }
 
-function spawnUnit(id: number, tile: TileCoord): Unit {
-  return { id, x: tile.x, y: tile.y, attackTile: null };
+function unitsForPhase(units: readonly Unit[], phase: Phase): Unit[] {
+  return units.filter((unit) => unit.kind === phase);
+}
+
+function spawnUnit(id: number, tile: TileCoord, kind: UnitKind): Unit {
+  return { id, kind, x: tile.x, y: tile.y, attackTile: null };
 }
 
 function reachedBase(unit: Unit, grid: Grid): boolean {
@@ -179,12 +198,20 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
   }
 
   const tile = unitTile({ x, y });
-  const target = attackTarget(grid, tile);
-  if (target && isOrthAdjacent(tile, target)) {
-    return {
-      unit: { id: unit.id, x, y, attackTile: { x: target.x, y: target.y } },
-      grid: damageTower(grid, target.x, target.y, UNIT_ATTACK_DPS * dt),
-    };
+  if (unit.kind !== "ally") {
+    const target = attackTarget(grid, tile);
+    if (target && isOrthAdjacent(tile, target)) {
+      return {
+        unit: {
+          id: unit.id,
+          kind: unit.kind,
+          x,
+          y,
+          attackTile: { x: target.x, y: target.y },
+        },
+        grid: damageTower(grid, target.x, target.y, UNIT_ATTACK_DPS * dt),
+      };
+    }
   }
 
   let remaining = UNIT_SPEED_TILES_PER_SEC * dt;
@@ -197,7 +224,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
       continue;
     }
 
-    const waypoint = nextWaypoint(grid, x, y, here);
+    const waypoint = nextWaypoint(grid, x, y, here, unit.kind);
     if (!waypoint || !isWalkable(grid, waypoint.x, waypoint.y)) {
       break;
     }
@@ -217,7 +244,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
     remaining -= step;
   }
 
-  return { unit: { id: unit.id, x, y, attackTile: null }, grid };
+  return { unit: { id: unit.id, kind: unit.kind, x, y, attackTile: null }, grid };
 }
 
 function nextWaypoint(
@@ -225,8 +252,9 @@ function nextWaypoint(
   x: number,
   y: number,
   tile: TileCoord,
+  kind: UnitKind,
 ): TileCoord | null {
-  const route = routeForTile(grid, tile);
+  const route = routeForTile(grid, tile, kind);
   if (!route || route.length === 0) {
     return null;
   }
@@ -252,7 +280,11 @@ function nextWaypoint(
   return null;
 }
 
-function routeForTile(grid: Grid, from: TileCoord): readonly TileCoord[] | null {
+function routeForTile(
+  grid: Grid,
+  from: TileCoord,
+  kind: UnitKind,
+): readonly TileCoord[] | null {
   const shared = findPath(grid);
   if (shared) {
     const joined = joinSharedPath(grid, from, shared);
@@ -266,6 +298,9 @@ function routeForTile(grid: Grid, from: TileCoord): readonly TileCoord[] | null 
     return local;
   }
 
+  if (kind === "ally") {
+    return null;
+  }
   return approachTowerRoute(grid, from);
 }
 

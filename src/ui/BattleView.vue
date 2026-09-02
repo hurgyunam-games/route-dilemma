@@ -34,6 +34,7 @@ const phaseLabel = computed(() =>
   hud.value.phase === "enemy" ? "Enemy Phase" : "Ally Phase",
 );
 const phaseTimeLabel = computed(() => `${hud.value.phaseTimeLeft.toFixed(1)}s`);
+const goldLabel = computed(() => `골드 ${hud.value.gold}`);
 
 const pushHud = (): void => {
   hud.value = hudSnapshot(sim);
@@ -105,6 +106,7 @@ onUnmounted(() => {
           <span class="phase-name">{{ phaseLabel }}</span>
           <span class="phase-timer">{{ phaseTimeLabel }}</span>
         </div>
+        <p class="gold">{{ goldLabel }}</p>
         <p
           v-if="!hud.hasPath"
           class="blocked"
@@ -164,6 +166,7 @@ onUnmounted(() => {
 }
 
 .phase-bar,
+.gold,
 .blocked {
   width: fit-content;
   padding: 8px 14px;
@@ -192,6 +195,12 @@ onUnmounted(() => {
 .phase-timer {
   font-variant-numeric: tabular-nums;
   opacity: 0.92;
+}
+
+.gold {
+  margin: 0;
+  color: #e8d48a;
+  font-variant-numeric: tabular-nums;
 }
 
 .blocked {

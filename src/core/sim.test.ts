@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createGrid, getTower, hasTower, toggleTower, TOWER_MAX_HP } from "./grid";
 import { findPath } from "./path";
 import {
+  ALLY_GOLD_REWARD,
   createSim,
   hudSnapshot,
   PHASE_DURATION_SEC,
@@ -24,7 +25,9 @@ describe("createSim", () => {
   it("spawns a unit on Start", () => {
     const sim = createSim();
     expect(sim.units).toHaveLength(1);
+    expect(sim.units[0]!.kind).toBe("enemy");
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
+    expect(sim.gold).toBe(0);
   });
 });
 
@@ -255,5 +258,65 @@ describe("time scale", () => {
     expect(sim.phaseTimeLeft).toBe(PHASE_DURATION_SEC);
     sim = simToggleTower(sim, 3, 2);
     expect(hasTower(sim.grid, 3, 2)).toBe(false);
+  });
+});
+
+describe("ally phase gold", () => {
+  it("spawns an ally at Start when Ally Phase begins", () => {
+    const sim = advance(createSim(), PHASE_DURATION_SEC);
+    expect(sim.phase).toBe("ally");
+    expect(sim.units).toHaveLength(1);
+    expect(sim.units[0]!.kind).toBe("ally");
+    expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
+    expect(sim.gold).toBe(0);
+    expect(hudSnapshot(sim).gold).toBe(0);
+  });
+
+  it("does not increase gold while the ally is still walking", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    sim = tick(sim, 1.2);
+    expect(sim.units[0]!.kind).toBe("ally");
+    expect(sim.units[0]!.x).toBeGreaterThan(sim.grid.start.x + 2);
+    expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
+    expect(sim.gold).toBe(0);
+  });
+
+  it("increases gold only after the ally reaches Base", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    sim = advance(sim, 4.2);
+    expect(sim.gold).toBe(ALLY_GOLD_REWARD);
+    expect(hudSnapshot(sim).gold).toBe(ALLY_GOLD_REWARD);
+    expect(sim.units[0]!.kind).toBe("ally");
+    expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
+  });
+
+  it("waits at the entrance without breaking towers when the path is blocked", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    sim = { ...sim, grid: wallColumn(sim.grid, 1) };
+    const target = { x: 1, y: sim.grid.start.y };
+    const hp = getTower(sim.grid, target.x, target.y)!.hp;
+    const id = sim.units[0]!.id;
+
+    sim = tick(sim, 2);
+    expect(sim.units[0]!.id).toBe(id);
+    expect(sim.units[0]!.kind).toBe("ally");
+    expect(sim.units[0]!.attackTile).toBeNull();
+    expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
+    expect(getTower(sim.grid, target.x, target.y)?.hp).toBe(hp);
+    expect(sim.gold).toBe(0);
+  });
+
+  it("despawns leftover allies when the phase ends without paying their gold", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    sim = { ...sim, grid: wallColumn(sim.grid, 1) };
+    sim = tick(sim, 1);
+    expect(sim.units[0]!.kind).toBe("ally");
+    expect(sim.gold).toBe(0);
+
+    sim = advance(sim, sim.phaseTimeLeft);
+    expect(sim.phase).toBe("enemy");
+    expect(sim.units.every((unit) => unit.kind !== "ally")).toBe(true);
+    expect(sim.gold).toBe(0);
+    expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
   });
 });

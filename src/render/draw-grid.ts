@@ -20,6 +20,7 @@ import {
   type TileCoord,
   type TileKind,
   type Unit,
+  type UnitKind,
 } from "@/core";
 import type { EnemySheets } from "@/render/enemy-sprites";
 
@@ -114,7 +115,28 @@ type UnitSprite = {
   lastY: number;
   facing: 1 | -1;
   clip: EnemyClip;
+  kind: UnitKind;
 };
+
+function unitWalkTextures(
+  kind: UnitKind,
+  enemySheets: EnemySheets,
+  allyWalk: Texture[],
+): Texture[] {
+  return kind === "ally" ? allyWalk : enemySheets.walk;
+}
+
+function unitClipTextures(
+  kind: UnitKind,
+  clip: EnemyClip,
+  enemySheets: EnemySheets,
+  allyWalk: Texture[],
+): Texture[] {
+  if (kind === "ally" || clip !== "attack") {
+    return unitWalkTextures(kind, enemySheets, allyWalk);
+  }
+  return enemySheets.attack;
+}
 
 function horizontalFacing(dx: number, fallback: 1 | -1): 1 | -1 {
   if (dx > UNIT_MOVE_EPS) {
@@ -208,6 +230,7 @@ export function createGridView(
   towerFrames: Texture[],
   floorTexture: Texture,
   enemySheets: EnemySheets,
+  allyWalk: Texture[],
 ): {
   readonly container: Container;
   sync(
@@ -352,7 +375,7 @@ export function createGridView(
       let record = unitSprites.get(unit.id);
       if (!record) {
         const sprite = new AnimatedSprite({
-          textures: enemySheets.walk,
+          textures: unitWalkTextures(unit.kind, enemySheets, allyWalk),
           animationSpeed: ENEMY_ANIMATION_SPEED,
           loop: true,
           autoPlay: false,
@@ -366,6 +389,7 @@ export function createGridView(
           lastY: unit.y,
           facing: -1,
           clip: "walk",
+          kind: unit.kind,
         };
         unitSprites.set(unit.id, record);
       }
@@ -377,12 +401,19 @@ export function createGridView(
         record.facing = horizontalFacing(dx, record.facing);
       }
       const clip: EnemyClip = unit.attackTile ? "attack" : "walk";
-      if (record.clip !== clip) {
+      if (record.kind !== unit.kind || record.clip !== clip) {
+        record.kind = unit.kind;
         record.clip = clip;
-        record.sprite.textures =
-          clip === "attack" ? enemySheets.attack : enemySheets.walk;
+        record.sprite.textures = unitClipTextures(
+          unit.kind,
+          clip,
+          enemySheets,
+          allyWalk,
+        );
         record.sprite.animationSpeed =
-          clip === "attack" ? ENEMY_ATTACK_ANIMATION_SPEED : ENEMY_ANIMATION_SPEED;
+          clip === "attack" && unit.kind !== "ally"
+            ? ENEMY_ATTACK_ANIMATION_SPEED
+            : ENEMY_ANIMATION_SPEED;
       }
       record.sprite.visible = true;
       layoutEnemySprite(record.sprite, layout, unit, record.facing);
