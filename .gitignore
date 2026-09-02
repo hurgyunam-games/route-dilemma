@@ -6,3 +6,15 @@ coverage
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# Licensed (and any) raster images must stay off git.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.tif
+*.tiff
+*.ico
+*.psd
