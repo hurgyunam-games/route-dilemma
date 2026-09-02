@@ -13,12 +13,14 @@ import {
   getTower,
   tileKind,
   TOWER_MAX_HP,
+  UNIT_MAX_HP,
   viewportToTile,
   type Grid,
   type GridLayout,
   type Path,
   type TileCoord,
   type TileKind,
+  type TowerShot,
   type Unit,
   type UnitKind,
 } from "@/core";
@@ -31,6 +33,7 @@ const LABEL_FILL = 0xf4f1ea;
 const PATH_FILL = 0xc9a227;
 const PATH_LINE = 0xf4d35e;
 const TOWER_ANIMATION_SPEED = 0.08;
+const TOWER_FIRE_ANIMATION_SPEED = 0.22;
 const TOWER_WIDTH_IN_TILE = 1.05;
 const ENEMY_ANIMATION_SPEED = 0.14;
 const ENEMY_ATTACK_ANIMATION_SPEED = 0.18;
@@ -173,6 +176,27 @@ function hpFill(ratio: number): number {
   return 0xc4452d;
 }
 
+function drawHpBar(
+  graphics: Graphics,
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+  hp: number,
+  maxHp: number,
+): void {
+  const ratio = Math.max(0, Math.min(1, hp / maxHp));
+  graphics.rect(left, top, width, height).fill({ color: 0x1a1412, alpha: 0.9 });
+  if (ratio > 0) {
+    graphics.rect(left, top, width * ratio, height).fill({ color: hpFill(ratio) });
+  }
+  graphics.rect(left, top, width, height).stroke({
+    width: 1,
+    color: 0xf4f1ea,
+    alpha: 0.85,
+  });
+}
+
 function drawTowerHp(
   graphics: Graphics,
   layout: GridLayout,
@@ -184,16 +208,38 @@ function drawTowerHp(
   const height = Math.max(4, Math.round(layout.tileSize * 0.1));
   const left = layout.originX + (x + 0.5) * layout.tileSize - width / 2;
   const top = layout.originY + y * layout.tileSize + Math.max(3, layout.tileSize * 0.05);
-  const ratio = Math.max(0, Math.min(1, hp / TOWER_MAX_HP));
-  graphics.rect(left, top, width, height).fill({ color: 0x1a1412, alpha: 0.9 });
-  if (ratio > 0) {
-    graphics.rect(left, top, width * ratio, height).fill({ color: hpFill(ratio) });
+  drawHpBar(graphics, left, top, width, height, hp, TOWER_MAX_HP);
+}
+
+function drawUnitHp(graphics: Graphics, layout: GridLayout, unit: Unit): void {
+  const width = layout.tileSize * 0.55;
+  const height = Math.max(3, Math.round(layout.tileSize * 0.08));
+  const left = layout.originX + (unit.x + 0.5) * layout.tileSize - width / 2;
+  const top = layout.originY + unit.y * layout.tileSize - height;
+  drawHpBar(graphics, left, top, width, height, unit.hp, UNIT_MAX_HP);
+}
+
+function drawTowerShots(
+  graphics: Graphics,
+  layout: GridLayout,
+  shots: readonly TowerShot[],
+): void {
+  const width = Math.max(2, layout.tileSize * 0.08);
+  const spark = Math.max(3, layout.tileSize * 0.12);
+  for (const shot of shots) {
+    const from = tileCenter(layout, shot.fromX, shot.fromY);
+    const toX = layout.originX + (shot.toX + 0.5) * layout.tileSize;
+    const toY = layout.originY + (shot.toY + 0.5) * layout.tileSize;
+    graphics.moveTo(from.x, from.y);
+    graphics.lineTo(toX, toY);
+    graphics.stroke({
+      width,
+      color: 0xffc14d,
+      alpha: 0.92,
+      cap: "round",
+    });
+    graphics.circle(toX, toY, spark).fill({ color: 0xffe08a, alpha: 0.88 });
   }
-  graphics.rect(left, top, width, height).stroke({
-    width: 1,
-    color: 0xf4f1ea,
-    alpha: 0.85,
-  });
 }
 
 function layoutTowerSprite(
@@ -238,6 +284,7 @@ export function createGridView(
     viewportWidth: number,
     viewportHeight: number,
     units?: readonly Unit[],
+    towerShots?: readonly TowerShot[],
   ): void;
   tileAt(px: number, py: number): TileCoord | null;
 } {
@@ -257,6 +304,8 @@ export function createGridView(
   const unitLayer = new Container();
   unitLayer.sortableChildren = true;
   unitLayer.eventMode = "none";
+  const shotGraphics = new Graphics();
+  shotGraphics.eventMode = "none";
   const towers = new Map<string, AnimatedSprite>();
   const unitSprites = new Map<number, UnitSprite>();
   let lastLayout: GridLayout | null = null;
@@ -287,6 +336,7 @@ export function createGridView(
     startLabel,
     baseLabel,
     unitLayer,
+    shotGraphics,
   );
 
   const hideTowers = (): void => {
@@ -300,10 +350,12 @@ export function createGridView(
     viewportWidth: number,
     viewportHeight: number,
     units: readonly Unit[] = [],
+    towerShots: readonly TowerShot[] = [],
   ): void => {
     graphics.clear();
     pathGraphics.clear();
     hpGraphics.clear();
+    shotGraphics.clear();
     const layout = fitGridToViewport(grid, viewportWidth, viewportHeight);
     lastLayout = layout;
     if (layout.tileSize <= 0) {
@@ -321,6 +373,9 @@ export function createGridView(
     startLabel.visible = true;
     baseLabel.visible = true;
 
+    const firingKeys = new Set(
+      towerShots.map((shot) => tileKey(shot.fromX, shot.fromY)),
+    );
     const liveTowers = new Set<string>();
     forEachTile(grid, (x, y) => {
       const px = layout.originX + x * layout.tileSize;
@@ -357,6 +412,9 @@ export function createGridView(
         towers.set(key, sprite);
       }
       sprite.visible = true;
+      sprite.animationSpeed = firingKeys.has(key)
+        ? TOWER_FIRE_ANIMATION_SPEED
+        : TOWER_ANIMATION_SPEED;
       layoutTowerSprite(sprite, layout, x, y);
       const tower = getTower(grid, x, y);
       if (tower) {
@@ -417,6 +475,7 @@ export function createGridView(
       }
       record.sprite.visible = true;
       layoutEnemySprite(record.sprite, layout, unit, record.facing);
+      drawUnitHp(hpGraphics, layout, unit);
       if (clip === "attack" || moving) {
         if (!record.sprite.playing) {
           record.sprite.play();
@@ -440,6 +499,8 @@ export function createGridView(
         unitSprites.delete(id);
       }
     }
+
+    drawTowerShots(shotGraphics, layout, towerShots);
 
     placeLabel(
       startLabel,

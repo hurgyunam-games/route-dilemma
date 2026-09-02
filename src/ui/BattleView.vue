@@ -43,7 +43,7 @@ const pushHud = (): void => {
 
 const pushView = (): void => {
   if (app) {
-    setGameView(app, sim.grid, sim.units);
+    setGameView(app, sim.grid, sim.units, sim.towerShots);
   }
 };
 

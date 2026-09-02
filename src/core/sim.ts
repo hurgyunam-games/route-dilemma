@@ -15,6 +15,9 @@ import { findPath, isWalkable } from "./path";
 
 export const UNIT_SPEED_TILES_PER_SEC = 2.75;
 export const UNIT_ATTACK_DPS = 4;
+export const UNIT_MAX_HP = 16;
+export const TOWER_RANGE_TILES = 2;
+export const TOWER_ATTACK_DPS = 4;
 export const PHASE_DURATION_SEC = 15;
 export const ALLY_GOLD_REWARD = 10;
 export const BASE_MAX_HP = 20;
@@ -40,13 +43,22 @@ export type Unit = {
   readonly kind: UnitKind;
   readonly x: number;
   readonly y: number;
+  readonly hp: number;
   /** Tower being hit; null while walking or waiting. */
   readonly attackTile: TileCoord | null;
+};
+
+export type TowerShot = {
+  readonly fromX: number;
+  readonly fromY: number;
+  readonly toX: number;
+  readonly toY: number;
 };
 
 export type SimState = {
   readonly grid: Grid;
   readonly units: readonly Unit[];
+  readonly towerShots: readonly TowerShot[];
   readonly nextUnitId: number;
   readonly time: number;
   readonly phase: Phase;
@@ -78,6 +90,7 @@ export function createSim(grid: Grid = createGrid()): SimState {
   return {
     grid,
     units: [spawnUnit(1, grid.start, "enemy")],
+    towerShots: [],
     nextUnitId: 2,
     time: 0,
     phase: "enemy",
@@ -136,7 +149,7 @@ function tickOnce(state: SimState, dt: number): SimState {
   let gold = state.gold;
   let baseHp = state.baseHp;
   let nextUnitId = state.nextUnitId;
-  const units: Unit[] = [];
+  let units: Unit[] = [];
 
   for (const unit of unitsForPhase(state.units, clock.phase)) {
     const moved = stepUnit(unit, grid, dt);
@@ -152,6 +165,9 @@ function tickOnce(state: SimState, dt: number): SimState {
     units.push(moved.unit);
   }
 
+  const fired = fireTowers(grid, units, dt);
+  units = fired.units;
+
   if (!units.some((unit) => unit.kind === clock.phase)) {
     units.push(spawnUnit(nextUnitId, grid.start, clock.phase));
     nextUnitId += 1;
@@ -160,6 +176,7 @@ function tickOnce(state: SimState, dt: number): SimState {
   return {
     grid,
     units,
+    towerShots: fired.shots,
     nextUnitId,
     time,
     phase: clock.phase,
@@ -189,7 +206,7 @@ function unitsForPhase(units: readonly Unit[], phase: Phase): Unit[] {
 }
 
 function spawnUnit(id: number, tile: TileCoord, kind: UnitKind): Unit {
-  return { id, kind, x: tile.x, y: tile.y, attackTile: null };
+  return { id, kind, x: tile.x, y: tile.y, hp: UNIT_MAX_HP, attackTile: null };
 }
 
 function reachedBase(unit: Unit, grid: Grid): boolean {
@@ -213,8 +230,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
     if (target && isOrthAdjacent(tile, target)) {
       return {
         unit: {
-          id: unit.id,
-          kind: unit.kind,
+          ...unit,
           x,
           y,
           attackTile: { x: target.x, y: target.y },
@@ -254,7 +270,69 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
     remaining -= step;
   }
 
-  return { unit: { id: unit.id, kind: unit.kind, x, y, attackTile: null }, grid };
+  return { unit: { ...unit, x, y, attackTile: null }, grid };
+}
+
+function fireTowers(grid: Grid, units: readonly Unit[], dt: number): {
+  units: Unit[];
+  shots: TowerShot[];
+} {
+  const shots: TowerShot[] = [];
+  const hpById = new Map<number, number>();
+  for (const unit of units) {
+    hpById.set(unit.id, unit.hp);
+  }
+
+  for (const tower of grid.towers) {
+    const target = nearestEnemyInRange(tower, units, hpById);
+    if (!target) {
+      continue;
+    }
+    shots.push({
+      fromX: tower.x,
+      fromY: tower.y,
+      toX: target.x,
+      toY: target.y,
+    });
+    hpById.set(target.id, (hpById.get(target.id) ?? target.hp) - TOWER_ATTACK_DPS * dt);
+  }
+
+  const next: Unit[] = [];
+  for (const unit of units) {
+    const hp = hpById.get(unit.id) ?? unit.hp;
+    if (unit.kind === "enemy" && hp <= 0) {
+      continue;
+    }
+    next.push(hp === unit.hp ? unit : { ...unit, hp });
+  }
+  return { units: next, shots };
+}
+
+function nearestEnemyInRange(
+  tower: Tower,
+  units: readonly Unit[],
+  hpById: ReadonlyMap<number, number>,
+): Unit | null {
+  let best: Unit | null = null;
+  let bestDist = Infinity;
+  for (const unit of units) {
+    if (unit.kind !== "enemy") {
+      continue;
+    }
+    const hp = hpById.get(unit.id) ?? unit.hp;
+    if (!(hp > 0)) {
+      continue;
+    }
+    const dist = Math.hypot(unit.x - tower.x, unit.y - tower.y);
+    if (dist > TOWER_RANGE_TILES) {
+      continue;
+    }
+    if (dist < bestDist) {
+      best = unit;
+      bestDist = dist;
+    }
+  }
+  return best;
 }
 
 function nextWaypoint(

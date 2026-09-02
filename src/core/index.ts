@@ -30,7 +30,18 @@ export {
   simToggleTower,
   tick,
   TIME_SCALES,
+  TOWER_ATTACK_DPS,
+  TOWER_RANGE_TILES,
   UNIT_ATTACK_DPS,
+  UNIT_MAX_HP,
   unitTile,
 } from "./sim";
-export type { HudSnapshot, Phase, SimState, TimeScale, Unit, UnitKind } from "./sim";
+export type {
+  HudSnapshot,
+  Phase,
+  SimState,
+  TimeScale,
+  TowerShot,
+  Unit,
+  UnitKind,
+} from "./sim";

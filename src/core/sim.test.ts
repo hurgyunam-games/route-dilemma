@@ -11,7 +11,10 @@ import {
   setTimeScale,
   simToggleTower,
   tick,
+  TOWER_ATTACK_DPS,
+  TOWER_RANGE_TILES,
   UNIT_ATTACK_DPS,
+  UNIT_MAX_HP,
   unitTile,
 } from "./sim";
 
@@ -31,6 +34,8 @@ describe("createSim", () => {
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
     expect(sim.gold).toBe(0);
     expect(sim.baseHp).toBe(BASE_MAX_HP);
+    expect(sim.units[0]!.hp).toBe(UNIT_MAX_HP);
+    expect(sim.towerShots).toEqual([]);
   });
 });
 
@@ -377,5 +382,60 @@ describe("enemy phase base damage", () => {
     sim = advance(sim, 4.5);
     expect(sim.baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE);
     expect(hudSnapshot(sim).baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE);
+  });
+});
+
+describe("tower attacks", () => {
+  it("damages an in-range enemy and records a shot", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = simToggleTower(sim, sim.grid.start.x, sim.grid.start.y + 1);
+    sim = tick(sim, 0.25);
+    const enemy = sim.units[0]!;
+    expect(enemy.kind).toBe("enemy");
+    expect(enemy.hp).toBeCloseTo(UNIT_MAX_HP - TOWER_ATTACK_DPS * 0.25, 5);
+    expect(sim.towerShots).toHaveLength(1);
+    expect(sim.towerShots[0]).toMatchObject({
+      fromX: sim.grid.start.x,
+      fromY: sim.grid.start.y + 1,
+    });
+    expect(sim.towerShots[0]!.toX).toBeCloseTo(enemy.x, 5);
+    expect(sim.towerShots[0]!.toY).toBeCloseTo(enemy.y, 5);
+  });
+
+  it("removes an enemy when HP reaches 0", () => {
+    let sim = createSim(createGrid(12, 8));
+    const lane = sim.grid.start.y + 1;
+    sim = simToggleTower(sim, 3, lane);
+    sim = simToggleTower(sim, 5, lane);
+    sim = simToggleTower(sim, 7, lane);
+    sim = simToggleTower(sim, 9, lane);
+    const id = sim.units[0]!.id;
+
+    sim = advance(sim, 3.5);
+    expect(sim.units.some((unit) => unit.id === id)).toBe(false);
+    expect(sim.baseHp).toBe(BASE_MAX_HP);
+  });
+
+  it("does not hit an enemy outside tower range", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = simToggleTower(sim, sim.grid.base.x, 0);
+    sim = tick(sim, 2);
+    const enemy = sim.units[0]!;
+    expect(enemy.kind).toBe("enemy");
+    expect(Math.hypot(enemy.x - sim.grid.base.x, enemy.y - 0)).toBeGreaterThan(
+      TOWER_RANGE_TILES,
+    );
+    expect(enemy.hp).toBe(UNIT_MAX_HP);
+    expect(sim.towerShots).toHaveLength(0);
+  });
+
+  it("does not attack allies", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    sim = simToggleTower(sim, sim.grid.start.x, sim.grid.start.y + 1);
+    sim = tick(sim, 0.25);
+    const ally = sim.units[0]!;
+    expect(ally.kind).toBe("ally");
+    expect(ally.hp).toBe(UNIT_MAX_HP);
+    expect(sim.towerShots).toHaveLength(0);
   });
 });
