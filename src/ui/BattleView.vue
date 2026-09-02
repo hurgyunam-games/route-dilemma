@@ -36,6 +36,9 @@ const phaseLabel = computed(() =>
 const phaseTimeLabel = computed(() => `${hud.value.phaseTimeLeft.toFixed(1)}s`);
 const goldLabel = computed(() => `골드 ${hud.value.gold}`);
 const baseHpLabel = computed(() => `본진 HP ${hud.value.baseHp}`);
+const leftoverLabel = computed(() =>
+  hud.value.leftoverAllies > 0 ? `남은 아군 ${hud.value.leftoverAllies}` : "",
+);
 
 const pushHud = (): void => {
   hud.value = hudSnapshot(sim);
@@ -110,6 +113,12 @@ onUnmounted(() => {
         <p class="gold">{{ goldLabel }}</p>
         <p class="base-hp">{{ baseHpLabel }}</p>
         <p
+          v-if="leftoverLabel"
+          class="leftover"
+        >
+          {{ leftoverLabel }}
+        </p>
+        <p
           v-if="!hud.hasPath"
           class="blocked"
         >
@@ -170,6 +179,7 @@ onUnmounted(() => {
 .phase-bar,
 .gold,
 .base-hp,
+.leftover,
 .blocked {
   width: fit-content;
   padding: 8px 14px;
@@ -201,9 +211,14 @@ onUnmounted(() => {
 }
 
 .gold,
-.base-hp {
+.base-hp,
+.leftover {
   margin: 0;
   font-variant-numeric: tabular-nums;
+}
+
+.leftover {
+  color: #b8e0c8;
 }
 
 .gold {

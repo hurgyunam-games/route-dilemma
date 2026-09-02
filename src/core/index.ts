@@ -22,6 +22,7 @@ export type { Path } from "./path";
 export {
   ALLY_GOLD_REWARD,
   BASE_MAX_HP,
+  CATCH_RANGE_TILES,
   createSim,
   ENEMY_BASE_DAMAGE,
   hudSnapshot,

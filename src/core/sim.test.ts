@@ -15,6 +15,7 @@ import {
   TOWER_RANGE_TILES,
   UNIT_ATTACK_DPS,
   UNIT_MAX_HP,
+  UNIT_SPEED_TILES_PER_SEC,
   unitTile,
 } from "./sim";
 
@@ -313,19 +314,91 @@ describe("ally phase gold", () => {
     expect(getTower(sim.grid, target.x, target.y)?.hp).toBe(hp);
     expect(sim.gold).toBe(0);
   });
+});
 
-  it("despawns leftover allies when the phase ends without paying their gold", () => {
+describe("phase overlap leftover allies", () => {
+  it("starts Enemy Phase while a leftover ally is still on the map", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    const ally = sim.units[0]!;
+    expect(ally.kind).toBe("ally");
+    sim = {
+      ...sim,
+      units: [{ ...ally, x: 5, y: sim.grid.start.y }],
+      phaseTimeLeft: 0.05,
+    };
+
+    sim = tick(sim, 0.08);
+    expect(sim.phase).toBe("enemy");
+    expect(sim.units.some((unit) => unit.id === ally.id && unit.kind === "ally")).toBe(
+      true,
+    );
+    expect(sim.units.some((unit) => unit.kind === "enemy")).toBe(true);
+    expect(sim.gold).toBe(0);
+    expect(hudSnapshot(sim).leftoverAllies).toBe(1);
+  });
+
+  it("pays gold when a leftover ally reaches Base during Enemy Phase", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    const ally = sim.units[0]!;
+    sim = {
+      ...sim,
+      units: [{ ...ally, x: sim.grid.base.x - 0.4, y: sim.grid.base.y }],
+      phaseTimeLeft: 0.05,
+    };
+
+    sim = tick(sim, 0.3);
+    expect(sim.phase).toBe("enemy");
+    expect(sim.gold).toBe(ALLY_GOLD_REWARD);
+    expect(sim.units.some((unit) => unit.id === ally.id)).toBe(false);
+  });
+
+  it("pays no gold when a leftover ally is caught by an enemy", () => {
     let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
     sim = { ...sim, grid: wallColumn(sim.grid, 1) };
-    sim = tick(sim, 1);
-    expect(sim.units[0]!.kind).toBe("ally");
+    const allyId = sim.units[0]!.id;
     expect(sim.gold).toBe(0);
 
     sim = advance(sim, sim.phaseTimeLeft);
     expect(sim.phase).toBe("enemy");
-    expect(sim.units.every((unit) => unit.kind !== "ally")).toBe(true);
+    expect(sim.units.some((unit) => unit.id === allyId)).toBe(false);
+    expect(sim.units.some((unit) => unit.kind === "enemy")).toBe(true);
     expect(sim.gold).toBe(0);
-    expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
+  });
+
+  it("pays no gold when a leftover ally times out still on the map", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    const ally = sim.units[0]!;
+    sim = simToggleTower(sim, 1, 0);
+    sim = simToggleTower(sim, 0, 1);
+    sim = {
+      ...sim,
+      units: [{ ...ally, x: 0, y: 0 }],
+    };
+
+    sim = advance(sim, sim.phaseTimeLeft);
+    expect(sim.phase).toBe("enemy");
+    expect(sim.units.some((unit) => unit.id === ally.id)).toBe(true);
+    expect(sim.gold).toBe(0);
+
+    sim = advance(sim, sim.phaseTimeLeft);
+    expect(sim.phase).toBe("ally");
+    expect(sim.units.some((unit) => unit.id === ally.id)).toBe(false);
+    expect(sim.gold).toBe(0);
+  });
+
+  it("still has the ally on the map after Ally Phase when the maze is long", () => {
+    const simGrid = createGrid(50, 8);
+    const path = findPath(simGrid)!;
+    expect(path.length - 1).toBeGreaterThan(UNIT_SPEED_TILES_PER_SEC * PHASE_DURATION_SEC);
+
+    let sim = createSim(simGrid);
+    sim = advance(sim, PHASE_DURATION_SEC);
+    expect(sim.phase).toBe("ally");
+    sim = advance(sim, PHASE_DURATION_SEC);
+    expect(sim.phase).toBe("enemy");
+    expect(sim.units.some((unit) => unit.kind === "ally")).toBe(true);
+    expect(sim.gold).toBe(0);
+    expect(hudSnapshot(sim).leftoverAllies).toBeGreaterThan(0);
   });
 });
 

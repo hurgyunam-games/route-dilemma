@@ -18,6 +18,7 @@ export const UNIT_ATTACK_DPS = 4;
 export const UNIT_MAX_HP = 16;
 export const TOWER_RANGE_TILES = 2;
 export const TOWER_ATTACK_DPS = 4;
+export const CATCH_RANGE_TILES = 1;
 export const PHASE_DURATION_SEC = 15;
 export const ALLY_GOLD_REWARD = 10;
 export const BASE_MAX_HP = 20;
@@ -75,6 +76,7 @@ export type HudSnapshot = {
   readonly timeScale: TimeScale;
   readonly gold: number;
   readonly baseHp: number;
+  readonly leftoverAllies: number;
 };
 
 type StepResult = {
@@ -109,6 +111,10 @@ export function hudSnapshot(state: SimState): HudSnapshot {
     timeScale: state.timeScale,
     gold: state.gold,
     baseHp: state.baseHp,
+    leftoverAllies:
+      state.phase === "enemy"
+        ? state.units.filter((unit) => unit.kind === "ally").length
+        : 0,
   };
 }
 
@@ -151,7 +157,7 @@ function tickOnce(state: SimState, dt: number): SimState {
   let nextUnitId = state.nextUnitId;
   let units: Unit[] = [];
 
-  for (const unit of unitsForPhase(state.units, clock.phase)) {
+  for (const unit of retainUnits(state.units, state.phase, clock.phase)) {
     const moved = stepUnit(unit, grid, dt);
     grid = moved.grid;
     if (reachedBase(moved.unit, grid)) {
@@ -165,12 +171,15 @@ function tickOnce(state: SimState, dt: number): SimState {
     units.push(moved.unit);
   }
 
+  units = enemiesCatchAllies(units);
+
   const fired = fireTowers(grid, units, dt);
   units = fired.units;
 
   if (!units.some((unit) => unit.kind === clock.phase)) {
     units.push(spawnUnit(nextUnitId, grid.start, clock.phase));
     nextUnitId += 1;
+    units = enemiesCatchAllies(units);
   }
 
   return {
@@ -201,8 +210,54 @@ function tickPhaseClock(
   return { phase: nextPhase, phaseTimeLeft: remaining };
 }
 
-function unitsForPhase(units: readonly Unit[], phase: Phase): Unit[] {
-  return units.filter((unit) => unit.kind === phase);
+function retainUnits(
+  units: readonly Unit[],
+  prevPhase: Phase,
+  nextPhase: Phase,
+): Unit[] {
+  if (prevPhase === nextPhase) {
+    return [...units];
+  }
+  if (nextPhase === "enemy") {
+    return units.filter((unit) => unit.kind === "ally");
+  }
+  return [];
+}
+
+function enemiesCatchAllies(units: readonly Unit[]): Unit[] {
+  const enemies = units.filter((unit) => unit.kind === "enemy");
+  if (enemies.length === 0) {
+    return [...units];
+  }
+
+  const caught = new Set<number>();
+  const attacking = new Map<number, TileCoord>();
+  for (const ally of units) {
+    if (ally.kind !== "ally") {
+      continue;
+    }
+    for (const enemy of enemies) {
+      if (Math.hypot(enemy.x - ally.x, enemy.y - ally.y) > CATCH_RANGE_TILES) {
+        continue;
+      }
+      caught.add(ally.id);
+      if (!attacking.has(enemy.id)) {
+        attacking.set(enemy.id, unitTile(ally));
+      }
+      break;
+    }
+  }
+
+  if (caught.size === 0) {
+    return [...units];
+  }
+
+  return units
+    .filter((unit) => !caught.has(unit.id))
+    .map((unit) => {
+      const tile = attacking.get(unit.id);
+      return tile ? { ...unit, attackTile: tile } : unit;
+    });
 }
 
 function spawnUnit(id: number, tile: TileCoord, kind: UnitKind): Unit {
