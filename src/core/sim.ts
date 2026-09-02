@@ -20,17 +20,22 @@ export const TOWER_RANGE_TILES = 2;
 export const TOWER_ATTACK_DPS = 4;
 export const CATCH_RANGE_TILES = 1;
 export const PHASE_DURATION_SEC = 15;
+export const WAVE_SIZE = 5;
+export const SPAWN_INTERVAL_SEC = 0.8;
 export const ALLY_GOLD_REWARD = 10;
 export const BASE_MAX_HP = 20;
 export const ENEMY_BASE_DAMAGE = 1;
 export const TIME_SCALES = [0, 1, 2, 3] as const;
+export const ENEMY_TYPE_IDS = ["beast", "cavalry", "wolf", "slime", "goblin"] as const;
 
 export type Phase = "enemy" | "ally";
 export type UnitKind = Phase;
 export type TimeScale = (typeof TIME_SCALES)[number];
+export type EnemyTypeId = (typeof ENEMY_TYPE_IDS)[number];
 
 const ARRIVE_EPS = 0.05;
 const MAX_MOVE_ITERS = 24;
+const SPAWN_CLEARANCE_TILES = 0.9;
 
 const ORTHOGONAL: readonly TileCoord[] = [
   { x: 1, y: 0 },
@@ -42,6 +47,7 @@ const ORTHOGONAL: readonly TileCoord[] = [
 export type Unit = {
   readonly id: number;
   readonly kind: UnitKind;
+  readonly enemyType: EnemyTypeId | null;
   readonly x: number;
   readonly y: number;
   readonly hp: number;
@@ -67,6 +73,8 @@ export type SimState = {
   readonly timeScale: TimeScale;
   readonly gold: number;
   readonly baseHp: number;
+  readonly spawnedThisWave: number;
+  readonly spawnCooldown: number;
 };
 
 export type HudSnapshot = {
@@ -91,7 +99,7 @@ export function unitTile(unit: Pick<Unit, "x" | "y">): TileCoord {
 export function createSim(grid: Grid = createGrid()): SimState {
   return {
     grid,
-    units: [spawnUnit(1, grid.start, "enemy")],
+    units: [spawnUnit(1, grid.start, "enemy", "beast")],
     towerShots: [],
     nextUnitId: 2,
     time: 0,
@@ -100,6 +108,8 @@ export function createSim(grid: Grid = createGrid()): SimState {
     timeScale: 1,
     gold: 0,
     baseHp: BASE_MAX_HP,
+    spawnedThisWave: 1,
+    spawnCooldown: SPAWN_INTERVAL_SEC,
   };
 }
 
@@ -156,6 +166,9 @@ function tickOnce(state: SimState, dt: number): SimState {
   let baseHp = state.baseHp;
   let nextUnitId = state.nextUnitId;
   let units: Unit[] = [];
+  const phaseChanged = clock.phase !== state.phase;
+  let spawnedThisWave = phaseChanged ? 0 : state.spawnedThisWave;
+  let spawnCooldown = phaseChanged ? 0 : state.spawnCooldown - dt;
 
   for (const unit of retainUnits(state.units, state.phase, clock.phase)) {
     const moved = stepUnit(unit, grid, dt);
@@ -176,11 +189,18 @@ function tickOnce(state: SimState, dt: number): SimState {
   const fired = fireTowers(grid, units, dt);
   units = fired.units;
 
-  if (!units.some((unit) => unit.kind === clock.phase)) {
-    units.push(spawnUnit(nextUnitId, grid.start, clock.phase));
-    nextUnitId += 1;
-    units = enemiesCatchAllies(units);
-  }
+  const spawned = trySpawnWave(
+    units,
+    nextUnitId,
+    grid.start,
+    clock.phase,
+    spawnedThisWave,
+    spawnCooldown,
+  );
+  units = spawned.units;
+  nextUnitId = spawned.nextUnitId;
+  spawnedThisWave = spawned.spawnedThisWave;
+  spawnCooldown = spawned.spawnCooldown;
 
   return {
     grid,
@@ -193,6 +213,8 @@ function tickOnce(state: SimState, dt: number): SimState {
     timeScale: state.timeScale,
     gold,
     baseHp,
+    spawnedThisWave,
+    spawnCooldown,
   };
 }
 
@@ -260,8 +282,67 @@ function enemiesCatchAllies(units: readonly Unit[]): Unit[] {
     });
 }
 
-function spawnUnit(id: number, tile: TileCoord, kind: UnitKind): Unit {
-  return { id, kind, x: tile.x, y: tile.y, hp: UNIT_MAX_HP, attackTile: null };
+function trySpawnWave(
+  units: Unit[],
+  nextUnitId: number,
+  start: TileCoord,
+  kind: UnitKind,
+  spawnedThisWave: number,
+  spawnCooldown: number,
+): {
+  units: Unit[];
+  nextUnitId: number;
+  spawnedThisWave: number;
+  spawnCooldown: number;
+} {
+  if (spawnedThisWave >= WAVE_SIZE || spawnCooldown > 0) {
+    return { units, nextUnitId, spawnedThisWave, spawnCooldown };
+  }
+  if (kindOccupiesStart(units, start, kind)) {
+    return { units, nextUnitId, spawnedThisWave, spawnCooldown };
+  }
+  const enemyType =
+    kind === "enemy"
+      ? ENEMY_TYPE_IDS[spawnedThisWave % ENEMY_TYPE_IDS.length]!
+      : null;
+  return {
+    units: enemiesCatchAllies([
+      ...units,
+      spawnUnit(nextUnitId, start, kind, enemyType),
+    ]),
+    nextUnitId: nextUnitId + 1,
+    spawnedThisWave: spawnedThisWave + 1,
+    spawnCooldown: SPAWN_INTERVAL_SEC,
+  };
+}
+
+function kindOccupiesStart(
+  units: readonly Unit[],
+  start: TileCoord,
+  kind: UnitKind,
+): boolean {
+  return units.some(
+    (unit) =>
+      unit.kind === kind &&
+      Math.hypot(unit.x - start.x, unit.y - start.y) < SPAWN_CLEARANCE_TILES,
+  );
+}
+
+function spawnUnit(
+  id: number,
+  tile: TileCoord,
+  kind: UnitKind,
+  enemyType: EnemyTypeId | null = null,
+): Unit {
+  return {
+    id,
+    kind,
+    enemyType: kind === "enemy" ? (enemyType ?? "beast") : null,
+    x: tile.x,
+    y: tile.y,
+    hp: UNIT_MAX_HP,
+    attackTile: null,
+  };
 }
 
 function reachedBase(unit: Unit, grid: Grid): boolean {

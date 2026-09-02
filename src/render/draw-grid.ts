@@ -15,6 +15,7 @@ import {
   TOWER_MAX_HP,
   UNIT_MAX_HP,
   viewportToTile,
+  type EnemyTypeId,
   type Grid,
   type GridLayout,
   type Path,
@@ -24,7 +25,7 @@ import {
   type Unit,
   type UnitKind,
 } from "@/core";
-import type { EnemySheets } from "@/render/enemy-sprites";
+import type { EnemyAtlas, EnemySheets } from "@/render/enemy-sprites";
 
 const START_FILL = 0x2f6fb3;
 const BASE_FILL = 0xb45a28;
@@ -37,10 +38,24 @@ const TOWER_FIRE_ANIMATION_SPEED = 0.22;
 const TOWER_WIDTH_IN_TILE = 1.05;
 const ENEMY_ANIMATION_SPEED = 0.14;
 const ENEMY_ATTACK_ANIMATION_SPEED = 0.18;
-const ENEMY_WIDTH_IN_TILE = 1.35;
-/** Feet sit near y=37 in the 48px walk/attack frames. */
-const ENEMY_ANCHOR_Y = 38 / 48;
+const ENEMY_DEATH_ANIMATION_SPEED = 0.16;
+const ENEMY_WIDTH_IN_TILE: Record<EnemyTypeId, number> = {
+  beast: 1.35,
+  cavalry: 1.9,
+  wolf: 1.4,
+  slime: 1.05,
+  goblin: 1.25,
+};
+/** Feet sit near the bottom of each sheet's frame. */
+const ENEMY_ANCHOR_Y: Record<EnemyTypeId, number> = {
+  beast: 86 / 96,
+  cavalry: 88 / 96,
+  wolf: 40 / 48,
+  slime: 42 / 48,
+  goblin: 38 / 48,
+};
 const UNIT_MOVE_EPS = 0.002;
+const BASE_ARRIVE_EPS = 0.2;
 
 function markerFill(kind: TileKind): number | null {
   if (kind === "start") {
@@ -110,7 +125,7 @@ function drawPath(graphics: Graphics, layout: GridLayout, path: Path): void {
   });
 }
 
-type EnemyClip = "walk" | "attack";
+type EnemyClip = "walk" | "attack" | "death";
 
 type UnitSprite = {
   sprite: AnimatedSprite;
@@ -119,26 +134,40 @@ type UnitSprite = {
   facing: 1 | -1;
   clip: EnemyClip;
   kind: UnitKind;
+  enemyType: EnemyTypeId | null;
 };
+
+function enemySheetsFor(
+  enemyType: EnemyTypeId | null,
+  atlas: EnemyAtlas,
+): EnemySheets {
+  return atlas[enemyType ?? "beast"];
+}
 
 function unitWalkTextures(
   kind: UnitKind,
-  enemySheets: EnemySheets,
+  enemyType: EnemyTypeId | null,
+  atlas: EnemyAtlas,
   allyWalk: Texture[],
 ): Texture[] {
-  return kind === "ally" ? allyWalk : enemySheets.walk;
+  return kind === "ally" ? allyWalk : enemySheetsFor(enemyType, atlas).walk;
 }
 
 function unitClipTextures(
   kind: UnitKind,
+  enemyType: EnemyTypeId | null,
   clip: EnemyClip,
-  enemySheets: EnemySheets,
+  atlas: EnemyAtlas,
   allyWalk: Texture[],
 ): Texture[] {
-  if (kind === "ally" || clip !== "attack") {
-    return unitWalkTextures(kind, enemySheets, allyWalk);
+  if (kind === "ally" || clip === "walk") {
+    return unitWalkTextures(kind, enemyType, atlas, allyWalk);
   }
-  return enemySheets.attack;
+  const sheets = enemySheetsFor(enemyType, atlas);
+  if (clip === "death") {
+    return sheets.death;
+  }
+  return sheets.attack;
 }
 
 function horizontalFacing(dx: number, fallback: 1 | -1): 1 | -1 {
@@ -154,10 +183,12 @@ function horizontalFacing(dx: number, fallback: 1 | -1): 1 | -1 {
 function layoutEnemySprite(
   sprite: AnimatedSprite,
   layout: GridLayout,
-  unit: Unit,
+  unit: Pick<Unit, "x" | "y">,
   facing: 1 | -1,
+  enemyType: EnemyTypeId | null,
 ): void {
-  const sizeScale = (layout.tileSize * ENEMY_WIDTH_IN_TILE) / sprite.texture.width;
+  const widthInTile = ENEMY_WIDTH_IN_TILE[enemyType ?? "beast"];
+  const sizeScale = (layout.tileSize * widthInTile) / sprite.texture.width;
   sprite.scale.set(sizeScale * facing, sizeScale);
   sprite.position.set(
     layout.originX + (unit.x + 0.5) * layout.tileSize,
@@ -211,11 +242,18 @@ function drawTowerHp(
   drawHpBar(graphics, left, top, width, height, hp, TOWER_MAX_HP);
 }
 
-function drawUnitHp(graphics: Graphics, layout: GridLayout, unit: Unit): void {
+function drawUnitHp(
+  graphics: Graphics,
+  layout: GridLayout,
+  unit: Unit,
+  sprite: AnimatedSprite,
+): void {
   const width = layout.tileSize * 0.55;
   const height = Math.max(3, Math.round(layout.tileSize * 0.08));
+  const gap = Math.max(2, Math.round(layout.tileSize * 0.05));
   const left = layout.originX + (unit.x + 0.5) * layout.tileSize - width / 2;
-  const top = layout.originY + unit.y * layout.tileSize - height;
+  const headY = sprite.y - sprite.anchor.y * Math.abs(sprite.height);
+  const top = headY - height - gap;
   drawHpBar(graphics, left, top, width, height, unit.hp, UNIT_MAX_HP);
 }
 
@@ -275,7 +313,7 @@ function layoutFloor(
 export function createGridView(
   towerFrames: Texture[],
   floorTexture: Texture,
-  enemySheets: EnemySheets,
+  enemyAtlas: EnemyAtlas,
   allyWalk: Texture[],
 ): {
   readonly container: Container;
@@ -332,11 +370,11 @@ export function createGridView(
     graphics,
     pathGraphics,
     towerLayer,
-    hpGraphics,
     startLabel,
     baseLabel,
     unitLayer,
     shotGraphics,
+    hpGraphics,
   );
 
   const hideTowers = (): void => {
@@ -433,12 +471,12 @@ export function createGridView(
       let record = unitSprites.get(unit.id);
       if (!record) {
         const sprite = new AnimatedSprite({
-          textures: unitWalkTextures(unit.kind, enemySheets, allyWalk),
+          textures: unitWalkTextures(unit.kind, unit.enemyType, enemyAtlas, allyWalk),
           animationSpeed: ENEMY_ANIMATION_SPEED,
           loop: true,
           autoPlay: false,
         });
-        sprite.anchor.set(0.5, ENEMY_ANCHOR_Y);
+        sprite.anchor.set(0.5, ENEMY_ANCHOR_Y[unit.enemyType ?? "beast"]);
         sprite.eventMode = "none";
         unitLayer.addChild(sprite);
         record = {
@@ -448,6 +486,7 @@ export function createGridView(
           facing: -1,
           clip: "walk",
           kind: unit.kind,
+          enemyType: unit.enemyType,
         };
         unitSprites.set(unit.id, record);
       }
@@ -459,13 +498,20 @@ export function createGridView(
         record.facing = horizontalFacing(dx, record.facing);
       }
       const clip: EnemyClip = unit.attackTile ? "attack" : "walk";
-      if (record.kind !== unit.kind || record.clip !== clip) {
+      if (
+        record.kind !== unit.kind ||
+        record.enemyType !== unit.enemyType ||
+        record.clip !== clip
+      ) {
         record.kind = unit.kind;
+        record.enemyType = unit.enemyType;
         record.clip = clip;
+        record.sprite.loop = true;
         record.sprite.textures = unitClipTextures(
           unit.kind,
+          unit.enemyType,
           clip,
-          enemySheets,
+          enemyAtlas,
           allyWalk,
         );
         record.sprite.animationSpeed =
@@ -474,8 +520,8 @@ export function createGridView(
             : ENEMY_ANIMATION_SPEED;
       }
       record.sprite.visible = true;
-      layoutEnemySprite(record.sprite, layout, unit, record.facing);
-      drawUnitHp(hpGraphics, layout, unit);
+      layoutEnemySprite(record.sprite, layout, unit, record.facing, record.enemyType);
+      drawUnitHp(hpGraphics, layout, unit, record.sprite);
       if (clip === "attack" || moving) {
         if (!record.sprite.playing) {
           record.sprite.play();
@@ -494,10 +540,49 @@ export function createGridView(
       }
     }
     for (const [id, record] of unitSprites) {
-      if (!liveUnits.has(id)) {
-        record.sprite.destroy();
-        unitSprites.delete(id);
+      if (liveUnits.has(id)) {
+        continue;
       }
+      if (record.clip === "death") {
+        layoutEnemySprite(
+          record.sprite,
+          layout,
+          { x: record.lastX, y: record.lastY },
+          record.facing,
+          record.enemyType,
+        );
+        continue;
+      }
+      const atBase =
+        Math.hypot(record.lastX - grid.base.x, record.lastY - grid.base.y) <=
+        BASE_ARRIVE_EPS;
+      if (record.kind === "enemy" && !atBase) {
+        record.clip = "death";
+        record.sprite.loop = false;
+        record.sprite.textures = unitClipTextures(
+          record.kind,
+          record.enemyType,
+          "death",
+          enemyAtlas,
+          allyWalk,
+        );
+        record.sprite.animationSpeed = ENEMY_DEATH_ANIMATION_SPEED;
+        record.sprite.onComplete = () => {
+          record.sprite.destroy();
+          unitSprites.delete(id);
+        };
+        record.sprite.gotoAndPlay(0);
+        layoutEnemySprite(
+          record.sprite,
+          layout,
+          { x: record.lastX, y: record.lastY },
+          record.facing,
+          record.enemyType,
+        );
+        continue;
+      }
+      record.sprite.destroy();
+      unitSprites.delete(id);
     }
 
     drawTowerShots(shotGraphics, layout, towerShots);

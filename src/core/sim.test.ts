@@ -8,6 +8,7 @@ import {
   ENEMY_BASE_DAMAGE,
   hudSnapshot,
   PHASE_DURATION_SEC,
+  SPAWN_INTERVAL_SEC,
   setTimeScale,
   simToggleTower,
   tick,
@@ -17,6 +18,7 @@ import {
   UNIT_MAX_HP,
   UNIT_SPEED_TILES_PER_SEC,
   unitTile,
+  WAVE_SIZE,
 } from "./sim";
 
 function wallColumn(grid: ReturnType<typeof createGrid>, x: number) {
@@ -373,6 +375,7 @@ describe("phase overlap leftover allies", () => {
     sim = {
       ...sim,
       units: [{ ...ally, x: 0, y: 0 }],
+      spawnedThisWave: WAVE_SIZE,
     };
 
     sim = advance(sim, sim.phaseTimeLeft);
@@ -453,8 +456,8 @@ describe("enemy phase base damage", () => {
     expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
 
     sim = advance(sim, 4.5);
-    expect(sim.baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE);
-    expect(hudSnapshot(sim).baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE);
+    expect(sim.baseHp).toBeLessThan(BASE_MAX_HP);
+    expect(hudSnapshot(sim).baseHp).toBe(sim.baseHp);
   });
 });
 
@@ -477,14 +480,14 @@ describe("tower attacks", () => {
 
   it("removes an enemy when HP reaches 0", () => {
     let sim = createSim(createGrid(12, 8));
-    const lane = sim.grid.start.y + 1;
-    sim = simToggleTower(sim, 3, lane);
-    sim = simToggleTower(sim, 5, lane);
-    sim = simToggleTower(sim, 7, lane);
-    sim = simToggleTower(sim, 9, lane);
     const id = sim.units[0]!.id;
+    const lane = sim.grid.start.y + 1;
+    for (let x = 1; x <= 9; x += 1) {
+      sim = simToggleTower(sim, x, lane);
+    }
+    sim = { ...sim, spawnedThisWave: WAVE_SIZE };
 
-    sim = advance(sim, 3.5);
+    sim = advance(sim, UNIT_MAX_HP / TOWER_ATTACK_DPS + 0.5);
     expect(sim.units.some((unit) => unit.id === id)).toBe(false);
     expect(sim.baseHp).toBe(BASE_MAX_HP);
   });
@@ -510,5 +513,75 @@ describe("tower attacks", () => {
     expect(ally.kind).toBe("ally");
     expect(ally.hp).toBe(UNIT_MAX_HP);
     expect(sim.towerShots).toHaveLength(0);
+  });
+});
+
+describe("wave spawn", () => {
+  it("spawns several enemies during Enemy Phase, not just one", () => {
+    const sim = tick(
+      createSim(createGrid(12, 8)),
+      SPAWN_INTERVAL_SEC * (WAVE_SIZE - 1) + 0.05,
+    );
+    expect(sim.phase).toBe("enemy");
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(WAVE_SIZE);
+  });
+
+  it("spawns enemies spaced apart instead of stacked on Start", () => {
+    const sim = tick(
+      createSim(createGrid(12, 8)),
+      SPAWN_INTERVAL_SEC * 3 + 0.1,
+    );
+    const enemies = sim.units.filter((unit) => unit.kind === "enemy");
+    expect(enemies.length).toBeGreaterThanOrEqual(4);
+    for (let i = 0; i < enemies.length; i += 1) {
+      for (let j = i + 1; j < enemies.length; j += 1) {
+        const dist = Math.hypot(
+          enemies[i]!.x - enemies[j]!.x,
+          enemies[i]!.y - enemies[j]!.y,
+        );
+        expect(dist).toBeGreaterThan(0.8);
+      }
+    }
+  });
+
+  it("keeps more than one enemy on the map at once", () => {
+    const sim = tick(createSim(createGrid(12, 8)), SPAWN_INTERVAL_SEC * 2 + 0.2);
+    expect(sim.units.filter((unit) => unit.kind === "enemy").length).toBeGreaterThan(1);
+    expect(
+      sim.units.every((unit) => unitTile(unit).x !== sim.grid.base.x),
+    ).toBe(true);
+  });
+
+  it("damages the base once per enemy that arrives", () => {
+    const sim = advance(
+      createSim(createGrid(12, 8)),
+      11 / UNIT_SPEED_TILES_PER_SEC + SPAWN_INTERVAL_SEC + 0.3,
+    );
+    expect(sim.baseHp).toBe(BASE_MAX_HP - ENEMY_BASE_DAMAGE * 2);
+  });
+
+  it("spawns several allies in Ally Phase and pays gold per arrival", () => {
+    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    expect(sim.phase).toBe("ally");
+
+    sim = tick(sim, SPAWN_INTERVAL_SEC * 2 + 0.2);
+    expect(sim.units.filter((unit) => unit.kind === "ally").length).toBeGreaterThan(1);
+    expect(sim.gold).toBe(0);
+
+    sim = advance(
+      createSim(createGrid(12, 8)),
+      PHASE_DURATION_SEC + 11 / UNIT_SPEED_TILES_PER_SEC + SPAWN_INTERVAL_SEC + 0.3,
+    );
+    expect(sim.phase).toBe("ally");
+    expect(sim.gold).toBe(ALLY_GOLD_REWARD * 2);
+  });
+
+  it("does not stack a new spawn on a unit still at Start", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = { ...sim, grid: wallColumn(sim.grid, 1) };
+    sim = tick(sim, SPAWN_INTERVAL_SEC + 0.05);
+    const enemies = sim.units.filter((unit) => unit.kind === "enemy");
+    expect(enemies).toHaveLength(1);
+    expect(unitTile(enemies[0]!)).toEqual(sim.grid.start);
   });
 });

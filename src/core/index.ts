@@ -27,6 +27,7 @@ export {
   ENEMY_BASE_DAMAGE,
   hudSnapshot,
   PHASE_DURATION_SEC,
+  SPAWN_INTERVAL_SEC,
   setTimeScale,
   simToggleTower,
   tick,
@@ -36,8 +37,11 @@ export {
   UNIT_ATTACK_DPS,
   UNIT_MAX_HP,
   unitTile,
+  WAVE_SIZE,
+  ENEMY_TYPE_IDS,
 } from "./sim";
 export type {
+  EnemyTypeId,
   HudSnapshot,
   Phase,
   SimState,
