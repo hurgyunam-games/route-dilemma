@@ -18,7 +18,7 @@ import {
   UNIT_MAX_HP,
   UNIT_SPEED_TILES_PER_SEC,
   unitTile,
-  WAVE_SIZE,
+  getStageWave,
 } from "./sim";
 
 function wallColumn(grid: ReturnType<typeof createGrid>, x: number) {
@@ -29,6 +29,8 @@ function wallColumn(grid: ReturnType<typeof createGrid>, x: number) {
   return next;
 }
 
+const STAGE_1 = getStageWave(1);
+
 describe("createSim", () => {
   it("spawns a unit on Start", () => {
     const sim = createSim();
@@ -37,7 +39,7 @@ describe("createSim", () => {
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
     expect(sim.gold).toBe(0);
     expect(sim.baseHp).toBe(BASE_MAX_HP);
-    expect(sim.units[0]!.hp).toBe(UNIT_MAX_HP);
+    expect(sim.units[0]!.hp).toBe(getStageWave(1).bursts[0]!.hp);
     expect(sim.towerShots).toEqual([]);
   });
 });
@@ -183,6 +185,7 @@ describe("phase clock", () => {
     const hud = hudSnapshot(sim);
     expect(hud.phase).toBe("enemy");
     expect(hud.phaseTimeLeft).toBe(PHASE_DURATION_SEC);
+    expect(hud.stageId).toBe(1);
   });
 
   it("counts remaining phase time down", () => {
@@ -193,15 +196,18 @@ describe("phase clock", () => {
   });
 
   it("flips to Ally Phase and restarts the timer at 0", () => {
-    const sim = advance(createSim(), PHASE_DURATION_SEC);
+    const sim = advance(createSim(), STAGE_1.enemyPhaseSec);
     expect(sim.phase).toBe("ally");
-    expect(sim.phaseTimeLeft).toBeCloseTo(PHASE_DURATION_SEC, 5);
+    expect(sim.phaseTimeLeft).toBeCloseTo(STAGE_1.allyPhaseSec, 5);
   });
 
   it("flips back to Enemy Phase on the next timeout", () => {
-    const sim = advance(createSim(), PHASE_DURATION_SEC * 2 + 0.4);
+    const sim = advance(
+      createSim(),
+      STAGE_1.enemyPhaseSec + STAGE_1.allyPhaseSec + 0.4,
+    );
     expect(sim.phase).toBe("enemy");
-    expect(sim.phaseTimeLeft).toBeCloseTo(PHASE_DURATION_SEC - 0.4, 5);
+    expect(sim.phaseTimeLeft).toBeCloseTo(STAGE_1.enemyPhaseSec - 0.4, 5);
   });
 
   it("keeps the map and towers when the phase changes", () => {
@@ -375,7 +381,8 @@ describe("phase overlap leftover allies", () => {
     sim = {
       ...sim,
       units: [{ ...ally, x: 0, y: 0 }],
-      spawnedThisWave: WAVE_SIZE,
+      burstIndex: 99,
+      spawnedInBurst: 99,
     };
 
     sim = advance(sim, sim.phaseTimeLeft);
@@ -392,12 +399,12 @@ describe("phase overlap leftover allies", () => {
   it("still has the ally on the map after Ally Phase when the maze is long", () => {
     const simGrid = createGrid(50, 8);
     const path = findPath(simGrid)!;
-    expect(path.length - 1).toBeGreaterThan(UNIT_SPEED_TILES_PER_SEC * PHASE_DURATION_SEC);
+    expect(path.length - 1).toBeGreaterThan(UNIT_SPEED_TILES_PER_SEC * STAGE_1.allyPhaseSec);
 
     let sim = createSim(simGrid);
-    sim = advance(sim, PHASE_DURATION_SEC);
+    sim = advance(sim, STAGE_1.enemyPhaseSec);
     expect(sim.phase).toBe("ally");
-    sim = advance(sim, PHASE_DURATION_SEC);
+    sim = advance(sim, STAGE_1.allyPhaseSec);
     expect(sim.phase).toBe("enemy");
     expect(sim.units.some((unit) => unit.kind === "ally")).toBe(true);
     expect(sim.gold).toBe(0);
@@ -468,7 +475,7 @@ describe("tower attacks", () => {
     sim = tick(sim, 0.25);
     const enemy = sim.units[0]!;
     expect(enemy.kind).toBe("enemy");
-    expect(enemy.hp).toBeCloseTo(UNIT_MAX_HP - TOWER_ATTACK_DPS * 0.25, 5);
+    expect(enemy.hp).toBeCloseTo(STAGE_1.bursts[0]!.hp - TOWER_ATTACK_DPS * 0.25, 5);
     expect(sim.towerShots).toHaveLength(1);
     expect(sim.towerShots[0]).toMatchObject({
       fromX: sim.grid.start.x,
@@ -485,7 +492,7 @@ describe("tower attacks", () => {
     for (let x = 1; x <= 9; x += 1) {
       sim = simToggleTower(sim, x, lane);
     }
-    sim = { ...sim, spawnedThisWave: WAVE_SIZE };
+    sim = { ...sim, burstIndex: 99, spawnedInBurst: 99 };
 
     sim = advance(sim, UNIT_MAX_HP / TOWER_ATTACK_DPS + 0.5);
     expect(sim.units.some((unit) => unit.id === id)).toBe(false);
@@ -501,7 +508,7 @@ describe("tower attacks", () => {
     expect(Math.hypot(enemy.x - sim.grid.base.x, enemy.y - 0)).toBeGreaterThan(
       TOWER_RANGE_TILES,
     );
-    expect(enemy.hp).toBe(UNIT_MAX_HP);
+    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.hp);
     expect(sim.towerShots).toHaveLength(0);
   });
 
@@ -518,12 +525,13 @@ describe("tower attacks", () => {
 
 describe("wave spawn", () => {
   it("spawns several enemies during Enemy Phase, not just one", () => {
+    const n = 4;
     const sim = tick(
       createSim(createGrid(12, 8)),
-      SPAWN_INTERVAL_SEC * (WAVE_SIZE - 1) + 0.05,
+      SPAWN_INTERVAL_SEC * (n - 1) + 0.05,
     );
     expect(sim.phase).toBe("enemy");
-    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(WAVE_SIZE);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(n);
   });
 
   it("spawns enemies spaced apart instead of stacked on Start", () => {

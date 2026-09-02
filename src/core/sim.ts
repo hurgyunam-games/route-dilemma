@@ -12,6 +12,16 @@ import {
   type Tower,
 } from "./grid";
 import { findPath, isWalkable } from "./path";
+import {
+  getStageWave,
+  phaseDuration,
+  type EnemyTypeId,
+  type StageWave,
+  type WaveBurst,
+} from "./waves";
+
+export { ENEMY_TYPE_IDS, getStageWave, STAGE_COUNT } from "./waves";
+export type { EnemyTypeId, StageWave, WaveBurst } from "./waves";
 
 export const UNIT_SPEED_TILES_PER_SEC = 2.75;
 export const UNIT_ATTACK_DPS = 4;
@@ -19,19 +29,17 @@ export const UNIT_MAX_HP = 16;
 export const TOWER_RANGE_TILES = 2;
 export const TOWER_ATTACK_DPS = 4;
 export const CATCH_RANGE_TILES = 1;
-export const PHASE_DURATION_SEC = 15;
-export const WAVE_SIZE = 5;
-export const SPAWN_INTERVAL_SEC = 0.8;
 export const ALLY_GOLD_REWARD = 10;
 export const BASE_MAX_HP = 20;
 export const ENEMY_BASE_DAMAGE = 1;
 export const TIME_SCALES = [0, 1, 2, 3] as const;
-export const ENEMY_TYPE_IDS = ["beast", "cavalry", "wolf", "slime", "goblin"] as const;
+export const PHASE_DURATION_SEC = getStageWave(1).enemyPhaseSec;
+export const SPAWN_INTERVAL_SEC = getStageWave(1).bursts[0]!.interval;
+export const WAVE_SIZE = getStageWave(1).bursts[0]!.count;
 
 export type Phase = "enemy" | "ally";
 export type UnitKind = Phase;
 export type TimeScale = (typeof TIME_SCALES)[number];
-export type EnemyTypeId = (typeof ENEMY_TYPE_IDS)[number];
 
 const ARRIVE_EPS = 0.05;
 const MAX_MOVE_ITERS = 24;
@@ -73,7 +81,9 @@ export type SimState = {
   readonly timeScale: TimeScale;
   readonly gold: number;
   readonly baseHp: number;
-  readonly spawnedThisWave: number;
+  readonly stageId: number;
+  readonly burstIndex: number;
+  readonly spawnedInBurst: number;
   readonly spawnCooldown: number;
 };
 
@@ -85,6 +95,7 @@ export type HudSnapshot = {
   readonly gold: number;
   readonly baseHp: number;
   readonly leftoverAllies: number;
+  readonly stageId: number;
 };
 
 type StepResult = {
@@ -96,20 +107,24 @@ export function unitTile(unit: Pick<Unit, "x" | "y">): TileCoord {
   return { x: Math.round(unit.x), y: Math.round(unit.y) };
 }
 
-export function createSim(grid: Grid = createGrid()): SimState {
+export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
+  const stage = getStageWave(stageId);
+  const first = stage.bursts[0]!;
   return {
     grid,
-    units: [spawnUnit(1, grid.start, "enemy", "beast")],
+    units: [spawnFromBurst(1, grid.start, "enemy", first, 0)],
     towerShots: [],
     nextUnitId: 2,
     time: 0,
     phase: "enemy",
-    phaseTimeLeft: PHASE_DURATION_SEC,
+    phaseTimeLeft: stage.enemyPhaseSec,
     timeScale: 1,
     gold: 0,
     baseHp: BASE_MAX_HP,
-    spawnedThisWave: 1,
-    spawnCooldown: SPAWN_INTERVAL_SEC,
+    stageId: stage.id,
+    burstIndex: 0,
+    spawnedInBurst: 1,
+    spawnCooldown: first.interval,
   };
 }
 
@@ -125,6 +140,7 @@ export function hudSnapshot(state: SimState): HudSnapshot {
       state.phase === "enemy"
         ? state.units.filter((unit) => unit.kind === "ally").length
         : 0,
+    stageId: state.stageId,
   };
 }
 
@@ -160,14 +176,16 @@ export function tick(state: SimState, dt: number): SimState {
 
 function tickOnce(state: SimState, dt: number): SimState {
   const time = state.time + dt;
-  const clock = tickPhaseClock(state.phase, state.phaseTimeLeft, dt);
+  const stage = getStageWave(state.stageId);
+  const clock = tickPhaseClock(state.phase, state.phaseTimeLeft, dt, stage);
   let grid = state.grid;
   let gold = state.gold;
   let baseHp = state.baseHp;
   let nextUnitId = state.nextUnitId;
   let units: Unit[] = [];
   const phaseChanged = clock.phase !== state.phase;
-  let spawnedThisWave = phaseChanged ? 0 : state.spawnedThisWave;
+  let burstIndex = phaseChanged ? 0 : state.burstIndex;
+  let spawnedInBurst = phaseChanged ? 0 : state.spawnedInBurst;
   let spawnCooldown = phaseChanged ? 0 : state.spawnCooldown - dt;
 
   for (const unit of retainUnits(state.units, state.phase, clock.phase)) {
@@ -194,12 +212,15 @@ function tickOnce(state: SimState, dt: number): SimState {
     nextUnitId,
     grid.start,
     clock.phase,
-    spawnedThisWave,
+    stage,
+    burstIndex,
+    spawnedInBurst,
     spawnCooldown,
   );
   units = spawned.units;
   nextUnitId = spawned.nextUnitId;
-  spawnedThisWave = spawned.spawnedThisWave;
+  burstIndex = spawned.burstIndex;
+  spawnedInBurst = spawned.spawnedInBurst;
   spawnCooldown = spawned.spawnCooldown;
 
   return {
@@ -213,7 +234,9 @@ function tickOnce(state: SimState, dt: number): SimState {
     timeScale: state.timeScale,
     gold,
     baseHp,
-    spawnedThisWave,
+    stageId: state.stageId,
+    burstIndex,
+    spawnedInBurst,
     spawnCooldown,
   };
 }
@@ -222,12 +245,13 @@ function tickPhaseClock(
   phase: Phase,
   timeLeft: number,
   dt: number,
+  stage: StageWave,
 ): { phase: Phase; phaseTimeLeft: number } {
   let nextPhase = phase;
   let remaining = timeLeft - dt;
   while (remaining <= 0) {
     nextPhase = nextPhase === "enemy" ? "ally" : "enemy";
-    remaining += PHASE_DURATION_SEC;
+    remaining += phaseDuration(stage, nextPhase);
   }
   return { phase: nextPhase, phaseTimeLeft: remaining };
 }
@@ -287,32 +311,64 @@ function trySpawnWave(
   nextUnitId: number,
   start: TileCoord,
   kind: UnitKind,
-  spawnedThisWave: number,
+  stage: StageWave,
+  burstIndex: number,
+  spawnedInBurst: number,
   spawnCooldown: number,
 ): {
   units: Unit[];
   nextUnitId: number;
-  spawnedThisWave: number;
+  burstIndex: number;
+  spawnedInBurst: number;
   spawnCooldown: number;
 } {
-  if (spawnedThisWave >= WAVE_SIZE || spawnCooldown > 0) {
-    return { units, nextUnitId, spawnedThisWave, spawnCooldown };
+  if (spawnCooldown > 0) {
+    return { units, nextUnitId, burstIndex, spawnedInBurst, spawnCooldown };
   }
   if (kindOccupiesStart(units, start, kind)) {
-    return { units, nextUnitId, spawnedThisWave, spawnCooldown };
+    return { units, nextUnitId, burstIndex, spawnedInBurst, spawnCooldown };
   }
-  const enemyType =
-    kind === "enemy"
-      ? ENEMY_TYPE_IDS[spawnedThisWave % ENEMY_TYPE_IDS.length]!
-      : null;
+
+  if (kind === "ally") {
+    if (spawnedInBurst >= stage.allyCount) {
+      return { units, nextUnitId, burstIndex, spawnedInBurst, spawnCooldown };
+    }
+    return {
+      units: enemiesCatchAllies([
+        ...units,
+        spawnUnit(nextUnitId, start, "ally", null, UNIT_MAX_HP),
+      ]),
+      nextUnitId: nextUnitId + 1,
+      burstIndex,
+      spawnedInBurst: spawnedInBurst + 1,
+      spawnCooldown: stage.allyInterval,
+    };
+  }
+
+  const burst = stage.bursts[burstIndex];
+  if (!burst) {
+    return { units, nextUnitId, burstIndex, spawnedInBurst, spawnCooldown };
+  }
+  if (spawnedInBurst >= burst.count) {
+    const nextBurst = burstIndex + 1;
+    return {
+      units,
+      nextUnitId,
+      burstIndex: nextBurst,
+      spawnedInBurst: 0,
+      spawnCooldown: burst.restAfter,
+    };
+  }
+
   return {
     units: enemiesCatchAllies([
       ...units,
-      spawnUnit(nextUnitId, start, kind, enemyType),
+      spawnFromBurst(nextUnitId, start, "enemy", burst, spawnedInBurst),
     ]),
     nextUnitId: nextUnitId + 1,
-    spawnedThisWave: spawnedThisWave + 1,
-    spawnCooldown: SPAWN_INTERVAL_SEC,
+    burstIndex,
+    spawnedInBurst: spawnedInBurst + 1,
+    spawnCooldown: burst.interval,
   };
 }
 
@@ -328,11 +384,23 @@ function kindOccupiesStart(
   );
 }
 
+function spawnFromBurst(
+  id: number,
+  tile: TileCoord,
+  kind: UnitKind,
+  burst: WaveBurst,
+  index: number,
+): Unit {
+  const enemyType = burst.types[index % burst.types.length] ?? burst.types[0] ?? "slime";
+  return spawnUnit(id, tile, kind, enemyType, burst.hp);
+}
+
 function spawnUnit(
   id: number,
   tile: TileCoord,
   kind: UnitKind,
   enemyType: EnemyTypeId | null = null,
+  hp: number = UNIT_MAX_HP,
 ): Unit {
   return {
     id,
@@ -340,7 +408,7 @@ function spawnUnit(
     enemyType: kind === "enemy" ? (enemyType ?? "beast") : null,
     x: tile.x,
     y: tile.y,
-    hp: UNIT_MAX_HP,
+    hp,
     attackTile: null,
   };
 }

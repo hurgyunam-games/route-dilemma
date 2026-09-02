@@ -39,6 +39,7 @@ const baseHpLabel = computed(() => `본진 HP ${hud.value.baseHp}`);
 const leftoverLabel = computed(() =>
   hud.value.leftoverAllies > 0 ? `남은 아군 ${hud.value.leftoverAllies}` : "",
 );
+const stageLabel = computed(() => `스테이지 ${hud.value.stageId}`);
 
 const pushHud = (): void => {
   hud.value = hudSnapshot(sim);
@@ -110,6 +111,7 @@ onUnmounted(() => {
           <span class="phase-name">{{ phaseLabel }}</span>
           <span class="phase-timer">{{ phaseTimeLabel }}</span>
         </div>
+        <p class="stage">{{ stageLabel }}</p>
         <p class="gold">{{ goldLabel }}</p>
         <p class="base-hp">{{ baseHpLabel }}</p>
         <p
@@ -177,6 +179,7 @@ onUnmounted(() => {
 }
 
 .phase-bar,
+.stage,
 .gold,
 .base-hp,
 .leftover,
@@ -212,9 +215,14 @@ onUnmounted(() => {
 
 .gold,
 .base-hp,
-.leftover {
+.leftover,
+.stage {
   margin: 0;
   font-variant-numeric: tabular-nums;
+}
+
+.stage {
+  color: #d8cfc6;
 }
 
 .leftover {

@@ -1,0 +1,232 @@
+{
+  "stages": [
+    {
+      "id": 1,
+      "enemyPhaseSec": 36,
+      "allyPhaseSec": 14,
+      "allyCount": 3,
+      "allyInterval": 0.9,
+      "bursts": [
+        { "count": 8, "interval": 0.8, "restAfter": 3, "types": ["slime"], "hp": 10 },
+        { "count": 10, "interval": 0.8, "restAfter": 2, "types": ["slime", "goblin"], "hp": 14 }
+      ]
+    },
+    {
+      "id": 2,
+      "enemyPhaseSec": 38,
+      "allyPhaseSec": 14,
+      "allyCount": 3,
+      "allyInterval": 0.9,
+      "bursts": [
+        { "count": 10, "interval": 0.8, "restAfter": 3, "types": ["slime", "goblin"], "hp": 12 },
+        { "count": 12, "interval": 0.75, "restAfter": 2, "types": ["goblin"], "hp": 16 }
+      ]
+    },
+    {
+      "id": 3,
+      "enemyPhaseSec": 40,
+      "allyPhaseSec": 14,
+      "allyCount": 3,
+      "allyInterval": 0.85,
+      "bursts": [
+        { "count": 12, "interval": 0.75, "restAfter": 3, "types": ["goblin"], "hp": 16 },
+        { "count": 12, "interval": 0.75, "restAfter": 2, "types": ["goblin", "wolf"], "hp": 18 }
+      ]
+    },
+    {
+      "id": 4,
+      "enemyPhaseSec": 42,
+      "allyPhaseSec": 13,
+      "allyCount": 3,
+      "allyInterval": 0.85,
+      "bursts": [
+        { "count": 12, "interval": 0.75, "restAfter": 3, "types": ["goblin", "wolf"], "hp": 18 },
+        { "count": 14, "interval": 0.7, "restAfter": 2, "types": ["wolf"], "hp": 20 }
+      ]
+    },
+    {
+      "id": 5,
+      "enemyPhaseSec": 44,
+      "allyPhaseSec": 13,
+      "allyCount": 3,
+      "allyInterval": 0.85,
+      "bursts": [
+        { "count": 12, "interval": 0.7, "restAfter": 3, "types": ["wolf"], "hp": 20 },
+        { "count": 14, "interval": 0.7, "restAfter": 2, "types": ["wolf", "beast"], "hp": 22 }
+      ]
+    },
+    {
+      "id": 6,
+      "enemyPhaseSec": 48,
+      "allyPhaseSec": 13,
+      "allyCount": 3,
+      "allyInterval": 0.8,
+      "bursts": [
+        { "count": 12, "interval": 0.7, "restAfter": 2.5, "types": ["goblin", "wolf"], "hp": 20 },
+        { "count": 14, "interval": 0.7, "restAfter": 2.5, "types": ["wolf", "beast"], "hp": 24 },
+        { "count": 8, "interval": 0.65, "restAfter": 2, "types": ["beast"], "hp": 26 }
+      ]
+    },
+    {
+      "id": 7,
+      "enemyPhaseSec": 48,
+      "allyPhaseSec": 12,
+      "allyCount": 3,
+      "allyInterval": 0.8,
+      "bursts": [
+        { "count": 14, "interval": 0.7, "restAfter": 2.5, "types": ["wolf"], "hp": 22 },
+        { "count": 16, "interval": 0.65, "restAfter": 2, "types": ["wolf", "beast"], "hp": 26 }
+      ]
+    },
+    {
+      "id": 8,
+      "enemyPhaseSec": 50,
+      "allyPhaseSec": 12,
+      "allyCount": 3,
+      "allyInterval": 0.8,
+      "bursts": [
+        { "count": 14, "interval": 0.65, "restAfter": 2.5, "types": ["beast"], "hp": 24 },
+        { "count": 16, "interval": 0.65, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 28 }
+      ]
+    },
+    {
+      "id": 9,
+      "enemyPhaseSec": 50,
+      "allyPhaseSec": 12,
+      "allyCount": 4,
+      "allyInterval": 0.8,
+      "bursts": [
+        { "count": 16, "interval": 0.65, "restAfter": 2.5, "types": ["wolf", "beast"], "hp": 26 },
+        { "count": 16, "interval": 0.6, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 30 }
+      ]
+    },
+    {
+      "id": 10,
+      "enemyPhaseSec": 52,
+      "allyPhaseSec": 12,
+      "allyCount": 4,
+      "allyInterval": 0.75,
+      "bursts": [
+        { "count": 16, "interval": 0.6, "restAfter": 2.5, "types": ["beast"], "hp": 28 },
+        { "count": 18, "interval": 0.6, "restAfter": 2, "types": ["cavalry", "beast"], "hp": 32 }
+      ]
+    },
+    {
+      "id": 11,
+      "enemyPhaseSec": 54,
+      "allyPhaseSec": 12,
+      "allyCount": 4,
+      "allyInterval": 0.75,
+      "bursts": [
+        { "count": 14, "interval": 0.6, "restAfter": 2, "types": ["wolf", "beast"], "hp": 26 },
+        { "count": 16, "interval": 0.6, "restAfter": 2, "types": ["beast"], "hp": 30 },
+        { "count": 10, "interval": 0.55, "restAfter": 2, "types": ["cavalry"], "hp": 34 }
+      ]
+    },
+    {
+      "id": 12,
+      "enemyPhaseSec": 54,
+      "allyPhaseSec": 12,
+      "allyCount": 4,
+      "allyInterval": 0.75,
+      "bursts": [
+        { "count": 16, "interval": 0.6, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 30 },
+        { "count": 16, "interval": 0.55, "restAfter": 2, "types": ["cavalry"], "hp": 34 },
+        { "count": 10, "interval": 0.55, "restAfter": 2, "types": ["wolf", "cavalry"], "hp": 32 }
+      ]
+    },
+    {
+      "id": 13,
+      "enemyPhaseSec": 56,
+      "allyPhaseSec": 11,
+      "allyCount": 4,
+      "allyInterval": 0.7,
+      "bursts": [
+        { "count": 16, "interval": 0.55, "restAfter": 2, "types": ["beast"], "hp": 32 },
+        { "count": 18, "interval": 0.55, "restAfter": 2, "types": ["cavalry", "beast"], "hp": 36 }
+      ]
+    },
+    {
+      "id": 14,
+      "enemyPhaseSec": 56,
+      "allyPhaseSec": 11,
+      "allyCount": 4,
+      "allyInterval": 0.7,
+      "bursts": [
+        { "count": 18, "interval": 0.55, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 34 },
+        { "count": 18, "interval": 0.5, "restAfter": 2, "types": ["cavalry"], "hp": 38 }
+      ]
+    },
+    {
+      "id": 15,
+      "enemyPhaseSec": 58,
+      "allyPhaseSec": 11,
+      "allyCount": 4,
+      "allyInterval": 0.7,
+      "bursts": [
+        { "count": 16, "interval": 0.55, "restAfter": 2, "types": ["wolf", "beast"], "hp": 32 },
+        { "count": 16, "interval": 0.5, "restAfter": 2, "types": ["cavalry"], "hp": 38 },
+        { "count": 12, "interval": 0.5, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 36 }
+      ]
+    },
+    {
+      "id": 16,
+      "enemyPhaseSec": 58,
+      "allyPhaseSec": 11,
+      "allyCount": 4,
+      "allyInterval": 0.7,
+      "bursts": [
+        { "count": 18, "interval": 0.5, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 36 },
+        { "count": 18, "interval": 0.5, "restAfter": 2, "types": ["cavalry"], "hp": 40 },
+        { "count": 10, "interval": 0.5, "restAfter": 2, "types": ["cavalry", "wolf"], "hp": 38 }
+      ]
+    },
+    {
+      "id": 17,
+      "enemyPhaseSec": 60,
+      "allyPhaseSec": 10,
+      "allyCount": 4,
+      "allyInterval": 0.65,
+      "bursts": [
+        { "count": 18, "interval": 0.5, "restAfter": 2, "types": ["cavalry", "beast"], "hp": 38 },
+        { "count": 20, "interval": 0.48, "restAfter": 2, "types": ["cavalry"], "hp": 42 }
+      ]
+    },
+    {
+      "id": 18,
+      "enemyPhaseSec": 60,
+      "allyPhaseSec": 10,
+      "allyCount": 4,
+      "allyInterval": 0.65,
+      "bursts": [
+        { "count": 16, "interval": 0.48, "restAfter": 1.8, "types": ["beast"], "hp": 38 },
+        { "count": 18, "interval": 0.48, "restAfter": 1.8, "types": ["cavalry"], "hp": 42 },
+        { "count": 14, "interval": 0.45, "restAfter": 2, "types": ["cavalry", "beast"], "hp": 40 }
+      ]
+    },
+    {
+      "id": 19,
+      "enemyPhaseSec": 62,
+      "allyPhaseSec": 10,
+      "allyCount": 4,
+      "allyInterval": 0.65,
+      "bursts": [
+        { "count": 18, "interval": 0.45, "restAfter": 1.8, "types": ["cavalry", "beast"], "hp": 40 },
+        { "count": 20, "interval": 0.45, "restAfter": 1.8, "types": ["cavalry"], "hp": 44 },
+        { "count": 12, "interval": 0.45, "restAfter": 2, "types": ["wolf", "cavalry"], "hp": 42 }
+      ]
+    },
+    {
+      "id": 20,
+      "enemyPhaseSec": 64,
+      "allyPhaseSec": 10,
+      "allyCount": 4,
+      "allyInterval": 0.6,
+      "bursts": [
+        { "count": 20, "interval": 0.45, "restAfter": 1.6, "types": ["beast", "cavalry"], "hp": 42 },
+        { "count": 22, "interval": 0.42, "restAfter": 1.6, "types": ["cavalry"], "hp": 46 },
+        { "count": 14, "interval": 0.42, "restAfter": 2, "types": ["cavalry", "wolf", "beast"], "hp": 44 }
+      ]
+    }
+  ]
+}

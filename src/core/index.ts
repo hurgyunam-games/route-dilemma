@@ -39,14 +39,18 @@ export {
   unitTile,
   WAVE_SIZE,
   ENEMY_TYPE_IDS,
+  getStageWave,
+  STAGE_COUNT,
 } from "./sim";
 export type {
   EnemyTypeId,
   HudSnapshot,
   Phase,
   SimState,
+  StageWave,
   TimeScale,
   TowerShot,
   Unit,
   UnitKind,
+  WaveBurst,
 } from "./sim";
