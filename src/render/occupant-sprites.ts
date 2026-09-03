@@ -1,5 +1,5 @@
 import type { Texture } from "pixi.js";
-import { TOWER_TYPE_IDS, type TowerTypeId } from "@/core";
+import type { TowerTypeId } from "@/core";
 import { loadLocalSheet } from "@/render/local-image";
 
 export const OCCUPANT_FRAME_SIZE = 48;
@@ -87,16 +87,15 @@ async function loadOccupantVariant(files: OccupantFiles): Promise<OccupantSheets
 }
 
 export async function loadOccupantFrames(): Promise<OccupantAtlas> {
-  const entries = await Promise.all(
-    TOWER_TYPE_IDS.map(async (type) => {
-      const variants = await Promise.all(OCCUPANT_FILES[type].map(loadOccupantVariant));
-      return [type, variants] as const;
-    }),
-  );
-  return Object.fromEntries(entries) as OccupantAtlas;
+  const [archer, cannon, mage] = await Promise.all([
+    Promise.all(OCCUPANT_FILES.archer.map(loadOccupantVariant)),
+    Promise.all(OCCUPANT_FILES.cannon.map(loadOccupantVariant)),
+    Promise.all(OCCUPANT_FILES.mage.map(loadOccupantVariant)),
+  ]);
+  return { archer, cannon, mage };
 }
 
-export function occupantVariantIndex(typeId: TowerTypeId, level: number, count: number): number {
+export function occupantVariantIndex(level: number, count: number): number {
   if (count <= 1) {
     return 0;
   }
@@ -110,6 +109,6 @@ export function occupantClipFrames(
   level = 1,
 ): Texture[] {
   const variants = atlas[typeId];
-  const index = occupantVariantIndex(typeId, level, variants.length);
+  const index = occupantVariantIndex(level, variants.length);
   return variants[index]![clip];
 }

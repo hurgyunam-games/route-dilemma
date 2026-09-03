@@ -539,11 +539,7 @@ function applyOccupantVisual(
     return;
   }
   const clip: OccupantClip = firing ? "attack" : "idle";
-  const variant = occupantVariantIndex(
-    tower.typeId,
-    tower.level,
-    atlas[tower.typeId].length,
-  );
+  const variant = occupantVariantIndex(tower.level, atlas[tower.typeId].length);
   const faceRight = shot ? shot.toX >= tower.x : false;
   const facing = occupantFacingFor(faceRight, clip);
   const stillIdle = tower.typeId === "cannon" && clip === "idle";
