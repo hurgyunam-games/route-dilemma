@@ -1,0 +1,52 @@
+{
+  "buildDurationSec": 1.5,
+  "upgradeDurationSec": 4,
+  "maxLevel": 5,
+  "types": [
+    {
+      "id": "archer",
+      "name": "궁수",
+      "attack": "single",
+      "splashRadius": 0,
+      "slowFactor": 1,
+      "slowSec": 0,
+      "levels": [
+        { "cost": 10, "hp": 8, "range": 2, "dps": 4 },
+        { "cost": 10, "hp": 10, "range": 2.5, "dps": 6 },
+        { "cost": 20, "hp": 12, "range": 3, "dps": 8 },
+        { "cost": 30, "hp": 14, "range": 3.5, "dps": 10 },
+        { "cost": 40, "hp": 16, "range": 4, "dps": 12 }
+      ]
+    },
+    {
+      "id": "cannon",
+      "name": "대포",
+      "attack": "splash",
+      "splashRadius": 1.1,
+      "slowFactor": 1,
+      "slowSec": 0,
+      "levels": [
+        { "cost": 15, "hp": 10, "range": 1.5, "dps": 7 },
+        { "cost": 15, "hp": 12, "range": 2, "dps": 9 },
+        { "cost": 30, "hp": 14, "range": 2.5, "dps": 11 },
+        { "cost": 45, "hp": 16, "range": 3, "dps": 13 },
+        { "cost": 60, "hp": 18, "range": 3.5, "dps": 15 }
+      ]
+    },
+    {
+      "id": "mage",
+      "name": "마법사",
+      "attack": "slow",
+      "splashRadius": 0,
+      "slowFactor": 0.5,
+      "slowSec": 1.2,
+      "levels": [
+        { "cost": 20, "hp": 6, "range": 3, "dps": 3 },
+        { "cost": 20, "hp": 8, "range": 3.5, "dps": 5 },
+        { "cost": 40, "hp": 10, "range": 4, "dps": 7 },
+        { "cost": 60, "hp": 12, "range": 4.5, "dps": 9 },
+        { "cost": 80, "hp": 14, "range": 5, "dps": 11 }
+      ]
+    }
+  ]
+}

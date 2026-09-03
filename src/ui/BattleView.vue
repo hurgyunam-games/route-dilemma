@@ -2,13 +2,27 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { Application } from "pixi.js";
 import {
+  canUpgrade,
   createSim,
+  getTower,
   hudSnapshot,
+  isTowerComplete,
   setTimeScale,
-  simToggleTower,
+  simBeginBuild,
+  simUpgradeTower,
+  tileKind,
   tick,
+  TOWER_ATTACK_LABELS,
+  TOWER_CATALOG,
+  TOWER_DEFS,
+  TOWER_MAX_LEVEL,
+  towerDps,
+  towerMaxHp,
+  towerRange,
+  towerUpgradeCost,
   type HudSnapshot,
   type TimeScale,
+  type TowerTypeId,
 } from "@/core";
 import {
   createGameApp,
@@ -23,9 +37,15 @@ const TIME_CONTROLS: readonly { scale: TimeScale; label: string }[] = [
   { scale: 3, label: "3배속" },
 ];
 
+type Shop =
+  | { readonly mode: "build"; readonly x: number; readonly y: number }
+  | { readonly mode: "upgrade"; readonly x: number; readonly y: number };
+
 const hostRef = ref<HTMLElement | null>(null);
 let sim = createSim();
 const hud = ref<HudSnapshot>(hudSnapshot(sim));
+const shop = ref<Shop | null>(null);
+const shopError = ref("");
 let app: Application | null = null;
 let raf = 0;
 let lastTs = 0;
@@ -41,13 +61,78 @@ const leftoverLabel = computed(() =>
 );
 const stageLabel = computed(() => `스테이지 ${hud.value.stageId}`);
 
+const selectedTower = computed(() => {
+  void hud.value;
+  if (!shop.value) {
+    return undefined;
+  }
+  return getTower(sim.grid, shop.value.x, shop.value.y);
+});
+
+const upgradePreview = computed(() => {
+  const tower = selectedTower.value;
+  if (!tower || !isTowerComplete(tower)) {
+    return null;
+  }
+  const current = {
+    range: towerRange(tower),
+    dps: towerDps(tower),
+    hp: towerMaxHp(tower),
+    level: tower.level,
+  };
+  if (tower.level >= TOWER_MAX_LEVEL) {
+    return { current, next: null, cost: 0 };
+  }
+  const nextTower = { ...tower, level: tower.level + 1 };
+  return {
+    current,
+    next: {
+      range: towerRange(nextTower),
+      dps: towerDps(nextTower),
+      hp: towerMaxHp(nextTower),
+      level: nextTower.level,
+    },
+    cost: towerUpgradeCost(tower),
+  };
+});
+
+const selectedTowerName = computed(() => {
+  const tower = selectedTower.value;
+  if (!tower) {
+    return "";
+  }
+  return TOWER_DEFS[tower.typeId].name;
+});
+
+const canUpgradeSelected = computed(() => {
+  const tower = selectedTower.value;
+  return tower !== undefined && canUpgrade(tower);
+});
+
+const rangePreview = computed(() => {
+  const tower = selectedTower.value;
+  if (!tower || !isTowerComplete(tower)) {
+    return null;
+  }
+  return { x: tower.x, y: tower.y, range: towerRange(tower) };
+});
+
+const closeShop = (): void => {
+  shop.value = null;
+  shopError.value = "";
+  pushView();
+};
+
 const pushHud = (): void => {
   hud.value = hudSnapshot(sim);
+  if (shop.value?.mode === "upgrade" && !getTower(sim.grid, shop.value.x, shop.value.y)) {
+    closeShop();
+  }
 };
 
 const pushView = (): void => {
   if (app) {
-    setGameView(app, sim.grid, sim.units, sim.towerShots);
+    setGameView(app, sim.grid, sim.units, sim.towerShots, rangePreview.value);
   }
 };
 
@@ -60,19 +145,55 @@ const onTimeScale = (scale: TimeScale): void => {
   pushHud();
 };
 
+const onTileClick = (x: number, y: number): void => {
+  const kind = tileKind(sim.grid, x, y);
+  if (kind === "start" || kind === "base") {
+    return;
+  }
+  shopError.value = "";
+  if (kind === "empty") {
+    shop.value = { mode: "build", x, y };
+    return;
+  }
+  shop.value = { mode: "upgrade", x, y };
+  pushView();
+};
+
+const onPickType = (typeId: TowerTypeId): void => {
+  if (!shop.value || shop.value.mode !== "build") {
+    return;
+  }
+  const result = simBeginBuild(sim, shop.value.x, shop.value.y, typeId);
+  if (!result.ok) {
+    shopError.value = result.reason;
+    return;
+  }
+  sim = result.state;
+  closeShop();
+  pushHud();
+  pushView();
+};
+
+const onUpgrade = (): void => {
+  if (!shop.value || shop.value.mode !== "upgrade") {
+    return;
+  }
+  const result = simUpgradeTower(sim, shop.value.x, shop.value.y);
+  if (!result.ok) {
+    shopError.value = result.reason;
+    return;
+  }
+  sim = result.state;
+  shopError.value = "";
+  pushHud();
+  pushView();
+};
+
 onMounted(async () => {
   if (!hostRef.value) {
     return;
   }
-  app = await createGameApp(hostRef.value, sim.grid, sim.units, (x, y) => {
-    const next = simToggleTower(sim, x, y);
-    if (next === sim) {
-      return;
-    }
-    sim = next;
-    pushHud();
-    pushView();
-  });
+  app = await createGameApp(hostRef.value, sim.grid, sim.units, onTileClick);
 
   const loop = (ts: number): void => {
     raf = requestAnimationFrame(loop);
@@ -111,9 +232,15 @@ onUnmounted(() => {
           <span class="phase-name">{{ phaseLabel }}</span>
           <span class="phase-timer">{{ phaseTimeLabel }}</span>
         </div>
-        <p class="stage">{{ stageLabel }}</p>
-        <p class="gold">{{ goldLabel }}</p>
-        <p class="base-hp">{{ baseHpLabel }}</p>
+        <p class="stage">
+          {{ stageLabel }}
+        </p>
+        <p class="gold">
+          {{ goldLabel }}
+        </p>
+        <p class="base-hp">
+          {{ baseHpLabel }}
+        </p>
         <p
           v-if="leftoverLabel"
           class="leftover"
@@ -141,6 +268,107 @@ onUnmounted(() => {
         >
           {{ option.label }}
         </button>
+      </div>
+    </div>
+    <div
+      v-if="shop"
+      class="shop-overlay"
+      @click.self="closeShop"
+    >
+      <div
+        class="shop-panel"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="shop.mode === 'build' ? '주둔 유닛 선택' : '타워 업그레이드'"
+      >
+        <header class="shop-head">
+          <h2>{{ shop.mode === "build" ? "주둔 유닛 선택" : "타워 업그레이드" }}</h2>
+          <button
+            type="button"
+            class="close"
+            @click="closeShop"
+          >
+            닫기
+          </button>
+        </header>
+        <p class="shop-gold">
+          보유 골드 {{ hud.gold }}
+        </p>
+        <div
+          v-if="shop.mode === 'build'"
+          class="type-grid"
+        >
+          <button
+            v-for="def in TOWER_CATALOG"
+            :key="def.id"
+            type="button"
+            class="type-card"
+            :class="def.id"
+            @click="onPickType(def.id)"
+          >
+            <span class="type-name">{{ def.name }}</span>
+            <span class="type-stat">비용 {{ def.cost }}</span>
+            <span class="type-stat">체력 {{ def.hp }}</span>
+            <span class="type-stat">사거리 {{ def.range }}</span>
+            <span class="type-stat">공격 {{ def.dps }} · {{ TOWER_ATTACK_LABELS[def.attack] }}</span>
+          </button>
+        </div>
+        <div
+          v-else-if="selectedTower && !isTowerComplete(selectedTower)"
+          class="upgrade-body"
+        >
+          <p class="building-note">
+            {{
+              selectedTower.level > 1
+                ? "업그레이드 중입니다. 끝난 뒤에 다시 업그레이드할 수 있습니다."
+                : "아직 건설 중입니다. 완성된 뒤에 업그레이드할 수 있습니다."
+            }}
+          </p>
+        </div>
+        <div
+          v-else-if="upgradePreview && selectedTower"
+          class="upgrade-body"
+        >
+          <p class="type-name">
+            {{ selectedTowerName }}
+          </p>
+          <p class="type-stat">
+            레벨 {{ upgradePreview.current.level }}
+            · 체력 {{ upgradePreview.current.hp }}
+            · 사거리 {{ upgradePreview.current.range }}
+            · 공격 {{ upgradePreview.current.dps }}
+          </p>
+          <p
+            v-if="upgradePreview.next"
+            class="type-stat next"
+          >
+            다음: 레벨 {{ upgradePreview.next.level }}
+            · 체력 {{ upgradePreview.next.hp }}
+            · 사거리 {{ upgradePreview.next.range }}
+            · 공격 {{ upgradePreview.next.dps }}
+            · 비용 {{ upgradePreview.cost }}
+          </p>
+          <p
+            v-else
+            class="type-stat"
+          >
+            최대 레벨입니다
+          </p>
+          <button
+            v-if="canUpgradeSelected"
+            type="button"
+            class="upgrade-btn"
+            @click="onUpgrade"
+          >
+            업그레이드
+          </button>
+        </div>
+        <p
+          v-if="shopError"
+          class="shop-error"
+        >
+          {{ shopError }}
+        </p>
       </div>
     </div>
   </div>
@@ -273,5 +501,126 @@ onUnmounted(() => {
 .time-controls button:focus-visible {
   outline: 2px solid #e8b060;
   outline-offset: 2px;
+}
+
+.shop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 6, 5, 0.55);
+  pointer-events: auto;
+}
+
+.shop-panel {
+  width: min(440px, calc(100% - 32px));
+  padding: 16px 18px 18px;
+  border-radius: 10px;
+  background: rgba(28, 18, 14, 0.96);
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.35);
+  color: #f7efe6;
+  font: 700 14px/1.4 "Segoe UI", sans-serif;
+}
+
+.shop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.shop-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.close,
+.upgrade-btn {
+  margin: 0;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(56, 38, 28, 0.95);
+  color: #f7efe6;
+  font: 700 13px/1.2 "Segoe UI", sans-serif;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.55);
+}
+
+.shop-gold {
+  margin: 0 0 12px;
+  color: #e8d48a;
+  font-variant-numeric: tabular-nums;
+}
+
+.type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.type-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(20, 12, 10, 0.9);
+  color: #f7efe6;
+  font: 700 13px/1.3 "Segoe UI", sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.type-card.archer {
+  box-shadow: inset 0 0 0 2px #e8c090;
+}
+
+.type-card.cannon {
+  box-shadow: inset 0 0 0 2px #e07050;
+}
+
+.type-card.mage {
+  box-shadow: inset 0 0 0 2px #88a0e8;
+}
+
+.type-name {
+  margin: 0;
+  font-size: 15px;
+}
+
+.type-stat {
+  margin: 0;
+  color: #d8cfc6;
+  font-variant-numeric: tabular-nums;
+}
+
+.type-stat.next {
+  color: #b8e0c8;
+}
+
+.upgrade-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.building-note {
+  margin: 0;
+  color: #f4d35e;
+}
+
+.upgrade-btn {
+  align-self: flex-start;
+  padding: 8px 14px;
+}
+
+.shop-error {
+  margin: 12px 0 0;
+  color: #f0b4a8;
 }
 </style>

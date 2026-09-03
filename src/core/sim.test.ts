@@ -1,24 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { createGrid, getTower, hasTower, toggleTower, TOWER_MAX_HP } from "./grid";
+import { createGrid, getTower, hasTower, placeTower, toggleTower, TOWER_MAX_HP } from "./grid";
 import { findPath } from "./path";
 import {
   ALLY_GOLD_REWARD,
   BASE_MAX_HP,
+  START_GOLD,
+  BUILD_DURATION_SEC,
   createSim,
   ENEMY_BASE_DAMAGE,
   hudSnapshot,
   PHASE_DURATION_SEC,
   SPAWN_INTERVAL_SEC,
   setTimeScale,
+  simBeginBuild,
   simToggleTower,
+  simUpgradeTower,
   tick,
   TOWER_ATTACK_DPS,
+  TOWER_FIRE_INTERVAL_SEC,
   TOWER_RANGE_TILES,
   UNIT_ATTACK_DPS,
   UNIT_MAX_HP,
   UNIT_SPEED_TILES_PER_SEC,
   unitTile,
   getStageWave,
+  towerDps,
+  towerRange,
+  towerUpgradeCost,
+  UPGRADE_DURATION_SEC,
 } from "./sim";
 
 function wallColumn(grid: ReturnType<typeof createGrid>, x: number) {
@@ -37,7 +46,7 @@ describe("createSim", () => {
     expect(sim.units).toHaveLength(1);
     expect(sim.units[0]!.kind).toBe("enemy");
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
     expect(sim.baseHp).toBe(BASE_MAX_HP);
     expect(sim.units[0]!.hp).toBe(getStageWave(1).bursts[0]!.hp);
     expect(sim.towerShots).toEqual([]);
@@ -285,8 +294,8 @@ describe("ally phase gold", () => {
     expect(sim.units).toHaveLength(1);
     expect(sim.units[0]!.kind).toBe("ally");
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
-    expect(sim.gold).toBe(0);
-    expect(hudSnapshot(sim).gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
+    expect(hudSnapshot(sim).gold).toBe(START_GOLD);
   });
 
   it("does not increase gold while the ally is still walking", () => {
@@ -295,14 +304,14 @@ describe("ally phase gold", () => {
     expect(sim.units[0]!.kind).toBe("ally");
     expect(sim.units[0]!.x).toBeGreaterThan(sim.grid.start.x + 2);
     expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
   });
 
   it("increases gold only after the ally reaches Base", () => {
     let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
     sim = advance(sim, 4.2);
-    expect(sim.gold).toBe(ALLY_GOLD_REWARD);
-    expect(hudSnapshot(sim).gold).toBe(ALLY_GOLD_REWARD);
+    expect(sim.gold).toBe(START_GOLD + ALLY_GOLD_REWARD);
+    expect(hudSnapshot(sim).gold).toBe(START_GOLD + ALLY_GOLD_REWARD);
     expect(sim.units[0]!.kind).toBe("ally");
     expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.base);
   });
@@ -320,7 +329,7 @@ describe("ally phase gold", () => {
     expect(sim.units[0]!.attackTile).toBeNull();
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
     expect(getTower(sim.grid, target.x, target.y)?.hp).toBe(hp);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
   });
 });
 
@@ -341,7 +350,7 @@ describe("phase overlap leftover allies", () => {
       true,
     );
     expect(sim.units.some((unit) => unit.kind === "enemy")).toBe(true);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
     expect(hudSnapshot(sim).leftoverAllies).toBe(1);
   });
 
@@ -356,7 +365,7 @@ describe("phase overlap leftover allies", () => {
 
     sim = tick(sim, 0.3);
     expect(sim.phase).toBe("enemy");
-    expect(sim.gold).toBe(ALLY_GOLD_REWARD);
+    expect(sim.gold).toBe(START_GOLD + ALLY_GOLD_REWARD);
     expect(sim.units.some((unit) => unit.id === ally.id)).toBe(false);
   });
 
@@ -364,13 +373,13 @@ describe("phase overlap leftover allies", () => {
     let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
     sim = { ...sim, grid: wallColumn(sim.grid, 1) };
     const allyId = sim.units[0]!.id;
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
 
     sim = advance(sim, sim.phaseTimeLeft);
     expect(sim.phase).toBe("enemy");
     expect(sim.units.some((unit) => unit.id === allyId)).toBe(false);
     expect(sim.units.some((unit) => unit.kind === "enemy")).toBe(true);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
   });
 
   it("pays no gold when a leftover ally times out still on the map", () => {
@@ -388,12 +397,12 @@ describe("phase overlap leftover allies", () => {
     sim = advance(sim, sim.phaseTimeLeft);
     expect(sim.phase).toBe("enemy");
     expect(sim.units.some((unit) => unit.id === ally.id)).toBe(true);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
 
     sim = advance(sim, sim.phaseTimeLeft);
     expect(sim.phase).toBe("ally");
     expect(sim.units.some((unit) => unit.id === ally.id)).toBe(false);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
   });
 
   it("still has the ally on the map after Ally Phase when the maze is long", () => {
@@ -407,7 +416,7 @@ describe("phase overlap leftover allies", () => {
     sim = advance(sim, STAGE_1.allyPhaseSec);
     expect(sim.phase).toBe("enemy");
     expect(sim.units.some((unit) => unit.kind === "ally")).toBe(true);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
     expect(hudSnapshot(sim).leftoverAllies).toBeGreaterThan(0);
   });
 });
@@ -469,20 +478,26 @@ describe("enemy phase base damage", () => {
 });
 
 describe("tower attacks", () => {
-  it("damages an in-range enemy and records a shot", () => {
+  it("damages an in-range enemy after a projectile lands", () => {
     let sim = createSim(createGrid(12, 8));
     sim = simToggleTower(sim, sim.grid.start.x, sim.grid.start.y + 1);
-    sim = tick(sim, 0.25);
+    sim = tick(sim, 0.05);
     const enemy = sim.units[0]!;
     expect(enemy.kind).toBe("enemy");
-    expect(enemy.hp).toBeCloseTo(STAGE_1.bursts[0]!.hp - TOWER_ATTACK_DPS * 0.25, 5);
     expect(sim.towerShots).toHaveLength(1);
     expect(sim.towerShots[0]).toMatchObject({
       fromX: sim.grid.start.x,
       fromY: sim.grid.start.y + 1,
+      typeId: "archer",
     });
-    expect(sim.towerShots[0]!.toX).toBeCloseTo(enemy.x, 5);
-    expect(sim.towerShots[0]!.toY).toBeCloseTo(enemy.y, 5);
+    expect(sim.towerShots[0]!.x).toBeCloseTo(sim.grid.start.x, 1);
+    sim = tick(sim, 0.3);
+    const hit = sim.units[0]!;
+    expect(hit.id).toBe(enemy.id);
+    expect(hit.hp).toBeCloseTo(
+      STAGE_1.bursts[0]!.hp - TOWER_ATTACK_DPS * TOWER_FIRE_INTERVAL_SEC,
+      5,
+    );
   });
 
   it("removes an enemy when HP reaches 0", () => {
@@ -520,6 +535,36 @@ describe("tower attacks", () => {
     expect(ally.kind).toBe("ally");
     expect(ally.hp).toBe(UNIT_MAX_HP);
     expect(sim.towerShots).toHaveLength(0);
+  });
+
+  it("lets a cannon splash hit a second nearby enemy", () => {
+    let sim = createSim(createGrid(12, 8));
+    const first = sim.units[0]!;
+    sim = {
+      ...sim,
+      grid: placeTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1, "cannon", 0),
+      units: [first, { ...first, id: 99, x: first.x + 0.6, y: first.y }],
+      burstIndex: 99,
+      spawnedInBurst: 99,
+      nextUnitId: 100,
+    };
+    sim = tick(sim, 0.25);
+    const enemies = sim.units.filter((unit) => unit.kind === "enemy");
+    expect(enemies).toHaveLength(2);
+    expect(enemies[0]!.hp).toBeLessThan(first.hp);
+    expect(enemies[1]!.hp).toBeLessThan(first.hp);
+  });
+
+  it("lets a mage slow the enemy it hits", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = {
+      ...sim,
+      grid: placeTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1, "mage", 0),
+    };
+    sim = tick(sim, 0.35);
+    const enemy = sim.units[0]!;
+    expect(enemy.slowLeft).toBeGreaterThan(0);
+    expect(enemy.slowFactor).toBeLessThan(1);
   });
 });
 
@@ -574,14 +619,14 @@ describe("wave spawn", () => {
 
     sim = tick(sim, SPAWN_INTERVAL_SEC * 2 + 0.2);
     expect(sim.units.filter((unit) => unit.kind === "ally").length).toBeGreaterThan(1);
-    expect(sim.gold).toBe(0);
+    expect(sim.gold).toBe(START_GOLD);
 
     sim = advance(
       createSim(createGrid(12, 8)),
       PHASE_DURATION_SEC + 11 / UNIT_SPEED_TILES_PER_SEC + SPAWN_INTERVAL_SEC + 0.3,
     );
     expect(sim.phase).toBe("ally");
-    expect(sim.gold).toBe(ALLY_GOLD_REWARD * 2);
+    expect(sim.gold).toBe(START_GOLD + ALLY_GOLD_REWARD * 2);
   });
 
   it("does not stack a new spawn on a unit still at Start", () => {
@@ -591,5 +636,146 @@ describe("wave spawn", () => {
     const enemies = sim.units.filter((unit) => unit.kind === "enemy");
     expect(enemies).toHaveLength(1);
     expect(unitTile(enemies[0]!)).toEqual(sim.grid.start);
+  });
+});
+
+describe("build cost and construction", () => {
+  it("does not place a tower when gold is short and explains why", () => {
+    const sim = { ...createSim(createGrid(12, 8)), gold: 0 };
+    expect(sim.gold).toBe(0);
+    const result = simBeginBuild(sim, 3, 2, "archer");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toContain("골드가 부족합니다");
+      expect(result.reason).toContain("필요 10");
+    }
+    expect(hasTower(sim.grid, 3, 2)).toBe(false);
+  });
+
+  it("spends gold and starts construction when a type is chosen", () => {
+    let sim = { ...createSim(createGrid(12, 8)), gold: 10 };
+    const x = 3;
+    const y = sim.grid.start.y;
+    const result = simBeginBuild(sim, x, y, "archer");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    sim = result.state;
+    expect(sim.gold).toBe(0);
+    const tower = getTower(sim.grid, x, y);
+    expect(tower?.typeId).toBe("archer");
+    expect(tower?.buildTimeLeft).toBe(BUILD_DURATION_SEC);
+    expect(findPath(sim.grid)?.some((tile) => tile.x === x && tile.y === y)).toBe(false);
+  });
+
+  it("does not attack until construction finishes", () => {
+    let sim = { ...createSim(createGrid(12, 8)), gold: 10 };
+    const built = simBeginBuild(sim, sim.grid.start.x, sim.grid.start.y + 1, "archer");
+    expect(built.ok).toBe(true);
+    if (!built.ok) {
+      return;
+    }
+    sim = built.state;
+    sim = tick(sim, 0.25);
+    const enemy = sim.units[0]!;
+    expect(enemy.kind).toBe("enemy");
+    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.hp);
+    expect(sim.towerShots).toHaveLength(0);
+    expect(getTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1)?.buildTimeLeft).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it("attacks after the build timer ends", () => {
+    let sim = { ...createSim(createGrid(12, 8)), gold: 10 };
+    const x = 4;
+    const y = sim.grid.start.y + 1;
+    const built = simBeginBuild(sim, x, y, "archer");
+    expect(built.ok).toBe(true);
+    if (!built.ok) {
+      return;
+    }
+    sim = tick(built.state, BUILD_DURATION_SEC + 0.05);
+    expect(getTower(sim.grid, x, y)?.buildTimeLeft).toBe(0);
+    expect(sim.towerShots.length).toBeGreaterThan(0);
+    sim = tick(sim, 0.35);
+    expect(sim.units[0]!.hp).toBeLessThan(STAGE_1.bursts[0]!.hp);
+  });
+
+  it("cannot buy two archers with one ally delivery", () => {
+    let sim = { ...createSim(createGrid(12, 8)), gold: ALLY_GOLD_REWARD };
+    const first = simBeginBuild(sim, 3, 2, "archer");
+    expect(first.ok).toBe(true);
+    if (!first.ok) {
+      return;
+    }
+    sim = first.state;
+    const second = simBeginBuild(sim, 4, 2, "archer");
+    expect(second.ok).toBe(false);
+    if (!second.ok) {
+      expect(second.reason).toContain("골드가 부족합니다");
+    }
+    expect(hasTower(sim.grid, 4, 2)).toBe(false);
+  });
+
+  it("upgrades a finished tower, spending gold and raising combat stats", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = simToggleTower(sim, sim.grid.start.x, sim.grid.start.y + 1);
+    sim = { ...sim, gold: 20 };
+    const before = getTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1)!;
+    const result = simUpgradeTower(sim, before.x, before.y);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    sim = result.state;
+    const after = getTower(sim.grid, before.x, before.y)!;
+    expect(sim.gold).toBe(20 - towerUpgradeCost(before));
+    expect(after.level).toBe(2);
+    expect(after.buildTimeLeft).toBe(UPGRADE_DURATION_SEC);
+    expect(towerRange(after)).toBeGreaterThan(towerRange(before));
+    expect(towerDps(after)).toBeGreaterThan(towerDps(before));
+  });
+
+  it("does not attack while an upgrade is still playing", () => {
+    let sim = createSim(createGrid(12, 8));
+    const x = sim.grid.start.x;
+    const y = sim.grid.start.y + 1;
+    sim = simToggleTower(sim, x, y);
+    sim = { ...sim, gold: 20 };
+    const upgraded = simUpgradeTower(sim, x, y);
+    expect(upgraded.ok).toBe(true);
+    if (!upgraded.ok) {
+      return;
+    }
+    sim = tick(upgraded.state, 0.25);
+    expect(getTower(sim.grid, x, y)?.level).toBe(2);
+    expect(getTower(sim.grid, x, y)?.buildTimeLeft).toBeGreaterThan(0);
+    expect(sim.towerShots).toHaveLength(0);
+  });
+
+  it("rejects an upgrade when gold is short", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = simToggleTower(sim, 3, 2);
+    const result = simUpgradeTower({ ...sim, gold: 0 }, 3, 2);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toContain("골드가 부족합니다");
+    }
+    expect(getTower(sim.grid, 3, 2)?.level).toBe(1);
+  });
+
+  it("still starts a paid build while paused", () => {
+    let sim = setTimeScale({ ...createSim(), gold: 10 }, 0);
+    const result = simBeginBuild(sim, 3, 2, "archer");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    sim = tick(result.state, 1);
+    expect(hasTower(sim.grid, 3, 2)).toBe(true);
+    expect(getTower(sim.grid, 3, 2)?.buildTimeLeft).toBe(BUILD_DURATION_SEC);
+    expect(sim.gold).toBe(0);
   });
 });

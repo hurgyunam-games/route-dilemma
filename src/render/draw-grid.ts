@@ -2,6 +2,7 @@ import {
   AnimatedSprite,
   Container,
   Graphics,
+  Sprite,
   Text,
   TilingSprite,
   type Texture,
@@ -11,8 +12,10 @@ import {
   fitGridToViewport,
   forEachTile,
   getTower,
+  isTowerComplete,
   tileKind,
-  TOWER_MAX_HP,
+  towerMaxHp,
+  towerWorkDuration,
   UNIT_MAX_HP,
   viewportToTile,
   type EnemyTypeId,
@@ -21,11 +24,23 @@ import {
   type Path,
   type TileCoord,
   type TileKind,
+  type Tower,
   type TowerShot,
   type Unit,
   type UnitKind,
 } from "@/core";
 import type { EnemyAtlas, EnemySheets } from "@/render/enemy-sprites";
+import {
+  occupantClipFrames,
+  occupantVariantIndex,
+  type OccupantAtlas,
+} from "@/render/occupant-sprites";
+import { arrowFrameIndex } from "@/render/arrow-sprites";
+import { projectileVariantIndex } from "@/render/projectile-sprites";
+import {
+  towerVisualFrames,
+  type TowerAtlasMap,
+} from "@/render/tower-sprites";
 
 const START_FILL = 0x2f6fb3;
 const BASE_FILL = 0xb45a28;
@@ -36,6 +51,22 @@ const PATH_LINE = 0xf4d35e;
 const TOWER_ANIMATION_SPEED = 0.08;
 const TOWER_FIRE_ANIMATION_SPEED = 0.22;
 const TOWER_WIDTH_IN_TILE = 1.05;
+const OCCUPANT_WIDTH_IN_TILE = 0.72;
+const OCCUPANT_ANCHOR_Y = 40 / 48;
+const OCCUPANT_IDLE_SPEED = 0.1;
+const OCCUPANT_ATTACK_SPEED = 0.2;
+/** Occupant feet as a fraction of tile height from the floor. 0 = ground, 1 = tile top. */
+const OCCUPANT_FEET_Y_IN_TILE = 0.52;
+/** Cannon sits this fraction of the keep sprite height above the sprite bottom. */
+const CANNON_DECK_IN_SPRITE = 0.62;
+const CANNON_WIDTH_IN_TILE = 0.5;
+/** Mage stands on the wizard-tower deck, as a fraction of sprite height from the bottom. */
+const MAGE_DECK_IN_SPRITE = 0.34;
+const ARROW_LENGTH_IN_TILE = 0.55;
+const CANNON_PROJ_SIZE_IN_TILE = 0.38;
+const MAGE_PROJ_SIZE_IN_TILE = 0.32;
+/** HP bar sits this fraction of a tile above the floor (on the dirt, under the occupant). */
+const TOWER_HP_Y_IN_TILE = 0.08;
 const ENEMY_ANIMATION_SPEED = 0.14;
 const ENEMY_ATTACK_ANIMATION_SPEED = 0.18;
 const ENEMY_DEATH_ANIMATION_SPEED = 0.16;
@@ -234,12 +265,83 @@ function drawTowerHp(
   x: number,
   y: number,
   hp: number,
+  maxHp: number,
 ): void {
   const width = layout.tileSize * 0.7;
   const height = Math.max(4, Math.round(layout.tileSize * 0.1));
   const left = layout.originX + (x + 0.5) * layout.tileSize - width / 2;
-  const top = layout.originY + y * layout.tileSize + Math.max(3, layout.tileSize * 0.05);
-  drawHpBar(graphics, left, top, width, height, hp, TOWER_MAX_HP);
+  const top =
+    layout.originY +
+    (y + 1 - TOWER_HP_Y_IN_TILE) * layout.tileSize -
+    height;
+  drawHpBar(graphics, left, top, width, height, hp, maxHp);
+}
+
+function drawLevelPips(
+  graphics: Graphics,
+  layout: GridLayout,
+  x: number,
+  y: number,
+  level: number,
+): void {
+  const size = Math.max(4, Math.round(layout.tileSize * 0.1));
+  const gap = Math.max(2, Math.round(layout.tileSize * 0.04));
+  const total = level * size + (level - 1) * gap;
+  const startX =
+    layout.originX + (x + 0.5) * layout.tileSize - total / 2;
+  const hpHeight = Math.max(4, Math.round(layout.tileSize * 0.1));
+  const top =
+    layout.originY +
+    (y + 1 - TOWER_HP_Y_IN_TILE) * layout.tileSize -
+    hpHeight -
+    size -
+    Math.max(2, Math.round(layout.tileSize * 0.03));
+  for (let i = 0; i < level; i += 1) {
+    graphics
+      .rect(startX + i * (size + gap), top, size, size)
+      .fill({ color: 0xe8b060, alpha: 0.95 });
+  }
+}
+
+function drawConstruction(
+  graphics: Graphics,
+  layout: GridLayout,
+  x: number,
+  y: number,
+  progress: number,
+): void {
+  const inset = layout.tileSize * 0.12;
+  const left = layout.originX + x * layout.tileSize + inset;
+  const top = layout.originY + y * layout.tileSize + inset;
+  const size = layout.tileSize - inset * 2;
+  graphics.rect(left, top, size, size).fill({ color: 0x3a3228, alpha: 0.22 });
+  graphics.rect(left, top, size, size).stroke({
+    width: Math.max(2, layout.tileSize * 0.04),
+    color: 0xe8b060,
+    alpha: 0.92,
+  });
+  const barH = Math.max(4, layout.tileSize * 0.1);
+  const barY = top + size - barH - 2;
+  const barW = size - 4;
+  graphics.rect(left + 2, barY, barW, barH).fill({ color: 0x1a1412, alpha: 0.9 });
+  graphics
+    .rect(left + 2, barY, barW * Math.max(0, Math.min(1, progress)), barH)
+    .fill({ color: 0xe8b060 });
+}
+
+function drawRangePreview(
+  graphics: Graphics,
+  layout: GridLayout,
+  x: number,
+  y: number,
+  range: number,
+): void {
+  const center = tileCenter(layout, x, y);
+  graphics.circle(center.x, center.y, range * layout.tileSize).stroke({
+    width: Math.max(2, layout.tileSize * 0.04),
+    color: 0x7ec8ff,
+    alpha: 0.75,
+  });
 }
 
 function drawUnitHp(
@@ -257,26 +359,79 @@ function drawUnitHp(
   drawHpBar(graphics, left, top, width, height, unit.hp, UNIT_MAX_HP);
 }
 
-function drawTowerShots(
-  graphics: Graphics,
+function shotPixel(
   layout: GridLayout,
-  shots: readonly TowerShot[],
+  x: number,
+  y: number,
+): { x: number; y: number } {
+  return {
+    x: layout.originX + (x + 0.5) * layout.tileSize,
+    y: layout.originY + (y + 0.5) * layout.tileSize,
+  };
+}
+
+function layoutArrowSprite(
+  sprite: Sprite,
+  layout: GridLayout,
+  shot: TowerShot,
+  frames: Texture[],
 ): void {
-  const width = Math.max(2, layout.tileSize * 0.08);
-  const spark = Math.max(3, layout.tileSize * 0.12);
-  for (const shot of shots) {
-    const from = tileCenter(layout, shot.fromX, shot.fromY);
-    const toX = layout.originX + (shot.toX + 0.5) * layout.tileSize;
-    const toY = layout.originY + (shot.toY + 0.5) * layout.tileSize;
-    graphics.moveTo(from.x, from.y);
-    graphics.lineTo(toX, toY);
-    graphics.stroke({
-      width,
-      color: 0xffc14d,
-      alpha: 0.92,
-      cap: "round",
-    });
-    graphics.circle(toX, toY, spark).fill({ color: 0xffe08a, alpha: 0.88 });
+  const pos = shotPixel(layout, shot.x, shot.y);
+  const aim = shotPixel(layout, shot.toX, shot.toY);
+  const dx = aim.x - pos.x;
+  const dy = aim.y - pos.y;
+  const frame = frames[arrowFrameIndex(dx, dy, frames.length)] ?? frames[0]!;
+  sprite.texture = frame;
+  sprite.anchor.set(0.5);
+  const long = Math.max(frame.width, frame.height);
+  const scale = (layout.tileSize * ARROW_LENGTH_IN_TILE) / Math.max(1, long);
+  sprite.scale.set(scale);
+  sprite.position.set(pos.x, pos.y);
+  sprite.visible = true;
+}
+
+function layoutOrbSprite(
+  sprite: Sprite,
+  layout: GridLayout,
+  shot: TowerShot,
+  frames: Texture[],
+  sizeInTile: number,
+  level: number,
+): void {
+  const pos = shotPixel(layout, shot.x, shot.y);
+  const frame =
+    frames[projectileVariantIndex(level, frames.length)] ?? frames[0]!;
+  sprite.texture = frame;
+  sprite.anchor.set(0.5);
+  const long = Math.max(frame.width, frame.height);
+  const scale = (layout.tileSize * sizeInTile) / Math.max(1, long);
+  sprite.scale.set(scale);
+  sprite.position.set(pos.x, pos.y);
+  sprite.visible = true;
+}
+
+function syncShotSprites(
+  pool: Sprite[],
+  layer: Container,
+  shots: readonly TowerShot[],
+  frames: Texture[],
+  layoutShot: (sprite: Sprite, shot: TowerShot) => void,
+): void {
+  while (pool.length < shots.length) {
+    const sprite = new Sprite(frames[0]);
+    sprite.eventMode = "none";
+    sprite.anchor.set(0.5);
+    layer.addChild(sprite);
+    pool.push(sprite);
+  }
+  for (let i = 0; i < pool.length; i += 1) {
+    const sprite = pool[i]!;
+    const shot = shots[i];
+    if (!shot) {
+      sprite.visible = false;
+      continue;
+    }
+    layoutShot(sprite, shot);
   }
 }
 
@@ -310,11 +465,177 @@ function layoutFloor(
   );
 }
 
+export type RangePreview = {
+  readonly x: number;
+  readonly y: number;
+  readonly range: number;
+};
+
+function layoutOccupantSprite(
+  sprite: AnimatedSprite,
+  towerSprite: AnimatedSprite,
+  layout: GridLayout,
+  x: number,
+  y: number,
+  facing: 1 | -1,
+  tower: Tower,
+): void {
+  const widthInTile =
+    tower.typeId === "cannon" ? CANNON_WIDTH_IN_TILE : OCCUPANT_WIDTH_IN_TILE;
+  const sizeScale = (layout.tileSize * widthInTile) / sprite.texture.width;
+  sprite.scale.set(sizeScale * facing, sizeScale);
+  if (tower.typeId === "cannon") {
+    sprite.position.set(
+      towerSprite.x,
+      towerSprite.y - towerSprite.height * CANNON_DECK_IN_SPRITE,
+    );
+  } else if (tower.typeId === "mage") {
+    sprite.position.set(
+      towerSprite.x,
+      towerSprite.y - towerSprite.height * MAGE_DECK_IN_SPRITE,
+    );
+  } else {
+    sprite.position.set(
+      layout.originX + (x + 0.5) * layout.tileSize,
+      layout.originY + (y + 1 - OCCUPANT_FEET_Y_IN_TILE) * layout.tileSize,
+    );
+  }
+  sprite.zIndex = y + 0.2;
+}
+
+type OccupantClip = "idle" | "attack";
+
+type TowerSprite = {
+  sprite: AnimatedSprite;
+  occupant: AnimatedSprite;
+  visual: string;
+  occupantClip: OccupantClip | "none";
+  occupantVariant: number;
+  occupantFacing: 1 | -1;
+};
+
+function occupantFacingFor(faceRight: boolean, clip: OccupantClip): 1 | -1 {
+  if (clip === "attack") {
+    return faceRight ? -1 : 1;
+  }
+  return faceRight ? 1 : -1;
+}
+
+function applyOccupantVisual(
+  record: TowerSprite,
+  tower: Tower,
+  firing: boolean,
+  shot: TowerShot | undefined,
+  atlas: OccupantAtlas,
+): void {
+  const show = isTowerComplete(tower) || tower.level > 1;
+  const occupant = record.occupant;
+  occupant.visible = show;
+  if (!show) {
+    if (occupant.playing) {
+      occupant.stop();
+    }
+    record.occupantClip = "none";
+    return;
+  }
+  const clip: OccupantClip = firing ? "attack" : "idle";
+  const variant = occupantVariantIndex(
+    tower.typeId,
+    tower.level,
+    atlas[tower.typeId].length,
+  );
+  const faceRight = shot ? shot.toX >= tower.x : false;
+  const facing = occupantFacingFor(faceRight, clip);
+  const stillIdle = tower.typeId === "cannon" && clip === "idle";
+  if (record.occupantClip !== clip || record.occupantVariant !== variant) {
+    record.occupantClip = clip;
+    record.occupantVariant = variant;
+    occupant.textures = occupantClipFrames(atlas, tower.typeId, clip, tower.level);
+    occupant.animationSpeed =
+      clip === "attack" ? OCCUPANT_ATTACK_SPEED : OCCUPANT_IDLE_SPEED;
+    if (stillIdle) {
+      occupant.loop = false;
+      occupant.gotoAndStop(0);
+    } else {
+      occupant.loop = true;
+      occupant.gotoAndPlay(0);
+    }
+  } else if (stillIdle) {
+    if (occupant.playing) {
+      occupant.gotoAndStop(0);
+    }
+  } else if (!occupant.playing) {
+    occupant.play();
+  }
+  record.occupantFacing = facing;
+}
+
+function towerVisualKey(tower: Tower): string {
+  return isTowerComplete(tower) ? `idle-${tower.level}` : `work-${tower.level}`;
+}
+
+function applyTowerVisual(
+  record: TowerSprite,
+  tower: Tower,
+  firing: boolean,
+  atlas: TowerAtlasMap,
+): void {
+  const complete = isTowerComplete(tower);
+  const key = towerVisualKey(tower);
+  const frames = towerVisualFrames(atlas, tower.typeId, complete, tower.level);
+  const sprite = record.sprite;
+  if (record.visual !== key) {
+    record.visual = key;
+    sprite.textures = frames;
+  }
+  sprite.tint = 0xffffff;
+  if (!complete) {
+    sprite.loop = false;
+    if (sprite.playing) {
+      sprite.stop();
+    }
+    const progress = 1 - tower.buildTimeLeft / towerWorkDuration(tower);
+    const frame = Math.min(
+      frames.length - 1,
+      Math.max(0, Math.floor(progress * frames.length)),
+    );
+    sprite.gotoAndStop(frame);
+    return;
+  }
+  if (tower.typeId === "cannon") {
+    if (firing) {
+      sprite.loop = true;
+      sprite.animationSpeed = TOWER_FIRE_ANIMATION_SPEED;
+      if (!sprite.playing) {
+        sprite.gotoAndPlay(0);
+      }
+    } else {
+      sprite.loop = false;
+      if (sprite.playing) {
+        sprite.stop();
+      }
+      sprite.gotoAndStop(0);
+    }
+    return;
+  }
+  sprite.loop = true;
+  sprite.animationSpeed = firing
+    ? TOWER_FIRE_ANIMATION_SPEED
+    : TOWER_ANIMATION_SPEED;
+  if (!sprite.playing) {
+    sprite.play();
+  }
+}
+
 export function createGridView(
-  towerFrames: Texture[],
+  towerAtlas: TowerAtlasMap,
+  occupantAtlas: OccupantAtlas,
   floorTexture: Texture,
   enemyAtlas: EnemyAtlas,
   allyWalk: Texture[],
+  arrowFrames: Texture[],
+  cannonProjFrames: Texture[],
+  mageProjFrames: Texture[],
 ): {
   readonly container: Container;
   sync(
@@ -323,6 +644,7 @@ export function createGridView(
     viewportHeight: number,
     units?: readonly Unit[],
     towerShots?: readonly TowerShot[],
+    rangePreview?: RangePreview | null,
   ): void;
   tileAt(px: number, py: number): TileCoord | null;
 } {
@@ -337,15 +659,21 @@ export function createGridView(
   const pathGraphics = new Graphics();
   const towerLayer = new Container();
   towerLayer.sortableChildren = true;
+  const occupantLayer = new Container();
+  occupantLayer.sortableChildren = true;
   const hpGraphics = new Graphics();
   hpGraphics.eventMode = "none";
   const unitLayer = new Container();
   unitLayer.sortableChildren = true;
   unitLayer.eventMode = "none";
-  const shotGraphics = new Graphics();
-  shotGraphics.eventMode = "none";
-  const towers = new Map<string, AnimatedSprite>();
+  const arrowLayer = new Container();
+  arrowLayer.eventMode = "none";
+  const towers = new Map<string, TowerSprite>();
+  const buildLabels = new Map<string, Text>();
   const unitSprites = new Map<number, UnitSprite>();
+  const arrowSprites: Sprite[] = [];
+  const cannonSprites: Sprite[] = [];
+  const mageSprites: Sprite[] = [];
   let lastLayout: GridLayout | null = null;
   const startLabel = new Text({
     text: "Start",
@@ -370,15 +698,29 @@ export function createGridView(
     graphics,
     pathGraphics,
     towerLayer,
+    occupantLayer,
     startLabel,
     baseLabel,
     unitLayer,
-    shotGraphics,
+    arrowLayer,
     hpGraphics,
   );
 
   const hideTowers = (): void => {
-    for (const sprite of towers.values()) {
+    for (const record of towers.values()) {
+      record.sprite.visible = false;
+      record.occupant.visible = false;
+    }
+    for (const label of buildLabels.values()) {
+      label.visible = false;
+    }
+    for (const sprite of arrowSprites) {
+      sprite.visible = false;
+    }
+    for (const sprite of cannonSprites) {
+      sprite.visible = false;
+    }
+    for (const sprite of mageSprites) {
       sprite.visible = false;
     }
   };
@@ -389,11 +731,11 @@ export function createGridView(
     viewportHeight: number,
     units: readonly Unit[] = [],
     towerShots: readonly TowerShot[] = [],
+    rangePreview: RangePreview | null = null,
   ): void => {
     graphics.clear();
     pathGraphics.clear();
     hpGraphics.clear();
-    shotGraphics.clear();
     const layout = fitGridToViewport(grid, viewportWidth, viewportHeight);
     lastLayout = layout;
     if (layout.tileSize <= 0) {
@@ -414,7 +756,12 @@ export function createGridView(
     const firingKeys = new Set(
       towerShots.map((shot) => tileKey(shot.fromX, shot.fromY)),
     );
+    const shotByTower = new Map<string, TowerShot>();
+    for (const shot of towerShots) {
+      shotByTower.set(tileKey(shot.fromX, shot.fromY), shot);
+    }
     const liveTowers = new Set<string>();
+    const liveBuilding = new Set<string>();
     forEachTile(grid, (x, y) => {
       const px = layout.originX + x * layout.tileSize;
       const py = layout.originY + y * layout.tileSize;
@@ -434,35 +781,108 @@ export function createGridView(
       if (kind !== "tower") {
         return;
       }
+      const tower = getTower(grid, x, y);
+      if (!tower) {
+        return;
+      }
       const key = tileKey(x, y);
       liveTowers.add(key);
-      let sprite = towers.get(key);
-      if (!sprite) {
-        sprite = new AnimatedSprite({
-          textures: towerFrames,
+      let record = towers.get(key);
+      if (!record) {
+        const sprite = new AnimatedSprite({
+          textures: towerVisualFrames(towerAtlas, tower.typeId, false, 1),
           animationSpeed: TOWER_ANIMATION_SPEED,
           loop: true,
-          autoPlay: true,
+          autoPlay: false,
         });
         sprite.anchor.set(0.5, 1);
         sprite.eventMode = "none";
         towerLayer.addChild(sprite);
-        towers.set(key, sprite);
+        const occupant = new AnimatedSprite({
+          textures: occupantClipFrames(occupantAtlas, tower.typeId, "idle", tower.level),
+          animationSpeed: OCCUPANT_IDLE_SPEED,
+          loop: true,
+          autoPlay: false,
+        });
+        occupant.anchor.set(0.5, OCCUPANT_ANCHOR_Y);
+        occupant.eventMode = "none";
+        occupantLayer.addChild(occupant);
+        record = {
+          sprite,
+          occupant,
+          visual: "",
+          occupantClip: "none",
+          occupantVariant: -1,
+          occupantFacing: 1,
+        };
+        towers.set(key, record);
       }
-      sprite.visible = true;
-      sprite.animationSpeed = firingKeys.has(key)
-        ? TOWER_FIRE_ANIMATION_SPEED
-        : TOWER_ANIMATION_SPEED;
-      layoutTowerSprite(sprite, layout, x, y);
-      const tower = getTower(grid, x, y);
-      if (tower) {
-        drawTowerHp(hpGraphics, layout, x, y, tower.hp);
+      record.sprite.visible = true;
+      const firing = firingKeys.has(key);
+      applyTowerVisual(record, tower, firing, towerAtlas);
+      applyOccupantVisual(record, tower, firing, shotByTower.get(key), occupantAtlas);
+      layoutTowerSprite(record.sprite, layout, x, y);
+      layoutOccupantSprite(
+        record.occupant,
+        record.sprite,
+        layout,
+        x,
+        y,
+        record.occupantFacing,
+        tower,
+      );
+      drawTowerHp(
+        hpGraphics,
+        layout,
+        x,
+        y,
+        tower.hp,
+        towerMaxHp(tower),
+      );
+      if (isTowerComplete(tower)) {
+        drawLevelPips(hpGraphics, layout, x, y, tower.level);
+      } else {
+        liveBuilding.add(key);
+        const progress = 1 - tower.buildTimeLeft / towerWorkDuration(tower);
+        drawConstruction(graphics, layout, x, y, progress);
+        let label = buildLabels.get(key);
+        if (!label) {
+          label = new Text({
+            text: "건설 중",
+            style: {
+              fontFamily: "Segoe UI, sans-serif",
+              fontWeight: "700",
+              fill: 0xf4d35e,
+              align: "center",
+            },
+          });
+          label.anchor.set(0.5);
+          label.eventMode = "none";
+          container.addChild(label);
+          buildLabels.set(key, label);
+        }
+        label.text = tower.level > 1 ? "업그레이드 중" : "건설 중";
+        label.visible = true;
+        label.style.fontSize = Math.max(9, Math.floor(layout.tileSize * 0.22));
+        label.position.set(
+          layout.originX + (x + 0.5) * layout.tileSize,
+          layout.originY + (y + 0.42) * layout.tileSize,
+        );
       }
     });
 
     const path = findPath(grid);
     if (path) {
       drawPath(pathGraphics, layout, path);
+    }
+    if (rangePreview) {
+      drawRangePreview(
+        pathGraphics,
+        layout,
+        rangePreview.x,
+        rangePreview.y,
+        rangePreview.range,
+      );
     }
 
     const liveUnits = new Set<number>();
@@ -533,10 +953,17 @@ export function createGridView(
       record.lastY = unit.y;
     }
 
-    for (const [key, sprite] of towers) {
+    for (const [key, record] of towers) {
       if (!liveTowers.has(key)) {
-        sprite.destroy();
+        record.sprite.destroy();
+        record.occupant.destroy();
         towers.delete(key);
+      }
+    }
+    for (const [key, label] of buildLabels) {
+      if (!liveBuilding.has(key)) {
+        label.destroy();
+        buildLabels.delete(key);
       }
     }
     for (const [id, record] of unitSprites) {
@@ -585,7 +1012,47 @@ export function createGridView(
       unitSprites.delete(id);
     }
 
-    drawTowerShots(shotGraphics, layout, towerShots);
+    syncShotSprites(
+      arrowSprites,
+      arrowLayer,
+      towerShots.filter((shot) => shot.typeId === "archer"),
+      arrowFrames,
+      (sprite, shot) => layoutArrowSprite(sprite, layout, shot, arrowFrames),
+    );
+    syncShotSprites(
+      cannonSprites,
+      arrowLayer,
+      towerShots.filter((shot) => shot.typeId === "cannon"),
+      cannonProjFrames,
+      (sprite, shot) => {
+        const tower = getTower(grid, shot.fromX, shot.fromY);
+        layoutOrbSprite(
+          sprite,
+          layout,
+          shot,
+          cannonProjFrames,
+          CANNON_PROJ_SIZE_IN_TILE,
+          tower?.level ?? 1,
+        );
+      },
+    );
+    syncShotSprites(
+      mageSprites,
+      arrowLayer,
+      towerShots.filter((shot) => shot.typeId === "mage"),
+      mageProjFrames,
+      (sprite, shot) => {
+        const tower = getTower(grid, shot.fromX, shot.fromY);
+        layoutOrbSprite(
+          sprite,
+          layout,
+          shot,
+          mageProjFrames,
+          MAGE_PROJ_SIZE_IN_TILE,
+          tower?.level ?? 1,
+        );
+      },
+    );
 
     placeLabel(
       startLabel,

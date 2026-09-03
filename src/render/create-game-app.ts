@@ -1,9 +1,15 @@
 import { Application, Rectangle, type FederatedPointerEvent } from "pixi.js";
 import type { Grid, TowerShot, Unit } from "@/core";
 import { loadAllyFrames } from "@/render/ally-sprites";
-import { createGridView } from "@/render/draw-grid";
+import { loadArrowFrames } from "@/render/arrow-sprites";
+import { createGridView, type RangePreview } from "@/render/draw-grid";
+import {
+  loadCannonProjectileFrames,
+  loadMageProjectileFrames,
+} from "@/render/projectile-sprites";
 import { loadEnemyFrames } from "@/render/enemy-sprites";
 import { loadFloorTexture } from "@/render/floor-tile";
+import { loadOccupantFrames } from "@/render/occupant-sprites";
 import { loadTowerFrames } from "@/render/tower-sprites";
 
 type GameSession = {
@@ -12,6 +18,7 @@ type GameSession = {
     grid: Grid,
     units: readonly Unit[],
     towerShots?: readonly TowerShot[],
+    rangePreview?: RangePreview | null,
   ) => void;
 };
 
@@ -33,13 +40,35 @@ export async function createGameApp(
   });
   host.appendChild(app.canvas);
 
-  const [towerFrames, floorTexture, enemySheets, allyWalk] = await Promise.all([
+  const [
+    towerAtlas,
+    occupantAtlas,
+    floorTexture,
+    enemySheets,
+    allyWalk,
+    arrowFrames,
+    cannonProjFrames,
+    mageProjFrames,
+  ] = await Promise.all([
     loadTowerFrames(),
+    loadOccupantFrames(),
     loadFloorTexture(),
     loadEnemyFrames(),
     loadAllyFrames(),
+    loadArrowFrames(),
+    loadCannonProjectileFrames(),
+    loadMageProjectileFrames(),
   ]);
-  const gridView = createGridView(towerFrames, floorTexture, enemySheets, allyWalk);
+  const gridView = createGridView(
+    towerAtlas,
+    occupantAtlas,
+    floorTexture,
+    enemySheets,
+    allyWalk,
+    arrowFrames,
+    cannonProjFrames,
+    mageProjFrames,
+  );
   app.stage.addChild(gridView.container);
   app.stage.eventMode = "static";
   app.stage.cursor = "pointer";
@@ -47,6 +76,7 @@ export async function createGameApp(
   let currentGrid = grid;
   let currentUnits = units;
   let currentShots: readonly TowerShot[] = [];
+  let currentPreview: RangePreview | null = null;
 
   const syncHitArea = (): void => {
     app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
@@ -59,6 +89,7 @@ export async function createGameApp(
       app.screen.height,
       currentUnits,
       currentShots,
+      currentPreview,
     );
     syncHitArea();
   };
@@ -82,10 +113,11 @@ export async function createGameApp(
       app.stage.off("pointertap", onPointerTap);
       app.renderer.off("resize", onResize);
     },
-    setView: (nextGrid, nextUnits, nextShots = []) => {
+    setView: (nextGrid, nextUnits, nextShots = [], nextPreview = null) => {
       currentGrid = nextGrid;
       currentUnits = nextUnits;
       currentShots = nextShots;
+      currentPreview = nextPreview;
       sync();
     },
   });
@@ -98,8 +130,9 @@ export function setGameView(
   grid: Grid,
   units: readonly Unit[],
   towerShots: readonly TowerShot[] = [],
+  rangePreview: RangePreview | null = null,
 ): void {
-  sessions.get(app)?.setView(grid, units, towerShots);
+  sessions.get(app)?.setView(grid, units, towerShots, rangePreview);
 }
 
 export function destroyGameApp(app: Application): void {

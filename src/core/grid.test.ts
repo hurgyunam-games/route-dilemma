@@ -12,7 +12,11 @@ import {
   toggleTower,
   TOWER_MAX_HP,
   viewportToTile,
+  placeTower,
+  advanceTowerBuilds,
+  upgradeTower,
 } from "./grid";
+import { BUILD_DURATION_SEC, UPGRADE_DURATION_SEC } from "./towers";
 
 describe("createGrid", () => {
   it("uses 12×8 by default", () => {
@@ -64,6 +68,9 @@ describe("toggleTower", () => {
     expect(hasTower(next, 1, 3)).toBe(true);
     expect(tileKind(next, 1, 3)).toBe("tower");
     expect(getTower(next, 1, 3)?.hp).toBe(TOWER_MAX_HP);
+    expect(getTower(next, 1, 3)?.typeId).toBe("archer");
+    expect(getTower(next, 1, 3)?.level).toBe(1);
+    expect(getTower(next, 1, 3)?.buildTimeLeft).toBe(0);
   });
 
   it("removes a tower when the same tile is toggled again", () => {
@@ -98,6 +105,35 @@ describe("toggleTower", () => {
     expect(toggleTower(grid, -1, 0)).toBe(grid);
     expect(toggleTower(grid, 12, 0)).toBe(grid);
     expect(toggleTower(grid, 0, 8)).toBe(grid);
+  });
+});
+
+describe("placeTower and construction", () => {
+  it("places a building tower that still occupies the tile", () => {
+    const next = placeTower(createGrid(12, 8), 2, 3, "cannon", BUILD_DURATION_SEC);
+    const tower = getTower(next, 2, 3);
+    expect(tower?.typeId).toBe("cannon");
+    expect(tower?.buildTimeLeft).toBe(BUILD_DURATION_SEC);
+    expect(tileKind(next, 2, 3)).toBe("tower");
+  });
+
+  it("counts construction down until the tower is finished", () => {
+    let grid = placeTower(createGrid(12, 8), 2, 3, "mage", 0.4);
+    grid = advanceTowerBuilds(grid, 0.25);
+    expect(getTower(grid, 2, 3)?.buildTimeLeft).toBeCloseTo(0.15, 5);
+    grid = advanceTowerBuilds(grid, 0.2);
+    expect(getTower(grid, 2, 3)?.buildTimeLeft).toBe(0);
+  });
+
+  it("upgrades a finished tower and raises its max HP", () => {
+    const placed = toggleTower(createGrid(12, 8), 4, 2);
+    const upgraded = upgradeTower(placed, 4, 2);
+    expect(getTower(upgraded, 4, 2)?.level).toBe(2);
+    expect(getTower(upgraded, 4, 2)?.hp).toBeGreaterThan(TOWER_MAX_HP);
+    expect(getTower(upgraded, 4, 2)?.buildTimeLeft).toBe(UPGRADE_DURATION_SEC);
+    expect(upgradeTower(placeTower(createGrid(12, 8), 4, 2, "archer", 1), 4, 2).towers[0]?.level).toBe(
+      1,
+    );
   });
 });
 

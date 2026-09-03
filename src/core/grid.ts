@@ -1,9 +1,20 @@
 /** Logical battle grid. Columns are N (width), rows are M (height). */
 
+import {
+  BUILD_DURATION_SEC,
+  DEFAULT_TOWER_TYPE,
+  TOWER_MAX_HP,
+  TOWER_MAX_LEVEL,
+  UPGRADE_DURATION_SEC,
+  isTowerComplete,
+  towerMaxHp,
+  type TowerTypeId,
+} from "./towers";
+
 export const DEFAULT_GRID_COLS = 12;
 export const DEFAULT_GRID_ROWS = 8;
 export const DEFAULT_VIEWPORT_PADDING = 24;
-export const TOWER_MAX_HP = 8;
+export { TOWER_MAX_HP };
 
 export type TileCoord = {
   readonly x: number;
@@ -14,6 +25,9 @@ export type Tower = {
   readonly x: number;
   readonly y: number;
   readonly hp: number;
+  readonly typeId: TowerTypeId;
+  readonly level: number;
+  readonly buildTimeLeft: number;
 };
 
 export type TileKind = "empty" | "start" | "base" | "tower";
@@ -101,12 +115,87 @@ export function tileKind(grid: Grid, x: number, y: number): TileKind {
   return "empty";
 }
 
-/** Place or remove a tower. Start / Base / out of bounds are no-ops. Path blocking is allowed. */
-export function toggleTower(grid: Grid, x: number, y: number): Grid {
-  if (!inBounds(grid, x, y)) {
+function canOccupy(grid: Grid, x: number, y: number): boolean {
+  return (
+    inBounds(grid, x, y) &&
+    !sameTile(grid.start, { x, y }) &&
+    !sameTile(grid.base, { x, y })
+  );
+}
+
+function makeTower(
+  x: number,
+  y: number,
+  typeId: TowerTypeId,
+  level: number,
+  buildTimeLeft: number,
+): Tower {
+  return {
+    x,
+    y,
+    typeId,
+    level,
+    buildTimeLeft,
+    hp: towerMaxHp({ typeId, level }),
+  };
+}
+
+/** Place a tower. Start / Base / occupied / out of bounds are no-ops. Path blocking is allowed. */
+export function placeTower(
+  grid: Grid,
+  x: number,
+  y: number,
+  typeId: TowerTypeId,
+  buildTimeLeft: number = BUILD_DURATION_SEC,
+): Grid {
+  if (!canOccupy(grid, x, y) || hasTower(grid, x, y)) {
     return grid;
   }
-  if (sameTile(grid.start, { x, y }) || sameTile(grid.base, { x, y })) {
+  return {
+    ...grid,
+    towers: [...grid.towers, makeTower(x, y, typeId, 1, buildTimeLeft)],
+  };
+}
+
+/** Raise a finished tower by one level. Incomplete / max-level / missing are no-ops. */
+export function upgradeTower(grid: Grid, x: number, y: number): Grid {
+  const tower = getTower(grid, x, y);
+  if (!tower || !isTowerComplete(tower) || tower.level >= TOWER_MAX_LEVEL) {
+    return grid;
+  }
+  const level = tower.level + 1;
+  const next: Tower = {
+    ...tower,
+    level,
+    hp: towerMaxHp({ typeId: tower.typeId, level }),
+    buildTimeLeft: UPGRADE_DURATION_SEC,
+  };
+  return {
+    ...grid,
+    towers: grid.towers.map((entry) =>
+      entry.x === x && entry.y === y ? next : entry,
+    ),
+  };
+}
+
+/** Count down construction. Finished towers are unchanged. */
+export function advanceTowerBuilds(grid: Grid, dt: number): Grid {
+  if (!(dt > 0) || !grid.towers.some((tower) => tower.buildTimeLeft > 0)) {
+    return grid;
+  }
+  return {
+    ...grid,
+    towers: grid.towers.map((tower) =>
+      tower.buildTimeLeft > 0
+        ? { ...tower, buildTimeLeft: Math.max(0, tower.buildTimeLeft - dt) }
+        : tower,
+    ),
+  };
+}
+
+/** Place or remove a finished default tower. Start / Base / out of bounds are no-ops. Path blocking is allowed. */
+export function toggleTower(grid: Grid, x: number, y: number): Grid {
+  if (!canOccupy(grid, x, y)) {
     return grid;
   }
   if (hasTower(grid, x, y)) {
@@ -115,10 +204,7 @@ export function toggleTower(grid: Grid, x: number, y: number): Grid {
       towers: grid.towers.filter((tower) => tower.x !== x || tower.y !== y),
     };
   }
-  return {
-    ...grid,
-    towers: [...grid.towers, { x, y, hp: TOWER_MAX_HP }],
-  };
+  return placeTower(grid, x, y, DEFAULT_TOWER_TYPE, 0);
 }
 
 export function forEachTile(
