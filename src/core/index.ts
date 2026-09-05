@@ -24,6 +24,14 @@ export type { Grid, GridLayout, TileCoord, TileKind, Tower } from "./grid";
 export { findPath, isWalkable } from "./path";
 export type { Path } from "./path";
 export {
+  createMapGrid,
+  getGameMap,
+  isMapId,
+  WORLD_MAP_COUNT,
+  WORLD_MAPS,
+} from "./maps";
+export type { GameMapDef, MapId } from "./maps";
+export {
   ALLY_GOLD_REWARD,
   START_GOLD,
   BASE_MAX_HP,

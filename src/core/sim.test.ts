@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createGrid, getTower, hasTower, placeTower, toggleTower, TOWER_MAX_HP } from "./grid";
+import { createMapGrid } from "./maps";
 import { findPath } from "./path";
 import {
   ALLY_GOLD_REWARD,
@@ -55,6 +56,15 @@ describe("createSim", () => {
     expect(sim.outcome).toBe("playing");
     expect(sim.waveIndex).toBe(0);
     expect(sim.waveCount).toBe(BATTLE_WAVE_COUNT);
+  });
+
+  it("uses the chosen map Start tile", () => {
+    const grid = createMapGrid(4);
+    const sim = createSim(grid);
+    expect(sim.grid.start).toEqual(grid.start);
+    expect(sim.grid.base).toEqual(grid.base);
+    expect(unitTile(sim.units[0]!)).toEqual(grid.start);
+    expect(sim.grid.start).not.toEqual(createGrid().start);
   });
 });
 

@@ -48,19 +48,40 @@ export type GridLayout = {
   readonly height: number;
 };
 
+function isInside(cols: number, rows: number, tile: TileCoord): boolean {
+  return (
+    Number.isInteger(tile.x) &&
+    Number.isInteger(tile.y) &&
+    tile.x >= 0 &&
+    tile.y >= 0 &&
+    tile.x < cols &&
+    tile.y < rows
+  );
+}
+
 export function createGrid(
   cols: number = DEFAULT_GRID_COLS,
   rows: number = DEFAULT_GRID_ROWS,
+  start?: TileCoord,
+  base?: TileCoord,
 ): Grid {
   if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 1 || rows < 1) {
     throw new Error("Grid size must be positive integers");
   }
   const y = Math.floor((rows - 1) / 2);
+  const resolvedStart = start ?? { x: 0, y };
+  const resolvedBase = base ?? { x: cols - 1, y };
+  if (!isInside(cols, rows, resolvedStart) || !isInside(cols, rows, resolvedBase)) {
+    throw new Error("Start and Base must be inside the grid");
+  }
+  if (resolvedStart.x === resolvedBase.x && resolvedStart.y === resolvedBase.y) {
+    throw new Error("Start and Base must be different tiles");
+  }
   return {
     cols,
     rows,
-    start: { x: 0, y },
-    base: { x: cols - 1, y },
+    start: resolvedStart,
+    base: resolvedBase,
     towers: [],
   };
 }

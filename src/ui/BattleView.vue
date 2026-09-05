@@ -3,7 +3,9 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { Application } from "pixi.js";
 import {
   canUpgrade,
+  createMapGrid,
   createSim,
+  getGameMap,
   getTower,
   hudSnapshot,
   isTowerComplete,
@@ -23,6 +25,7 @@ import {
   towerRange,
   towerUpgradeCost,
   type HudSnapshot,
+  type MapId,
   type TimeScale,
   type TowerTypeId,
 } from "@/core";
@@ -43,8 +46,18 @@ type Shop =
   | { readonly mode: "build"; readonly x: number; readonly y: number }
   | { readonly mode: "upgrade"; readonly x: number; readonly y: number };
 
+const props = defineProps<{
+  mapId: MapId;
+}>();
+
+const emit = defineEmits<{
+  leave: [];
+}>();
+
+const makeBattle = () => setTimeScale(createSim(createMapGrid(props.mapId)), 0);
+
 const hostRef = ref<HTMLElement | null>(null);
-let sim = setTimeScale(createSim(), 0);
+let sim = makeBattle();
 const hud = ref<HudSnapshot>(hudSnapshot(sim));
 const shop = ref<Shop | null>(null);
 const shopError = ref("");
@@ -61,6 +74,7 @@ const baseHpLabel = computed(() => `본진 HP ${hud.value.baseHp}`);
 const leftoverLabel = computed(() =>
   hud.value.leftoverAllies > 0 ? `남은 아군 ${hud.value.leftoverAllies}` : "",
 );
+const mapLabel = computed(() => `맵 ${props.mapId} ${getGameMap(props.mapId).name}`);
 const stageLabel = computed(() => `스테이지 ${hud.value.stageId}`);
 const waveLabel = computed(
   () => `웨이브 ${hud.value.waveIndex + 1} / ${hud.value.waveCount}`,
@@ -157,10 +171,14 @@ const onTimeScale = (scale: TimeScale): void => {
 };
 
 const onRestart = (): void => {
-  sim = setTimeScale(createSim(), 0);
+  sim = makeBattle();
   closeShop();
   pushHud();
   pushView();
+};
+
+const onLeaveWorldMap = (): void => {
+  emit("leave");
 };
 
 const onTileClick = (x: number, y: number): void => {
@@ -263,6 +281,13 @@ onUnmounted(() => {
       class="canvas-host"
     />
     <div class="hud">
+      <button
+        type="button"
+        class="world-map-btn"
+        @click="onLeaveWorldMap"
+      >
+        월드맵
+      </button>
       <div class="phase-stack">
         <div
           class="phase-bar"
@@ -271,6 +296,9 @@ onUnmounted(() => {
           <span class="phase-name">{{ phaseLabel }}</span>
           <span class="phase-timer">{{ phaseTimeLabel }}</span>
         </div>
+        <p class="stage">
+          {{ mapLabel }}
+        </p>
         <p class="stage">
           {{ stageLabel }}
         </p>
@@ -324,13 +352,22 @@ onUnmounted(() => {
         :aria-label="outcomeTitle"
       >
         <h2>{{ outcomeTitle }}</h2>
-        <button
-          type="button"
-          class="restart-btn"
-          @click="onRestart"
-        >
-          다시 하기
-        </button>
+        <div class="outcome-actions">
+          <button
+            type="button"
+            class="restart-btn"
+            @click="onRestart"
+          >
+            다시 하기
+          </button>
+          <button
+            type="button"
+            class="restart-btn"
+            @click="onLeaveWorldMap"
+          >
+            월드맵
+          </button>
+        </div>
       </div>
     </div>
     <div
@@ -565,6 +602,28 @@ onUnmounted(() => {
   color: #f3d7c4;
 }
 
+.world-map-btn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(20, 12, 10, 0.82);
+  color: #d8cfc6;
+  font: 700 13px/1.2 "Segoe UI", sans-serif;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: inset 0 0 0 1px rgba(216, 207, 198, 0.16);
+}
+
+.world-map-btn:focus-visible {
+  outline: 2px solid #e8b060;
+  outline-offset: 2px;
+}
+
 .time-controls {
   position: absolute;
   top: 16px;
@@ -780,6 +839,13 @@ onUnmounted(() => {
 
 .outcome-panel.victory h2 {
   color: #b8e0c8;
+}
+
+.outcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
 .restart-btn {
