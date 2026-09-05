@@ -29,6 +29,7 @@ import {
   towerRange,
   towerUpgradeCost,
   UPGRADE_DURATION_SEC,
+  BATTLE_WAVE_COUNT,
 } from "./sim";
 
 function wallColumn(grid: ReturnType<typeof createGrid>, x: number) {
@@ -51,6 +52,9 @@ describe("createSim", () => {
     expect(sim.baseHp).toBe(BASE_MAX_HP);
     expect(sim.units[0]!.hp).toBe(getStageWave(1).bursts[0]!.hp);
     expect(sim.towerShots).toEqual([]);
+    expect(sim.outcome).toBe("playing");
+    expect(sim.waveIndex).toBe(0);
+    expect(sim.waveCount).toBe(BATTLE_WAVE_COUNT);
   });
 });
 
@@ -393,6 +397,7 @@ describe("phase overlap leftover allies", () => {
       units: [{ ...ally, x: 0, y: 0 }],
       burstIndex: 99,
       spawnedInBurst: 99,
+      baseHp: BASE_MAX_HP,
     };
 
     sim = advance(sim, sim.phaseTimeLeft);
@@ -835,5 +840,125 @@ describe("build cost and construction", () => {
     if (!result.ok) {
       expect(result.reason).toContain("타워가 없습니다");
     }
+  });
+});
+
+function leakIntoBase(sim: ReturnType<typeof createSim>, hp = 1): ReturnType<typeof createSim> {
+  const enemy = sim.units.find((unit) => unit.kind === "enemy") ?? sim.units[0]!;
+  return {
+    ...sim,
+    baseHp: hp,
+    burstIndex: 99,
+    spawnedInBurst: 99,
+    units: [{ ...enemy, x: sim.grid.base.x - 0.05, y: sim.grid.base.y }],
+  };
+}
+
+function lastWaveEmpty(sim: ReturnType<typeof createSim>): ReturnType<typeof createSim> {
+  const stage = getStageWave(sim.stageId);
+  return {
+    ...sim,
+    waveIndex: sim.waveCount - 1,
+    burstIndex: stage.bursts.length,
+    spawnedInBurst: 0,
+    spawnCooldown: 1,
+    units: [],
+    towerShots: [],
+  };
+}
+
+describe("battle outcome", () => {
+  it("stops the battle and reports Game Over when base HP hits 0", () => {
+    let sim = leakIntoBase(createSim(createGrid(12, 8)));
+    sim = tick(sim, 0.2);
+    expect(sim.baseHp).toBe(0);
+    expect(sim.outcome).toBe("defeat");
+    expect(hudSnapshot(sim).outcome).toBe("defeat");
+  });
+
+  it("does not spawn more enemies or allies after Game Over", () => {
+    let sim = leakIntoBase(createSim(createGrid(12, 8)));
+    sim = tick(sim, 0.2);
+    expect(sim.outcome).toBe("defeat");
+
+    const frozen = {
+      units: sim.units.map((unit) => ({ id: unit.id, x: unit.x, y: unit.y, kind: unit.kind })),
+      nextUnitId: sim.nextUnitId,
+      phase: sim.phase,
+      phaseTimeLeft: sim.phaseTimeLeft,
+      time: sim.time,
+    };
+
+    sim = tick(sim, 2);
+    expect(sim.outcome).toBe("defeat");
+    expect(sim.nextUnitId).toBe(frozen.nextUnitId);
+    expect(sim.phase).toBe(frozen.phase);
+    expect(sim.phaseTimeLeft).toBe(frozen.phaseTimeLeft);
+    expect(sim.time).toBe(frozen.time);
+    expect(
+      sim.units.map((unit) => ({ id: unit.id, x: unit.x, y: unit.y, kind: unit.kind })),
+    ).toEqual(frozen.units);
+  });
+
+  it("reports Victory after the last wave is cleared with the base still up", () => {
+    let sim = lastWaveEmpty(createSim(createGrid(12, 8)));
+    expect(sim.baseHp).toBeGreaterThan(0);
+    sim = tick(sim, 0.05);
+    expect(sim.outcome).toBe("victory");
+    expect(hudSnapshot(sim).outcome).toBe("victory");
+    expect(sim.units.some((unit) => unit.kind === "enemy")).toBe(false);
+  });
+
+  it("does not spawn after Victory", () => {
+    let sim = lastWaveEmpty(createSim(createGrid(12, 8)));
+    sim = tick(sim, 0.05);
+    expect(sim.outcome).toBe("victory");
+    const nextUnitId = sim.nextUnitId;
+    sim = tick(sim, 2);
+    expect(sim.outcome).toBe("victory");
+    expect(sim.nextUnitId).toBe(nextUnitId);
+    expect(sim.units.some((unit) => unit.kind === "enemy")).toBe(false);
+  });
+
+  it("does not start Ally Phase or spawn allies after the last wave timer", () => {
+    const started = createSim(createGrid(12, 8));
+    const enemy = started.units[0]!;
+    let sim: ReturnType<typeof createSim> = {
+      ...started,
+      waveIndex: started.waveCount - 1,
+      burstIndex: getStageWave(1).bursts.length,
+      spawnedInBurst: 0,
+      spawnCooldown: 1,
+      phaseTimeLeft: 0.05,
+      units: [{ ...enemy, x: 5, y: started.grid.start.y }],
+    };
+    sim = tick(sim, 0.2);
+    expect(sim.phase).toBe("enemy");
+    expect(sim.outcome).toBe("playing");
+    expect(sim.units.some((unit) => unit.kind === "ally")).toBe(false);
+    expect(sim.units.some((unit) => unit.id === enemy.id)).toBe(true);
+  });
+
+  it("does not declare Victory before the last wave is finished", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = {
+      ...sim,
+      burstIndex: getStageWave(1).bursts.length,
+      spawnedInBurst: 0,
+      units: [],
+      towerShots: [],
+    };
+    sim = tick(sim, 0.05);
+    expect(sim.waveIndex).toBe(0);
+    expect(sim.outcome).toBe("playing");
+  });
+
+  it("repeats the same leak as defeat and the same clear as victory", () => {
+    const lost = () => tick(leakIntoBase(createSim(createGrid(12, 8))), 0.2);
+    const won = () => tick(lastWaveEmpty(createSim(createGrid(12, 8))), 0.05);
+    expect(lost().outcome).toBe("defeat");
+    expect(lost().outcome).toBe("defeat");
+    expect(won().outcome).toBe("victory");
+    expect(won().outcome).toBe("victory");
   });
 });

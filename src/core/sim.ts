@@ -83,10 +83,12 @@ export const TIME_SCALES = [0, 1, 2, 3] as const;
 export const PHASE_DURATION_SEC = getStageWave(1).enemyPhaseSec;
 export const SPAWN_INTERVAL_SEC = getStageWave(1).bursts[0]!.interval;
 export const WAVE_SIZE = getStageWave(1).bursts[0]!.count;
+export const BATTLE_WAVE_COUNT = 3;
 
 export type Phase = "enemy" | "ally";
 export type UnitKind = Phase;
 export type TimeScale = (typeof TIME_SCALES)[number];
+export type BattleOutcome = "playing" | "victory" | "defeat";
 
 export type CommandResult =
   | { readonly ok: true; readonly state: SimState }
@@ -144,9 +146,12 @@ export type SimState = {
   readonly gold: number;
   readonly baseHp: number;
   readonly stageId: number;
+  readonly waveIndex: number;
+  readonly waveCount: number;
   readonly burstIndex: number;
   readonly spawnedInBurst: number;
   readonly spawnCooldown: number;
+  readonly outcome: BattleOutcome;
 };
 
 export type HudSnapshot = {
@@ -158,6 +163,9 @@ export type HudSnapshot = {
   readonly baseHp: number;
   readonly leftoverAllies: number;
   readonly stageId: number;
+  readonly waveIndex: number;
+  readonly waveCount: number;
+  readonly outcome: BattleOutcome;
 };
 
 type StepResult = {
@@ -186,9 +194,12 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
     gold: START_GOLD,
     baseHp: BASE_MAX_HP,
     stageId: stage.id,
+    waveIndex: 0,
+    waveCount: BATTLE_WAVE_COUNT,
     burstIndex: 0,
     spawnedInBurst: 1,
     spawnCooldown: first.interval,
+    outcome: "playing",
   };
 }
 
@@ -205,6 +216,9 @@ export function hudSnapshot(state: SimState): HudSnapshot {
         ? state.units.filter((unit) => unit.kind === "ally").length
         : 0,
     stageId: state.stageId,
+    waveIndex: state.waveIndex,
+    waveCount: state.waveCount,
+    outcome: state.outcome,
   };
 }
 
@@ -296,6 +310,9 @@ export function simUpgradeTower(
 }
 
 export function tick(state: SimState, dt: number): SimState {
+  if (state.outcome !== "playing") {
+    return state;
+  }
   const scaled = dt * state.timeScale;
   if (!(scaled > 0)) {
     return state;
@@ -311,9 +328,20 @@ export function tick(state: SimState, dt: number): SimState {
 }
 
 function tickOnce(state: SimState, dt: number): SimState {
+  if (state.outcome !== "playing") {
+    return state;
+  }
+
   const time = state.time + dt;
   const stage = getStageWave(state.stageId);
-  const clock = tickPhaseClock(state.phase, state.phaseTimeLeft, dt, stage);
+  const clock = tickPhaseClock(
+    state.phase,
+    state.phaseTimeLeft,
+    dt,
+    stage,
+    state.waveIndex,
+    state.waveCount,
+  );
   let grid = advanceTowerBuilds(state.grid, dt);
   let gold = state.gold;
   let baseHp = state.baseHp;
@@ -336,6 +364,24 @@ function tickOnce(state: SimState, dt: number): SimState {
       continue;
     }
     units.push(moved.unit);
+  }
+
+  if (baseHp <= 0) {
+    return {
+      ...state,
+      grid,
+      units,
+      time,
+      phase: clock.phase,
+      phaseTimeLeft: clock.phaseTimeLeft,
+      gold,
+      baseHp: 0,
+      waveIndex: clock.waveIndex,
+      burstIndex,
+      spawnedInBurst,
+      spawnCooldown,
+      outcome: "defeat",
+    };
   }
 
   units = enemiesCatchAllies(units);
@@ -366,7 +412,7 @@ function tickOnce(state: SimState, dt: number): SimState {
   spawnedInBurst = spawned.spawnedInBurst;
   spawnCooldown = spawned.spawnCooldown;
 
-  return {
+  const next: SimState = {
     grid,
     units,
     towerShots: fired.shots,
@@ -380,10 +426,14 @@ function tickOnce(state: SimState, dt: number): SimState {
     gold,
     baseHp,
     stageId: state.stageId,
+    waveIndex: clock.waveIndex,
+    waveCount: state.waveCount,
     burstIndex,
     spawnedInBurst,
     spawnCooldown,
+    outcome: "playing",
   };
+  return { ...next, outcome: resolveOutcome(next, stage) };
 }
 
 function tickPhaseClock(
@@ -391,14 +441,45 @@ function tickPhaseClock(
   timeLeft: number,
   dt: number,
   stage: StageWave,
-): { phase: Phase; phaseTimeLeft: number } {
+  waveIndex: number,
+  waveCount: number,
+): { phase: Phase; phaseTimeLeft: number; waveIndex: number } {
+  if (phase === "enemy" && waveIndex >= waveCount - 1) {
+    return { phase: "enemy", phaseTimeLeft: Math.max(0, timeLeft - dt), waveIndex };
+  }
+
   let nextPhase = phase;
   let remaining = timeLeft - dt;
+  let nextWave = waveIndex;
   while (remaining <= 0) {
     nextPhase = nextPhase === "enemy" ? "ally" : "enemy";
     remaining += phaseDuration(stage, nextPhase);
+    if (nextPhase === "enemy") {
+      nextWave += 1;
+      if (nextWave >= waveCount - 1) {
+        return {
+          phase: "enemy",
+          phaseTimeLeft: Math.max(0, remaining),
+          waveIndex: nextWave,
+        };
+      }
+    }
   }
-  return { phase: nextPhase, phaseTimeLeft: remaining };
+  return { phase: nextPhase, phaseTimeLeft: remaining, waveIndex: nextWave };
+}
+
+function resolveOutcome(state: SimState, stage: StageWave): BattleOutcome {
+  if (state.baseHp <= 0) {
+    return "defeat";
+  }
+  if (
+    state.waveIndex >= state.waveCount - 1 &&
+    state.burstIndex >= stage.bursts.length &&
+    !state.units.some((unit) => unit.kind === "enemy")
+  ) {
+    return "victory";
+  }
+  return "playing";
 }
 
 function retainUnits(

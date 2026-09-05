@@ -68,11 +68,13 @@ export {
   UNIT_MAX_HP,
   unitTile,
   WAVE_SIZE,
+  BATTLE_WAVE_COUNT,
   ENEMY_TYPE_IDS,
   getStageWave,
   STAGE_COUNT,
 } from "./sim";
 export type {
+  BattleOutcome,
   CommandResult,
   EnemyTypeId,
   HudSnapshot,

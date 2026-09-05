@@ -62,6 +62,12 @@ const leftoverLabel = computed(() =>
   hud.value.leftoverAllies > 0 ? `남은 아군 ${hud.value.leftoverAllies}` : "",
 );
 const stageLabel = computed(() => `스테이지 ${hud.value.stageId}`);
+const waveLabel = computed(
+  () => `웨이브 ${hud.value.waveIndex + 1} / ${hud.value.waveCount}`,
+);
+const outcomeTitle = computed(() =>
+  hud.value.outcome === "defeat" ? "Game Over" : "Victory",
+);
 
 const selectedTower = computed(() => {
   void hud.value;
@@ -139,6 +145,9 @@ const pushView = (): void => {
 };
 
 const onTimeScale = (scale: TimeScale): void => {
+  if (hud.value.outcome !== "playing") {
+    return;
+  }
   const next = setTimeScale(sim, scale);
   if (next === sim) {
     return;
@@ -147,7 +156,17 @@ const onTimeScale = (scale: TimeScale): void => {
   pushHud();
 };
 
+const onRestart = (): void => {
+  sim = setTimeScale(createSim(), 0);
+  closeShop();
+  pushHud();
+  pushView();
+};
+
 const onTileClick = (x: number, y: number): void => {
+  if (hud.value.outcome !== "playing") {
+    return;
+  }
   const kind = tileKind(sim.grid, x, y);
   if (kind === "start" || kind === "base") {
     return;
@@ -255,6 +274,9 @@ onUnmounted(() => {
         <p class="stage">
           {{ stageLabel }}
         </p>
+        <p class="wave">
+          {{ waveLabel }}
+        </p>
         <p class="gold">
           {{ goldLabel }}
         </p>
@@ -287,6 +309,27 @@ onUnmounted(() => {
           @click="onTimeScale(option.scale)"
         >
           {{ option.label }}
+        </button>
+      </div>
+    </div>
+    <div
+      v-if="hud.outcome !== 'playing'"
+      class="outcome-overlay"
+    >
+      <div
+        class="outcome-panel"
+        :class="hud.outcome"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="outcomeTitle"
+      >
+        <h2>{{ outcomeTitle }}</h2>
+        <button
+          type="button"
+          class="restart-btn"
+          @click="onRestart"
+        >
+          다시 하기
         </button>
       </div>
     </div>
@@ -457,6 +500,7 @@ onUnmounted(() => {
 
 .phase-bar,
 .stage,
+.wave,
 .gold,
 .base-hp,
 .leftover,
@@ -493,12 +537,14 @@ onUnmounted(() => {
 .gold,
 .base-hp,
 .leftover,
-.stage {
+.stage,
+.wave {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
 
-.stage {
+.stage,
+.wave {
   color: #d8cfc6;
 }
 
@@ -689,5 +735,67 @@ onUnmounted(() => {
 .shop-error {
   margin: 12px 0 0;
   color: #f0b4a8;
+}
+
+.outcome-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 6, 5, 0.62);
+  pointer-events: auto;
+}
+
+.outcome-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(360px, calc(100% - 32px));
+  padding: 28px 24px 24px;
+  border-radius: 10px;
+  background: rgba(28, 18, 14, 0.96);
+  color: #f7efe6;
+  text-align: center;
+}
+
+.outcome-panel.defeat {
+  box-shadow: inset 0 0 0 1px rgba(232, 96, 72, 0.55);
+}
+
+.outcome-panel.victory {
+  box-shadow: inset 0 0 0 1px rgba(72, 176, 120, 0.55);
+}
+
+.outcome-panel h2 {
+  margin: 0;
+  font: 700 28px/1.2 "Segoe UI", sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.outcome-panel.defeat h2 {
+  color: #f0b4a8;
+}
+
+.outcome-panel.victory h2 {
+  color: #b8e0c8;
+}
+
+.restart-btn {
+  margin: 0;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(56, 38, 28, 0.95);
+  color: #f7efe6;
+  font: 700 14px/1.2 "Segoe UI", sans-serif;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.55);
+}
+
+.restart-btn:focus-visible {
+  outline: 2px solid #e8b060;
+  outline-offset: 2px;
 }
 </style>
