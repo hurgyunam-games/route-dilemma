@@ -1,6 +1,6 @@
 import type { Texture } from "pixi.js";
 import type { TowerTypeId } from "@/core";
-import { loadLocalSheet } from "@/render/local-image";
+import { loadLocalSheet, paintTexture } from "@/render/local-image";
 
 export const OCCUPANT_FRAME_SIZE = 48;
 
@@ -62,7 +62,13 @@ const OCCUPANT_FILES: Record<TowerTypeId, readonly OccupantFiles[]> = {
       fallback: ["#3a3a8a", "#8a6acc"],
     },
   ],
+  wall: [],
 };
+
+function blankOccupant(): OccupantSheets {
+  const blank = paintTexture(OCCUPANT_FRAME_SIZE, OCCUPANT_FRAME_SIZE, () => {});
+  return { idle: [blank], attack: [blank], preattack: [blank] };
+}
 
 async function loadOccupantVariant(files: OccupantFiles): Promise<OccupantSheets> {
   const [idle, attack] = await Promise.all([
@@ -92,7 +98,7 @@ export async function loadOccupantFrames(): Promise<OccupantAtlas> {
     Promise.all(OCCUPANT_FILES.cannon.map(loadOccupantVariant)),
     Promise.all(OCCUPANT_FILES.mage.map(loadOccupantVariant)),
   ]);
-  return { archer, cannon, mage };
+  return { archer, cannon, mage, wall: [blankOccupant()] };
 }
 
 export function occupantVariantIndex(level: number, count: number): number {

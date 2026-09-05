@@ -9,6 +9,7 @@ import {
   isTowerComplete,
   setTimeScale,
   simBeginBuild,
+  simRemoveTower,
   simUpgradeTower,
   tileKind,
   tick,
@@ -17,6 +18,7 @@ import {
   TOWER_DEFS,
   TOWER_MAX_LEVEL,
   towerDps,
+  towerFires,
   towerMaxHp,
   towerRange,
   towerUpgradeCost,
@@ -42,7 +44,7 @@ type Shop =
   | { readonly mode: "upgrade"; readonly x: number; readonly y: number };
 
 const hostRef = ref<HTMLElement | null>(null);
-let sim = createSim();
+let sim = setTimeScale(createSim(), 0);
 const hud = ref<HudSnapshot>(hudSnapshot(sim));
 const shop = ref<Shop | null>(null);
 const shopError = ref("");
@@ -111,7 +113,7 @@ const canUpgradeSelected = computed(() => {
 
 const rangePreview = computed(() => {
   const tower = selectedTower.value;
-  if (!tower || !isTowerComplete(tower)) {
+  if (!tower || !isTowerComplete(tower) || !towerFires(tower)) {
     return null;
   }
   return { x: tower.x, y: tower.y, range: towerRange(tower) };
@@ -185,6 +187,24 @@ const onUpgrade = (): void => {
   }
   sim = result.state;
   shopError.value = "";
+  pushHud();
+  pushView();
+};
+
+const onDestroy = (): void => {
+  if (!shop.value || shop.value.mode !== "upgrade") {
+    return;
+  }
+  if (!window.confirm("이 타워를 파괴할까요?")) {
+    return;
+  }
+  const result = simRemoveTower(sim, shop.value.x, shop.value.y);
+  if (!result.ok) {
+    shopError.value = result.reason;
+    return;
+  }
+  sim = result.state;
+  closeShop();
   pushHud();
   pushView();
 };
@@ -279,10 +299,10 @@ onUnmounted(() => {
         class="shop-panel"
         role="dialog"
         aria-modal="true"
-        :aria-label="shop.mode === 'build' ? '주둔 유닛 선택' : '타워 업그레이드'"
+        :aria-label="shop.mode === 'build' ? '건설할 종류 선택' : '타워 업그레이드'"
       >
         <header class="shop-head">
-          <h2>{{ shop.mode === "build" ? "주둔 유닛 선택" : "타워 업그레이드" }}</h2>
+          <h2>{{ shop.mode === "build" ? "건설할 종류 선택" : "타워 업그레이드" }}</h2>
           <button
             type="button"
             class="close"
@@ -309,8 +329,14 @@ onUnmounted(() => {
             <span class="type-name">{{ def.name }}</span>
             <span class="type-stat">비용 {{ def.cost }}</span>
             <span class="type-stat">체력 {{ def.hp }}</span>
-            <span class="type-stat">사거리 {{ def.range }}</span>
-            <span class="type-stat">공격 {{ def.dps }} · {{ TOWER_ATTACK_LABELS[def.attack] }}</span>
+            <template v-if="def.attack !== 'none'">
+              <span class="type-stat">사거리 {{ def.range }}</span>
+              <span class="type-stat">공격 {{ def.dps }} · {{ TOWER_ATTACK_LABELS[def.attack] }}</span>
+            </template>
+            <span
+              v-else
+              class="type-stat"
+            >공격 없음 · 길 차단</span>
           </button>
         </div>
         <div
@@ -324,6 +350,13 @@ onUnmounted(() => {
                 : "아직 건설 중입니다. 완성된 뒤에 업그레이드할 수 있습니다."
             }}
           </p>
+          <button
+            type="button"
+            class="destroy-btn"
+            @click="onDestroy"
+          >
+            파괴
+          </button>
         </div>
         <div
           v-else-if="upgradePreview && selectedTower"
@@ -335,8 +368,13 @@ onUnmounted(() => {
           <p class="type-stat">
             레벨 {{ upgradePreview.current.level }}
             · 체력 {{ upgradePreview.current.hp }}
-            · 사거리 {{ upgradePreview.current.range }}
-            · 공격 {{ upgradePreview.current.dps }}
+            <template v-if="selectedTower.typeId !== 'wall'">
+              · 사거리 {{ upgradePreview.current.range }}
+              · 공격 {{ upgradePreview.current.dps }}
+            </template>
+            <template v-else>
+              · 공격 없음
+            </template>
           </p>
           <p
             v-if="upgradePreview.next"
@@ -344,8 +382,10 @@ onUnmounted(() => {
           >
             다음: 레벨 {{ upgradePreview.next.level }}
             · 체력 {{ upgradePreview.next.hp }}
-            · 사거리 {{ upgradePreview.next.range }}
-            · 공격 {{ upgradePreview.next.dps }}
+            <template v-if="selectedTower.typeId !== 'wall'">
+              · 사거리 {{ upgradePreview.next.range }}
+              · 공격 {{ upgradePreview.next.dps }}
+            </template>
             · 비용 {{ upgradePreview.cost }}
           </p>
           <p
@@ -354,14 +394,23 @@ onUnmounted(() => {
           >
             최대 레벨입니다
           </p>
-          <button
-            v-if="canUpgradeSelected"
-            type="button"
-            class="upgrade-btn"
-            @click="onUpgrade"
-          >
-            업그레이드
-          </button>
+          <div class="shop-actions">
+            <button
+              v-if="canUpgradeSelected"
+              type="button"
+              class="upgrade-btn"
+              @click="onUpgrade"
+            >
+              업그레이드
+            </button>
+            <button
+              type="button"
+              class="destroy-btn"
+              @click="onDestroy"
+            >
+              파괴
+            </button>
+          </div>
         </div>
         <p
           v-if="shopError"
@@ -537,7 +586,8 @@ onUnmounted(() => {
 }
 
 .close,
-.upgrade-btn {
+.upgrade-btn,
+.destroy-btn {
   margin: 0;
   padding: 6px 12px;
   border: 0;
@@ -557,7 +607,7 @@ onUnmounted(() => {
 
 .type-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
@@ -588,6 +638,10 @@ onUnmounted(() => {
   box-shadow: inset 0 0 0 2px #88a0e8;
 }
 
+.type-card.wall {
+  box-shadow: inset 0 0 0 2px #a8a090;
+}
+
 .type-name {
   margin: 0;
   font-size: 15px;
@@ -614,9 +668,22 @@ onUnmounted(() => {
   color: #f4d35e;
 }
 
+.shop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .upgrade-btn {
   align-self: flex-start;
   padding: 8px 14px;
+}
+
+.destroy-btn {
+  align-self: flex-start;
+  padding: 8px 14px;
+  color: #f0b4a8;
+  box-shadow: inset 0 0 0 1px rgba(232, 96, 72, 0.55);
 }
 
 .shop-error {

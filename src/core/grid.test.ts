@@ -13,6 +13,7 @@ import {
   TOWER_MAX_HP,
   viewportToTile,
   placeTower,
+  removeTower,
   advanceTowerBuilds,
   upgradeTower,
 } from "./grid";
@@ -105,6 +106,16 @@ describe("toggleTower", () => {
     expect(toggleTower(grid, -1, 0)).toBe(grid);
     expect(toggleTower(grid, 12, 0)).toBe(grid);
     expect(toggleTower(grid, 0, 8)).toBe(grid);
+  });
+});
+
+describe("removeTower", () => {
+  it("clears a placed tower and leaves an empty tile", () => {
+    const placed = toggleTower(createGrid(12, 8), 4, 2);
+    const cleared = removeTower(placed, 4, 2);
+    expect(hasTower(cleared, 4, 2)).toBe(false);
+    expect(tileKind(cleared, 4, 2)).toBe("empty");
+    expect(removeTower(createGrid(12, 8), 4, 2).towers).toEqual([]);
   });
 });
 

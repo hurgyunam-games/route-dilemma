@@ -35,7 +35,7 @@ import {
   occupantVariantIndex,
   type OccupantAtlas,
 } from "@/render/occupant-sprites";
-import { arrowFrameIndex } from "@/render/arrow-sprites";
+import { arrowFrameIndex, arrowUniformScale } from "@/render/arrow-sprites";
 import { projectileVariantIndex } from "@/render/projectile-sprites";
 import {
   towerVisualFrames,
@@ -375,6 +375,7 @@ function layoutArrowSprite(
   layout: GridLayout,
   shot: TowerShot,
   frames: Texture[],
+  scale: number,
 ): void {
   const pos = shotPixel(layout, shot.x, shot.y);
   const aim = shotPixel(layout, shot.toX, shot.toY);
@@ -383,8 +384,6 @@ function layoutArrowSprite(
   const frame = frames[arrowFrameIndex(dx, dy, frames.length)] ?? frames[0]!;
   sprite.texture = frame;
   sprite.anchor.set(0.5);
-  const long = Math.max(frame.width, frame.height);
-  const scale = (layout.tileSize * ARROW_LENGTH_IN_TILE) / Math.max(1, long);
   sprite.scale.set(scale);
   sprite.position.set(pos.x, pos.y);
   sprite.visible = true;
@@ -528,7 +527,8 @@ function applyOccupantVisual(
   shot: TowerShot | undefined,
   atlas: OccupantAtlas,
 ): void {
-  const show = isTowerComplete(tower) || tower.level > 1;
+  const show =
+    tower.typeId !== "wall" && (isTowerComplete(tower) || tower.level > 1);
   const occupant = record.occupant;
   occupant.visible = show;
   if (!show) {
@@ -598,8 +598,8 @@ function applyTowerVisual(
     sprite.gotoAndStop(frame);
     return;
   }
-  if (tower.typeId === "cannon") {
-    if (firing) {
+  if (tower.typeId === "cannon" || tower.typeId === "wall") {
+    if (firing && tower.typeId === "cannon") {
       sprite.loop = true;
       sprite.animationSpeed = TOWER_FIRE_ANIMATION_SPEED;
       if (!sprite.playing) {
@@ -1008,12 +1008,18 @@ export function createGridView(
       unitSprites.delete(id);
     }
 
+    const arrowScale = arrowUniformScale(
+      arrowFrames,
+      layout.tileSize,
+      ARROW_LENGTH_IN_TILE,
+    );
     syncShotSprites(
       arrowSprites,
       arrowLayer,
       towerShots.filter((shot) => shot.typeId === "archer"),
       arrowFrames,
-      (sprite, shot) => layoutArrowSprite(sprite, layout, shot, arrowFrames),
+      (sprite, shot) =>
+        layoutArrowSprite(sprite, layout, shot, arrowFrames, arrowScale),
     );
     syncShotSprites(
       cannonSprites,

@@ -12,6 +12,7 @@ import {
   towerAttack,
   towerBuildCost,
   towerDps,
+  towerFires,
   towerMaxHp,
   towerRange,
   towerUpgradeCost,
@@ -32,7 +33,9 @@ describe("tower catalog", () => {
     expect(towerAttack({ typeId: "archer", level: 1 })).toBe("single");
     expect(towerAttack({ typeId: "cannon", level: 1 })).toBe("splash");
     expect(towerAttack({ typeId: "mage", level: 1 })).toBe("slow");
+    expect(towerAttack({ typeId: "wall", level: 1 })).toBe("none");
     expect(TOWER_ATTACK_LABELS.splash).toBe("범위");
+    expect(TOWER_ATTACK_LABELS.none).toBe("없음");
   });
 
   it("keeps default archer HP as TOWER_MAX_HP", () => {
@@ -41,15 +44,35 @@ describe("tower catalog", () => {
     expect(towerDps({ typeId: "archer", level: 1 })).toBe(4);
   });
 
-  it("tables five levels of HP, range, and damage per type", () => {
+  it("tables five levels of HP, range, and damage per combat type", () => {
     expect(TOWER_MAX_LEVEL).toBe(5);
     for (const id of TOWER_TYPE_IDS) {
       const lv1 = { typeId: id, level: 1 };
       const lv5 = { typeId: id, level: 5 };
       expect(towerMaxHp(lv5)).toBeGreaterThan(towerMaxHp(lv1));
+      if (id === "wall") {
+        expect(towerRange(lv1)).toBe(0);
+        expect(towerRange(lv5)).toBe(0);
+        expect(towerDps(lv1)).toBe(0);
+        expect(towerDps(lv5)).toBe(0);
+        continue;
+      }
       expect(towerRange(lv5)).toBeGreaterThan(towerRange(lv1));
       expect(towerDps(lv5)).toBeGreaterThan(towerDps(lv1));
     }
+  });
+
+  it("makes walls cheap to place, expensive to harden, and never fire", () => {
+    const wall = { typeId: "wall" as const, level: 1 };
+    expect(towerBuildCost("wall")).toBeLessThan(towerBuildCost("archer"));
+    expect(towerUpgradeCost(wall)).toBeGreaterThan(towerBuildCost("wall"));
+    expect(towerMaxHp(wall)).toBe(towerMaxHp({ typeId: "archer", level: 1 }));
+    expect(towerMaxHp({ typeId: "wall", level: 5 })).toBeGreaterThan(
+      towerMaxHp({ typeId: "cannon", level: 5 }),
+    );
+    expect(towerFires(wall)).toBe(false);
+    expect(towerFires({ typeId: "archer", level: 1 })).toBe(true);
+    expect(canUpgrade({ ...wall, buildTimeLeft: 0 })).toBe(true);
   });
 
   it("makes upgrades cost gold and raise range and damage", () => {

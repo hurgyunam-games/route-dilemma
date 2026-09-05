@@ -8,6 +8,7 @@ import {
   hasTower,
   inBounds,
   placeTower,
+  removeTower,
   sameTile,
   toggleTower,
   upgradeTower,
@@ -23,6 +24,7 @@ import {
   towerAttack,
   towerBuildCost,
   towerDps,
+  towerFires,
   towerRange,
   towerSlowFactor,
   towerSlowSec,
@@ -53,6 +55,7 @@ export {
   towerAttack,
   towerBuildCost,
   towerDps,
+  towerFires,
   towerMaxHp,
   towerRange,
   towerSlowFactor,
@@ -218,6 +221,13 @@ export function simToggleTower(state: SimState, x: number, y: number): SimState 
     return state;
   }
   return { ...state, grid };
+}
+
+export function simRemoveTower(state: SimState, x: number, y: number): CommandResult {
+  if (!getTower(state.grid, x, y)) {
+    return { ok: false, reason: "타워가 없습니다" };
+  }
+  return { ok: true, state: { ...state, grid: removeTower(state.grid, x, y) } };
 }
 
 function goldShort(need: number, have: number): string {
@@ -677,7 +687,7 @@ function fireTowers(
     const key = `${tower.x},${tower.y}`;
     const left = Math.max(0, (cooldown[key] ?? 0) - dt);
     cooldown[key] = left;
-    if (!isTowerComplete(tower) || left > 0) {
+    if (!isTowerComplete(tower) || left > 0 || !towerFires(tower)) {
       continue;
     }
     const target = nearestEnemyInRange(tower, units, hpById);

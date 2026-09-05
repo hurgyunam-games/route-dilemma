@@ -108,6 +108,20 @@ async function loadMageAtlas(): Promise<TowerAtlas> {
   };
 }
 
+/** Empty keep: archer lv3/lv4/lv5, no occupant. Wall 1–2 / 3–4 / 5. */
+function wallAtlasFromShared(shared: TowerAtlas): TowerAtlas {
+  const lv3 = shared.byLevel[2] ?? shared.build;
+  const lv4 = shared.byLevel[3] ?? lv3;
+  const lv5 = shared.byLevel[4] ?? lv4;
+  const up4 = shared.upgrade[2] ?? lv4;
+  const up5 = shared.upgrade[3] ?? lv5;
+  return {
+    build: shared.build,
+    byLevel: [lv3, lv3, lv4, lv4, lv5],
+    upgrade: [lv3, up4, up4, up5],
+  };
+}
+
 export async function loadTowerFrames(): Promise<TowerAtlasMap> {
   const [shared, cannon, mage] = await Promise.all([
     loadSharedAtlas(),
@@ -118,6 +132,7 @@ export async function loadTowerFrames(): Promise<TowerAtlasMap> {
     archer: shared,
     cannon,
     mage,
+    wall: wallAtlasFromShared(shared),
   };
 }
 

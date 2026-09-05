@@ -32,6 +32,24 @@ function placeholderTexture(color: string, width: number, height: number): Textu
   return texture;
 }
 
+export function paintTexture(
+  width: number,
+  height: number,
+  paint: (ctx: CanvasRenderingContext2D) => void,
+): Texture {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.imageSmoothingEnabled = false;
+    paint(ctx);
+  }
+  const texture = Texture.from(canvas);
+  texture.source.style.scaleMode = "nearest";
+  return texture;
+}
+
 async function textureFromUrl(url: string): Promise<Texture> {
   const texture = await Assets.load<Texture>(url);
   texture.source.style.scaleMode = "nearest";

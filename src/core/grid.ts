@@ -193,16 +193,24 @@ export function advanceTowerBuilds(grid: Grid, dt: number): Grid {
   };
 }
 
+/** Remove a tower. Missing tiles are no-ops. */
+export function removeTower(grid: Grid, x: number, y: number): Grid {
+  if (!hasTower(grid, x, y)) {
+    return grid;
+  }
+  return {
+    ...grid,
+    towers: grid.towers.filter((tower) => tower.x !== x || tower.y !== y),
+  };
+}
+
 /** Place or remove a finished default tower. Start / Base / out of bounds are no-ops. Path blocking is allowed. */
 export function toggleTower(grid: Grid, x: number, y: number): Grid {
   if (!canOccupy(grid, x, y)) {
     return grid;
   }
   if (hasTower(grid, x, y)) {
-    return {
-      ...grid,
-      towers: grid.towers.filter((tower) => tower.x !== x || tower.y !== y),
-    };
+    return removeTower(grid, x, y);
   }
   return placeTower(grid, x, y, DEFAULT_TOWER_TYPE, 0);
 }

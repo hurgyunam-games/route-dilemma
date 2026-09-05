@@ -13,6 +13,7 @@ import {
   SPAWN_INTERVAL_SEC,
   setTimeScale,
   simBeginBuild,
+  simRemoveTower,
   simToggleTower,
   simUpgradeTower,
   tick,
@@ -566,6 +567,19 @@ describe("tower attacks", () => {
     expect(enemy.slowLeft).toBeGreaterThan(0);
     expect(enemy.slowFactor).toBeLessThan(1);
   });
+
+  it("does not let a wall fire even when an enemy is adjacent", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = {
+      ...sim,
+      grid: placeTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1, "wall", 0),
+    };
+    sim = tick(sim, 0.25);
+    const enemy = sim.units[0]!;
+    expect(enemy.kind).toBe("enemy");
+    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.hp);
+    expect(sim.towerShots).toHaveLength(0);
+  });
 });
 
 describe("wave spawn", () => {
@@ -738,6 +752,27 @@ describe("build cost and construction", () => {
     expect(towerDps(after)).toBeGreaterThan(towerDps(before));
   });
 
+  it("upgrades a wall by raising HP without giving it an attack", () => {
+    let sim = createSim(createGrid(12, 8));
+    const x = 3;
+    const y = 2;
+    sim = { ...sim, grid: placeTower(sim.grid, x, y, "wall", 0), gold: 20 };
+    const before = getTower(sim.grid, x, y)!;
+    const result = simUpgradeTower(sim, x, y);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    sim = result.state;
+    const after = getTower(sim.grid, x, y)!;
+    expect(after.level).toBe(2);
+    expect(after.hp).toBeGreaterThan(before.hp);
+    expect(towerDps(after)).toBe(0);
+    expect(towerRange(after)).toBe(0);
+    sim = tick(sim, UPGRADE_DURATION_SEC + 0.25);
+    expect(sim.towerShots).toHaveLength(0);
+  });
+
   it("does not attack while an upgrade is still playing", () => {
     let sim = createSim(createGrid(12, 8));
     const x = sim.grid.start.x;
@@ -777,5 +812,28 @@ describe("build cost and construction", () => {
     expect(hasTower(sim.grid, 3, 2)).toBe(true);
     expect(getTower(sim.grid, 3, 2)?.buildTimeLeft).toBe(BUILD_DURATION_SEC);
     expect(sim.gold).toBe(0);
+  });
+
+  it("lets the player remove a tower without changing gold", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = simToggleTower(sim, 3, 2);
+    const gold = sim.gold;
+    const result = simRemoveTower(sim, 3, 2);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    sim = result.state;
+    expect(hasTower(sim.grid, 3, 2)).toBe(false);
+    expect(sim.gold).toBe(gold);
+    expect(findPath(sim.grid)).not.toBeNull();
+  });
+
+  it("explains when there is no tower to remove", () => {
+    const result = simRemoveTower(createSim(createGrid(12, 8)), 3, 2);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toContain("타워가 없습니다");
+    }
   });
 });
