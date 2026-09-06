@@ -11,8 +11,10 @@ import {
   findPath,
   fitGridToViewport,
   forEachTile,
+  getObstacle,
   getTower,
   isTowerComplete,
+  obstacleMaxHp,
   tileKind,
   towerMaxHp,
   towerWorkDuration,
@@ -21,6 +23,7 @@ import {
   type EnemyTypeId,
   type Grid,
   type GridLayout,
+  type Obstacle,
   type Path,
   type TileCoord,
   type TileKind,
@@ -44,6 +47,8 @@ import {
 
 const START_FILL = 0x2f6fb3;
 const BASE_FILL = 0xb45a28;
+const ROCK_TILE_FILL = 0x5a564c;
+const TREE_TILE_FILL = 0x2d4a28;
 const TILE_BORDER = 0x161c16;
 const LABEL_FILL = 0xf4f1ea;
 const PATH_FILL = 0xc9a227;
@@ -96,6 +101,67 @@ function markerFill(kind: TileKind): number | null {
     return BASE_FILL;
   }
   return null;
+}
+
+function drawRock(
+  graphics: Graphics,
+  layout: GridLayout,
+  x: number,
+  y: number,
+): void {
+  const size = layout.tileSize;
+  const cx = layout.originX + (x + 0.5) * size;
+  const cy = layout.originY + (y + 0.58) * size;
+  graphics.ellipse(cx, cy, size * 0.34, size * 0.26).fill({ color: 0x7a7468 });
+  graphics
+    .ellipse(cx - size * 0.08, cy - size * 0.04, size * 0.2, size * 0.14)
+    .fill({ color: 0x9a9488, alpha: 0.9 });
+  graphics
+    .ellipse(cx + size * 0.12, cy + size * 0.04, size * 0.16, size * 0.11)
+    .fill({ color: 0x5c574e });
+}
+
+function drawTree(
+  graphics: Graphics,
+  layout: GridLayout,
+  x: number,
+  y: number,
+): void {
+  const size = layout.tileSize;
+  const cx = layout.originX + (x + 0.5) * size;
+  const base = layout.originY + (y + 0.84) * size;
+  const trunkW = size * 0.14;
+  const trunkH = size * 0.26;
+  graphics
+    .rect(cx - trunkW / 2, base - trunkH, trunkW, trunkH)
+    .fill({ color: 0x6b4423 });
+  graphics.circle(cx, base - trunkH - size * 0.06, size * 0.26).fill({
+    color: 0x3d7a3a,
+  });
+  graphics
+    .circle(cx - size * 0.12, base - trunkH + size * 0.02, size * 0.16)
+    .fill({ color: 0x4a8f45 });
+  graphics
+    .circle(cx + size * 0.1, base - trunkH - size * 0.02, size * 0.14)
+    .fill({ color: 0x2f6a32 });
+}
+
+function drawObstacle(
+  graphics: Graphics,
+  layout: GridLayout,
+  obstacle: Obstacle,
+): void {
+  const px = layout.originX + obstacle.x * layout.tileSize;
+  const py = layout.originY + obstacle.y * layout.tileSize;
+  const fill = obstacle.kind === "rock" ? ROCK_TILE_FILL : TREE_TILE_FILL;
+  graphics
+    .rect(px, py, layout.tileSize, layout.tileSize)
+    .fill({ color: fill, alpha: 0.55 });
+  if (obstacle.kind === "rock") {
+    drawRock(graphics, layout, obstacle.x, obstacle.y);
+  } else {
+    drawTree(graphics, layout, obstacle.x, obstacle.y);
+  }
 }
 
 function tileKey(x: number, y: number): string {
@@ -762,6 +828,24 @@ export function createGridView(
       const px = layout.originX + x * layout.tileSize;
       const py = layout.originY + y * layout.tileSize;
       const kind = tileKind(grid, x, y);
+      if (kind === "obstacle") {
+        const obstacle = getObstacle(grid, x, y);
+        if (obstacle) {
+          drawObstacle(graphics, layout, obstacle);
+          drawTowerHp(
+            hpGraphics,
+            layout,
+            x,
+            y,
+            obstacle.hp,
+            obstacleMaxHp(obstacle.kind),
+          );
+        }
+        graphics
+          .rect(px, py, layout.tileSize, layout.tileSize)
+          .stroke({ width: 1, color: TILE_BORDER, alignment: 0 });
+        return;
+      }
       const fill = markerFill(kind);
       if (fill !== null) {
         graphics

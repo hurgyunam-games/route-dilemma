@@ -2,15 +2,23 @@
 export {
   advanceTowerBuilds,
   createGrid,
+  damageBlocker,
+  damageObstacle,
   damageTower,
   DEFAULT_GRID_COLS,
   DEFAULT_GRID_ROWS,
   DEFAULT_VIEWPORT_PADDING,
   fitGridToViewport,
   forEachTile,
+  getObstacle,
   getTower,
+  hasObstacle,
   hasTower,
   inBounds,
+  isBlocked,
+  obstacleMaxHp,
+  OBSTACLE_KINDS,
+  OBSTACLE_MAX_HP,
   placeTower,
   removeTower,
   sameTile,
@@ -19,11 +27,22 @@ export {
   TOWER_MAX_HP,
   upgradeTower,
   viewportToTile,
+  withTowers,
 } from "./grid";
-export type { Grid, GridLayout, TileCoord, TileKind, Tower } from "./grid";
+export type {
+  Grid,
+  GridLayout,
+  Obstacle,
+  ObstacleDef,
+  ObstacleKind,
+  TileCoord,
+  TileKind,
+  Tower,
+} from "./grid";
 export { findPath, isWalkable } from "./path";
 export type { Path } from "./path";
 export {
+  createBattleGrid,
   createMapGrid,
   getGameMap,
   isMapId,
@@ -31,6 +50,27 @@ export {
   WORLD_MAPS,
 } from "./maps";
 export type { GameMapDef, MapId } from "./maps";
+export {
+  campaignMapStatuses,
+  createCampaign,
+  currentStage,
+  isMapCleared,
+  isMapUnlocked,
+  mapIdForStage,
+  playableStage,
+  recordVictory,
+  saveMapTowers,
+  towersForMap,
+} from "./campaign";
+export type { CampaignMapStatus, CampaignProgress } from "./campaign";
+export {
+  CAMPAIGN_STORAGE_KEY,
+  loadCampaign,
+  parseCampaign,
+  persistCampaign,
+  serializeCampaign,
+} from "./save";
+export type { CampaignStore } from "./save";
 export {
   ALLY_GOLD_REWARD,
   START_GOLD,
@@ -80,6 +120,9 @@ export {
   ENEMY_TYPE_IDS,
   getStageWave,
   STAGE_COUNT,
+  campaignCycle,
+  previousCycleStage,
+  enemySpeedMultiplier,
 } from "./sim";
 export type {
   BattleOutcome,

@@ -16,6 +16,19 @@ export const DEFAULT_GRID_ROWS = 8;
 export const DEFAULT_VIEWPORT_PADDING = 24;
 export { TOWER_MAX_HP };
 
+export const OBSTACLE_KINDS = ["rock", "tree"] as const;
+export type ObstacleKind = (typeof OBSTACLE_KINDS)[number];
+
+/** Both kinds sit above every level-1 tower HP (archer/wall 8, cannon 10). */
+export const OBSTACLE_MAX_HP: Record<ObstacleKind, number> = {
+  tree: 16,
+  rock: 20,
+};
+
+export function obstacleMaxHp(kind: ObstacleKind): number {
+  return OBSTACLE_MAX_HP[kind];
+}
+
 export type TileCoord = {
   readonly x: number;
   readonly y: number;
@@ -30,7 +43,17 @@ export type Tower = {
   readonly buildTimeLeft: number;
 };
 
-export type TileKind = "empty" | "start" | "base" | "tower";
+export type ObstacleDef = {
+  readonly x: number;
+  readonly y: number;
+  readonly kind: ObstacleKind;
+};
+
+export type Obstacle = ObstacleDef & {
+  readonly hp: number;
+};
+
+export type TileKind = "empty" | "start" | "base" | "tower" | "obstacle";
 
 export type Grid = {
   readonly cols: number;
@@ -38,6 +61,7 @@ export type Grid = {
   readonly start: TileCoord;
   readonly base: TileCoord;
   readonly towers: readonly Tower[];
+  readonly obstacles: readonly Obstacle[];
 };
 
 export type GridLayout = {
@@ -64,6 +88,7 @@ export function createGrid(
   rows: number = DEFAULT_GRID_ROWS,
   start?: TileCoord,
   base?: TileCoord,
+  obstacleDefs: readonly ObstacleDef[] = [],
 ): Grid {
   if (!Number.isInteger(cols) || !Number.isInteger(rows) || cols < 1 || rows < 1) {
     throw new Error("Grid size must be positive integers");
@@ -83,6 +108,7 @@ export function createGrid(
     start: resolvedStart,
     base: resolvedBase,
     towers: [],
+    obstacles: makeObstacles(cols, rows, resolvedStart, resolvedBase, obstacleDefs),
   };
 }
 
@@ -100,6 +126,18 @@ export function getTower(grid: Grid, x: number, y: number): Tower | undefined {
 
 export function hasTower(grid: Grid, x: number, y: number): boolean {
   return getTower(grid, x, y) !== undefined;
+}
+
+export function getObstacle(grid: Grid, x: number, y: number): Obstacle | undefined {
+  return grid.obstacles.find((obstacle) => obstacle.x === x && obstacle.y === y);
+}
+
+export function hasObstacle(grid: Grid, x: number, y: number): boolean {
+  return getObstacle(grid, x, y) !== undefined;
+}
+
+export function isBlocked(grid: Grid, x: number, y: number): boolean {
+  return hasTower(grid, x, y) || hasObstacle(grid, x, y);
 }
 
 /** Reduce tower HP. At 0 or below the tower is removed. */
@@ -123,6 +161,35 @@ export function damageTower(grid: Grid, x: number, y: number, amount: number): G
   };
 }
 
+/** Reduce obstacle HP. At 0 or below the obstacle is removed. */
+export function damageObstacle(grid: Grid, x: number, y: number, amount: number): Grid {
+  const obstacle = getObstacle(grid, x, y);
+  if (!obstacle || !(amount > 0)) {
+    return grid;
+  }
+  const hp = obstacle.hp - amount;
+  if (hp <= 0) {
+    return {
+      ...grid,
+      obstacles: grid.obstacles.filter((entry) => entry.x !== x || entry.y !== y),
+    };
+  }
+  return {
+    ...grid,
+    obstacles: grid.obstacles.map((entry) =>
+      entry.x === x && entry.y === y ? { ...entry, hp } : entry,
+    ),
+  };
+}
+
+/** Hit a tower or natural obstacle on this tile. */
+export function damageBlocker(grid: Grid, x: number, y: number, amount: number): Grid {
+  if (hasTower(grid, x, y)) {
+    return damageTower(grid, x, y, amount);
+  }
+  return damageObstacle(grid, x, y, amount);
+}
+
 export function tileKind(grid: Grid, x: number, y: number): TileKind {
   if (x === grid.start.x && y === grid.start.y) {
     return "start";
@@ -133,6 +200,9 @@ export function tileKind(grid: Grid, x: number, y: number): TileKind {
   if (hasTower(grid, x, y)) {
     return "tower";
   }
+  if (hasObstacle(grid, x, y)) {
+    return "obstacle";
+  }
   return "empty";
 }
 
@@ -140,8 +210,40 @@ function canOccupy(grid: Grid, x: number, y: number): boolean {
   return (
     inBounds(grid, x, y) &&
     !sameTile(grid.start, { x, y }) &&
-    !sameTile(grid.base, { x, y })
+    !sameTile(grid.base, { x, y }) &&
+    !hasObstacle(grid, x, y)
   );
+}
+
+function makeObstacles(
+  cols: number,
+  rows: number,
+  start: TileCoord,
+  base: TileCoord,
+  defs: readonly ObstacleDef[],
+): Obstacle[] {
+  const seen = new Set<string>();
+  const obstacles: Obstacle[] = [];
+  for (const def of defs) {
+    if (!isInside(cols, rows, def)) {
+      throw new Error("Obstacles must be inside the grid");
+    }
+    if (sameTile(def, start) || sameTile(def, base)) {
+      throw new Error("Obstacles cannot sit on Start or Base");
+    }
+    const key = `${def.x},${def.y}`;
+    if (seen.has(key)) {
+      throw new Error("Obstacles cannot overlap");
+    }
+    seen.add(key);
+    obstacles.push({
+      x: def.x,
+      y: def.y,
+      kind: def.kind,
+      hp: obstacleMaxHp(def.kind),
+    });
+  }
+  return obstacles;
 }
 
 function makeTower(
@@ -159,6 +261,31 @@ function makeTower(
     buildTimeLeft,
     hp: towerMaxHp({ typeId, level }),
   };
+}
+
+/** Restore saved towers onto a fresh map. Invalid tiles are skipped. */
+export function withTowers(grid: Grid, towers: readonly Tower[]): Grid {
+  const next: Tower[] = [];
+  const seen = new Set<string>();
+  for (const tower of towers) {
+    const key = `${tower.x},${tower.y}`;
+    if (seen.has(key) || !canOccupy(grid, tower.x, tower.y)) {
+      continue;
+    }
+    seen.add(key);
+    next.push({
+      x: tower.x,
+      y: tower.y,
+      hp: tower.hp,
+      typeId: tower.typeId,
+      level: tower.level,
+      buildTimeLeft: tower.buildTimeLeft,
+    });
+  }
+  if (next.length === 0 && grid.towers.length === 0) {
+    return grid;
+  }
+  return { ...grid, towers: next };
 }
 
 /** Place a tower. Start / Base / occupied / out of bounds are no-ops. Path blocking is allowed. */

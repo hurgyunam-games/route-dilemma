@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGrid, getTower, hasTower, placeTower, toggleTower, TOWER_MAX_HP } from "./grid";
+import { createGrid, getObstacle, getTower, hasObstacle, hasTower, placeTower, toggleTower, TOWER_MAX_HP, obstacleMaxHp, upgradeTower } from "./grid";
 import { createMapGrid } from "./maps";
 import { findPath } from "./path";
 import {
@@ -41,6 +41,22 @@ function wallColumn(grid: ReturnType<typeof createGrid>, x: number) {
   return next;
 }
 
+function obstacleColumn(
+  grid: ReturnType<typeof createGrid>,
+  x: number,
+  kind: "rock" | "tree" = "rock",
+) {
+  return {
+    ...grid,
+    obstacles: Array.from({ length: grid.rows }, (_, y) => ({
+      x,
+      y,
+      kind,
+      hp: obstacleMaxHp(kind),
+    })),
+  };
+}
+
 const STAGE_1 = getStageWave(1);
 
 describe("createSim", () => {
@@ -63,8 +79,23 @@ describe("createSim", () => {
     const sim = createSim(grid);
     expect(sim.grid.start).toEqual(grid.start);
     expect(sim.grid.base).toEqual(grid.base);
+    expect(sim.grid.obstacles).toEqual(grid.obstacles);
+    expect(sim.grid.obstacles.length).toBeGreaterThan(0);
     expect(unitTile(sim.units[0]!)).toEqual(grid.start);
     expect(sim.grid.start).not.toEqual(createGrid().start);
+  });
+
+  it("uses the chosen stage wave so later stages spawn tougher enemies", () => {
+    const stage1 = getStageWave(1);
+    const stage5 = getStageWave(5);
+    const sim = createSim(createMapGrid(5), 5);
+    expect(sim.stageId).toBe(5);
+    expect(sim.units[0]!.hp).toBe(stage5.bursts[0]!.hp);
+    expect(sim.phaseTimeLeft).toBe(stage5.enemyPhaseSec);
+    expect(stage5.bursts[0]!.hp).toBeGreaterThan(stage1.bursts[0]!.hp);
+    expect(stage5.bursts.reduce((sum, burst) => sum + burst.count, 0)).toBeGreaterThan(
+      stage1.bursts.reduce((sum, burst) => sum + burst.count, 0),
+    );
   });
 });
 
@@ -189,6 +220,48 @@ describe("blocked path tower breaking", () => {
       false,
     );
     expect(unitTile(sim.units[0]!)).not.toEqual(sim.grid.start);
+  });
+});
+
+describe("blocked path obstacle breaking", () => {
+  it("attacks a chokepoint obstacle and lowers its HP", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = { ...sim, grid: obstacleColumn(sim.grid, 1) };
+    const target = { x: 1, y: sim.grid.start.y };
+    const max = obstacleMaxHp("rock");
+    expect(getObstacle(sim.grid, target.x, target.y)?.hp).toBe(max);
+    expect(findPath(sim.grid)).toBeNull();
+
+    sim = tick(sim, 0.5);
+    const hp = getObstacle(sim.grid, target.x, target.y)?.hp;
+    expect(hp).toBeDefined();
+    expect(hp!).toBeLessThan(max);
+    expect(hp!).toBeCloseTo(max - UNIT_ATTACK_DPS * 0.5, 5);
+    expect(sim.units[0]!.attackTile).toEqual(target);
+  });
+
+  it("outlasts a level-1 tower under the same attack", () => {
+    const towerTime = TOWER_MAX_HP / UNIT_ATTACK_DPS;
+    let sim = createSim(createGrid(12, 8));
+    sim = { ...sim, grid: obstacleColumn(sim.grid, 1, "tree") };
+    const target = { x: 1, y: sim.grid.start.y };
+    expect(obstacleMaxHp("tree")).toBeGreaterThan(TOWER_MAX_HP);
+
+    sim = tick(sim, towerTime + 0.05);
+    expect(hasObstacle(sim.grid, target.x, target.y)).toBe(true);
+    expect(getObstacle(sim.grid, target.x, target.y)!.hp).toBeGreaterThan(0);
+    expect(findPath(sim.grid)).toBeNull();
+  });
+
+  it("clears the tile at 0 HP and redraws the path", () => {
+    let sim = createSim(createGrid(12, 8));
+    sim = { ...sim, grid: obstacleColumn(sim.grid, 1, "tree") };
+    const target = { x: 1, y: sim.grid.start.y };
+    expect(findPath(sim.grid)).toBeNull();
+
+    sim = advance(sim, obstacleMaxHp("tree") / UNIT_ATTACK_DPS + 0.05);
+    expect(hasObstacle(sim.grid, target.x, target.y)).toBe(false);
+    expect(findPath(sim.grid)).not.toBeNull();
   });
 });
 
@@ -851,6 +924,21 @@ describe("build cost and construction", () => {
       expect(result.reason).toContain("타워가 없습니다");
     }
   });
+
+  it("does not build or remove a natural obstacle", () => {
+    const grid = createGrid(12, 8, undefined, undefined, [{ kind: "rock", x: 3, y: 2 }]);
+    const sim = { ...createSim(grid), gold: START_GOLD };
+    expect(hasObstacle(sim.grid, 3, 2)).toBe(true);
+    const built = simBeginBuild(sim, 3, 2, "archer");
+    expect(built.ok).toBe(false);
+    if (!built.ok) {
+      expect(built.reason).toContain("여기에 지을 수 없습니다");
+    }
+    const removed = simRemoveTower(sim, 3, 2);
+    expect(removed.ok).toBe(false);
+    expect(hasObstacle(sim.grid, 3, 2)).toBe(true);
+    expect(hasTower(sim.grid, 3, 2)).toBe(false);
+  });
 });
 
 function leakIntoBase(sim: ReturnType<typeof createSim>, hp = 1): ReturnType<typeof createSim> {
@@ -970,5 +1058,84 @@ describe("battle outcome", () => {
     expect(lost().outcome).toBe("defeat");
     expect(won().outcome).toBe("victory");
     expect(won().outcome).toBe("victory");
+  });
+});
+
+function finishTowers(grid: ReturnType<typeof createGrid>) {
+  return {
+    ...grid,
+    towers: grid.towers.map((tower) => ({ ...tower, buildTimeLeft: 0 })),
+  };
+}
+
+function modestLoopDefense(grid: ReturnType<typeof createGrid>) {
+  let next = grid;
+  for (const [x, y] of [
+    [4, 2],
+    [5, 2],
+    [6, 2],
+    [4, 4],
+    [5, 4],
+  ] as const) {
+    next = placeTower(next, x, y, "archer", 0);
+  }
+  return next;
+}
+
+function reinforceLoopDefense(grid: ReturnType<typeof createGrid>) {
+  let next = modestLoopDefense(grid);
+  for (const tower of next.towers) {
+    next = finishTowers(upgradeTower(next, tower.x, tower.y));
+    next = finishTowers(upgradeTower(next, tower.x, tower.y));
+    next = finishTowers(upgradeTower(next, tower.x, tower.y));
+    next = finishTowers(upgradeTower(next, tower.x, tower.y));
+  }
+  for (const [x, y] of [
+    [3, 2],
+    [3, 4],
+    [7, 2],
+    [7, 4],
+    [8, 2],
+    [8, 4],
+  ] as const) {
+    next = placeTower(next, x, y, "cannon", 0);
+  }
+  return next;
+}
+
+function playOut(sim: ReturnType<typeof createSim>) {
+  let next = sim;
+  for (let i = 0; i < 90 && next.outcome === "playing"; i += 1) {
+    next = tick(next, 4);
+  }
+  return next;
+}
+
+describe("loop difficulty", () => {
+  it("returns faster, tougher enemies than the previous cycle of the same map", () => {
+    const grid = createGrid(12, 8);
+    const first = createSim(grid, 1);
+    const looped = createSim(grid, 6);
+    expect(looped.units[0]!.hp).toBeGreaterThan(first.units[0]!.hp);
+    expect(looped.units[0]!.speed).toBeGreaterThan(first.units[0]!.speed);
+    const afterFirst = tick(first, 1);
+    const afterLoop = tick(looped, 1);
+    expect(afterLoop.units[0]!.x).toBeGreaterThan(afterFirst.units[0]!.x);
+  });
+
+  it("lets a cycle-1 line hold stage 1 but leak when the same line returns on stage 6", () => {
+    const grid = modestLoopDefense(createGrid(12, 8));
+    const held = playOut(createSim(grid, 1));
+    const leaked = playOut(createSim(grid, 6));
+    expect(held.outcome).toBe("victory");
+    expect(leaked.outcome).toBe("defeat");
+    expect(leaked.baseHp).toBe(0);
+  });
+
+  it("holds the returned stage after adding and upgrading towers", () => {
+    const grid = reinforceLoopDefense(createGrid(12, 8));
+    const held = playOut(createSim(grid, 6));
+    expect(held.outcome).toBe("victory");
+    expect(held.baseHp).toBeGreaterThan(0);
   });
 });

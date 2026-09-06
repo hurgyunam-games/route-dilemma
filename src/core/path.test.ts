@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createGrid, hasTower, sameTile, toggleTower } from "./grid";
+import { createGrid, hasObstacle, hasTower, sameTile, toggleTower } from "./grid";
 import { findPath } from "./path";
 
 function isOrthogonalStep(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
@@ -71,5 +71,20 @@ describe("findPath", () => {
     const path = findPath(grid, from, grid.base)!;
     expect(path[0]).toEqual(from);
     expect(path[path.length - 1]).toEqual(grid.base);
+  });
+
+  it("reroutes around a natural obstacle", () => {
+    const empty = createGrid(12, 8);
+    const original = findPath(empty)!;
+    const blocked = original[5]!;
+    const withRock = createGrid(12, 8, empty.start, empty.base, [
+      { kind: "rock", x: blocked.x, y: blocked.y },
+    ]);
+    const rerouted = findPath(withRock)!;
+    expect(hasObstacle(withRock, blocked.x, blocked.y)).toBe(true);
+    expect(rerouted.some((tile) => sameTile(tile, blocked))).toBe(false);
+    expect(sameTile(rerouted[0]!, empty.start)).toBe(true);
+    expect(sameTile(rerouted[rerouted.length - 1]!, empty.base)).toBe(true);
+    expect(rerouted.length).toBeGreaterThan(original.length);
   });
 });

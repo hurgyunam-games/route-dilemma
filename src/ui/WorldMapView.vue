@@ -1,8 +1,18 @@
 <script setup lang="ts">
-import { WORLD_MAPS, type GameMapDef, type MapId } from "@/core";
+import {
+  campaignCycle,
+  campaignMapStatuses,
+  currentStage,
+  type CampaignProgress,
+  type GameMapDef,
+  type MapId,
+  type ObstacleKind,
+} from "@/core";
+import { computed } from "vue";
 
-defineProps<{
+const props = defineProps<{
   lastMapId: MapId | null;
+  progress: CampaignProgress;
 }>();
 
 const emit = defineEmits<{
@@ -17,12 +27,20 @@ const MAP_ACCENTS: Record<MapId, string> = {
   5: "#6a9a78",
 };
 
+const statuses = computed(() => campaignMapStatuses(props.progress));
+const stageNow = computed(() => currentStage(props.progress));
+const loopHint = computed(() =>
+  campaignCycle(stageNow.value) > 0
+    ? "돌아온 판은 적이 더 셉니다. 기존 타워만으로는 버티기 어려우니 보강하세요."
+    : "",
+);
+
 type MiniCell = {
   readonly key: string;
-  readonly kind: "empty" | "start" | "base";
+  readonly kind: "empty" | "start" | "base" | "tower" | ObstacleKind;
 };
 
-const miniCells = (map: GameMapDef): MiniCell[] => {
+const miniCells = (map: GameMapDef, towers: readonly { x: number; y: number }[]): MiniCell[] => {
   const cells: MiniCell[] = [];
   for (let y = 0; y < map.rows; y += 1) {
     for (let x = 0; x < map.cols; x += 1) {
@@ -31,11 +49,25 @@ const miniCells = (map: GameMapDef): MiniCell[] => {
         kind = "start";
       } else if (x === map.base.x && y === map.base.y) {
         kind = "base";
+      } else if (towers.some((tower) => tower.x === x && tower.y === y)) {
+        kind = "tower";
+      } else {
+        const obstacle = map.obstacles.find((entry) => entry.x === x && entry.y === y);
+        if (obstacle) {
+          kind = obstacle.kind;
+        }
       }
       cells.push({ key: `${x},${y}`, kind });
     }
   }
   return cells;
+};
+
+const onSelect = (id: MapId, unlocked: boolean): void => {
+  if (!unlocked) {
+    return;
+  }
+  emit("select", id);
 };
 </script>
 
@@ -43,39 +75,65 @@ const miniCells = (map: GameMapDef): MiniCell[] => {
   <div class="world-map">
     <header class="world-head">
       <h1>월드맵</h1>
-      <p>서로 다른 게임 맵 5개 중 하나를 고르면 그 맵의 배틀로 들어갑니다.</p>
+      <p class="stage-now">
+        현재 스테이지 {{ stageNow }}
+      </p>
+      <p>
+        스테이지 1–5는 맵 1–5와 하나씩 대응합니다. 스테이지 6부터는 맵 1로 돌아오며, 그 맵에 지은 타워가 남아 있습니다.
+      </p>
+      <p
+        v-if="loopHint"
+        class="loop-hint"
+      >
+        {{ loopHint }}
+      </p>
     </header>
     <ol class="map-row">
       <li
-        v-for="map in WORLD_MAPS"
-        :key="map.id"
+        v-for="status in statuses"
+        :key="status.mapId"
       >
         <button
           type="button"
           class="map-card"
-          :class="{ last: lastMapId === map.id }"
-          :style="{ '--accent': MAP_ACCENTS[map.id] }"
-          :aria-label="`${map.name} 맵으로 배틀 시작`"
-          @click="emit('select', map.id)"
+          :class="{
+            last: lastMapId === status.mapId,
+            locked: !status.unlocked,
+            cleared: status.cleared,
+            current: status.current,
+          }"
+          :style="{ '--accent': MAP_ACCENTS[status.mapId] }"
+          :disabled="!status.unlocked"
+          :aria-label="
+            status.unlocked
+              ? `스테이지 ${status.stageId} ${status.map.name} 맵으로 배틀 시작${status.cleared ? ', 클리어' : ''}`
+              : `스테이지 ${status.stageId} ${status.map.name} 잠김`
+          "
+          @click="onSelect(status.mapId, status.unlocked)"
         >
-          <span class="map-index">맵 {{ map.id }}</span>
-          <span class="map-name">{{ map.name }}</span>
+          <span class="map-index">스테이지 {{ status.stageId }}</span>
+          <span class="map-name">{{ status.map.name }}</span>
           <span
             class="mini-grid"
             :style="{
-              gridTemplateColumns: `repeat(${map.cols}, 1fr)`,
-              aspectRatio: `${map.cols} / ${map.rows}`,
+              gridTemplateColumns: `repeat(${status.map.cols}, 1fr)`,
+              aspectRatio: `${status.map.cols} / ${status.map.rows}`,
             }"
           >
             <span
-              v-for="cell in miniCells(map)"
+              v-for="cell in miniCells(status.map, status.towers)"
               :key="cell.key"
               class="mini-cell"
               :class="cell.kind"
             />
           </span>
-          <span class="map-meta">{{ map.cols }}×{{ map.rows }}</span>
-          <span class="map-meta">Start {{ map.start.x }},{{ map.start.y }} · Base {{ map.base.x }},{{ map.base.y }}</span>
+          <span class="map-meta">맵 {{ status.mapId }} · {{ status.map.cols }}×{{ status.map.rows }}</span>
+          <span class="map-state">
+            <template v-if="!status.unlocked">잠김</template>
+            <template v-else-if="status.current">플레이</template>
+            <template v-else-if="status.cleared">클리어</template>
+            <template v-else>플레이</template>
+          </span>
         </button>
       </li>
     </ol>
@@ -115,6 +173,17 @@ const miniCells = (map: GameMapDef): MiniCell[] => {
   font: 600 14px/1.4 "Segoe UI", sans-serif;
 }
 
+.world-head .stage-now {
+  margin: 0 0 8px;
+  color: #e8b060;
+  font: 700 18px/1.3 "Segoe UI", sans-serif;
+}
+
+.world-head .loop-hint {
+  margin: 8px 0 0;
+  color: #e8b060;
+}
+
 .map-row {
   display: flex;
   flex-wrap: wrap;
@@ -148,15 +217,40 @@ const miniCells = (map: GameMapDef): MiniCell[] => {
     0 0 0 2px rgba(232, 176, 96, 0.55);
 }
 
+.map-card.current:not(.last) {
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 0 0 2px rgba(232, 176, 96, 0.35);
+}
+
+.map-card.cleared:not(.locked) {
+  background: rgba(32, 42, 28, 0.94);
+}
+
+.map-card.locked {
+  cursor: not-allowed;
+  filter: grayscale(0.7);
+  opacity: 0.55;
+  box-shadow: inset 0 0 0 2px #5a534c;
+}
+
 .map-card:focus-visible {
   outline: 2px solid #e8b060;
   outline-offset: 3px;
+}
+
+.map-card.locked:focus-visible {
+  outline-color: #8a8478;
 }
 
 .map-index {
   font: 700 12px/1.2 "Segoe UI", sans-serif;
   letter-spacing: 0.04em;
   color: var(--accent);
+}
+
+.map-card.locked .map-index {
+  color: #8a8478;
 }
 
 .map-name {
@@ -186,9 +280,38 @@ const miniCells = (map: GameMapDef): MiniCell[] => {
   background: #b45a28;
 }
 
+.mini-cell.rock {
+  background: #8a8478;
+}
+
+.mini-cell.tree {
+  background: #3d7a3a;
+}
+
+.mini-cell.tower {
+  background: #d4a574;
+}
+
 .map-meta {
   color: #d8cfc6;
   font: 600 12px/1.35 "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
+}
+
+.map-state {
+  font: 700 13px/1.3 "Segoe UI", sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.map-card.locked .map-state {
+  color: #b8b0a8;
+}
+
+.map-card.cleared:not(.locked) .map-state {
+  color: #8fd08a;
+}
+
+.map-card.current .map-state {
+  color: #e8b060;
 }
 </style>

@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   createGrid,
+  damageObstacle,
   damageTower,
   DEFAULT_GRID_COLS,
   DEFAULT_GRID_ROWS,
   fitGridToViewport,
   forEachTile,
+  getObstacle,
   getTower,
+  hasObstacle,
   hasTower,
   tileKind,
   toggleTower,
@@ -16,6 +19,8 @@ import {
   removeTower,
   advanceTowerBuilds,
   upgradeTower,
+  obstacleMaxHp,
+  withTowers,
 } from "./grid";
 import { BUILD_DURATION_SEC, UPGRADE_DURATION_SEC } from "./towers";
 
@@ -27,6 +32,7 @@ describe("createGrid", () => {
     expect(grid.cols).toBe(12);
     expect(grid.rows).toBe(8);
     expect(grid.towers).toEqual([]);
+    expect(grid.obstacles).toEqual([]);
   });
 
   it("accepts a custom size", () => {
@@ -53,13 +59,15 @@ describe("createGrid", () => {
 });
 
 describe("tileKind", () => {
-  it("distinguishes Start, Base, empty, and tower tiles", () => {
-    const grid = createGrid(12, 8);
+  it("distinguishes Start, Base, empty, tower, and obstacle tiles", () => {
+    const grid = createGrid(12, 8, undefined, undefined, [{ kind: "rock", x: 2, y: 2 }]);
     expect(tileKind(grid, 0, 3)).toBe("start");
     expect(tileKind(grid, 11, 3)).toBe("base");
     expect(tileKind(grid, 1, 3)).toBe("empty");
     expect(tileKind(grid, 0, 0)).toBe("empty");
     expect(tileKind(toggleTower(grid, 1, 3), 1, 3)).toBe("tower");
+    expect(tileKind(grid, 2, 2)).toBe("obstacle");
+    expect(getObstacle(grid, 2, 2)?.kind).toBe("rock");
   });
 });
 
@@ -106,6 +114,17 @@ describe("toggleTower", () => {
     expect(toggleTower(grid, -1, 0)).toBe(grid);
     expect(toggleTower(grid, 12, 0)).toBe(grid);
     expect(toggleTower(grid, 0, 8)).toBe(grid);
+  });
+
+  it("does not place or remove a natural obstacle", () => {
+    const grid = createGrid(12, 8, undefined, undefined, [
+      { kind: "tree", x: 4, y: 2 },
+    ]);
+    expect(toggleTower(grid, 4, 2)).toBe(grid);
+    expect(hasObstacle(grid, 4, 2)).toBe(true);
+    expect(hasTower(grid, 4, 2)).toBe(false);
+    expect(placeTower(grid, 4, 2, "archer", 0)).toBe(grid);
+    expect(removeTower(grid, 4, 2)).toBe(grid);
   });
 });
 
@@ -157,6 +176,44 @@ describe("damageTower", () => {
 
     const gone = damageTower(damaged, 2, 3, TOWER_MAX_HP);
     expect(hasTower(gone, 2, 3)).toBe(false);
+    expect(tileKind(gone, 2, 3)).toBe("empty");
+  });
+});
+
+describe("natural obstacles", () => {
+  it("keeps rock and tree HP above a level-1 tower", () => {
+    expect(obstacleMaxHp("tree")).toBeGreaterThan(TOWER_MAX_HP);
+    expect(obstacleMaxHp("rock")).toBeGreaterThan(TOWER_MAX_HP);
+    expect(obstacleMaxHp("rock")).toBeGreaterThan(obstacleMaxHp("tree"));
+  });
+
+  it("rejects obstacles on Start, Base, outside, or stacked", () => {
+    expect(() =>
+      createGrid(4, 4, { x: 0, y: 0 }, { x: 3, y: 3 }, [{ kind: "rock", x: 0, y: 0 }]),
+    ).toThrow();
+    expect(() =>
+      createGrid(4, 4, { x: 0, y: 0 }, { x: 3, y: 3 }, [{ kind: "tree", x: 3, y: 3 }]),
+    ).toThrow();
+    expect(() =>
+      createGrid(4, 4, { x: 0, y: 0 }, { x: 3, y: 3 }, [{ kind: "rock", x: 4, y: 0 }]),
+    ).toThrow();
+    expect(() =>
+      createGrid(4, 4, { x: 0, y: 0 }, { x: 3, y: 3 }, [
+        { kind: "rock", x: 1, y: 1 },
+        { kind: "tree", x: 1, y: 1 },
+      ]),
+    ).toThrow();
+  });
+
+  it("lowers HP and clears the tile at 0", () => {
+    const grid = createGrid(12, 8, undefined, undefined, [{ kind: "rock", x: 2, y: 3 }]);
+    const max = obstacleMaxHp("rock");
+    expect(getObstacle(grid, 2, 3)?.hp).toBe(max);
+    const damaged = damageObstacle(grid, 2, 3, 3);
+    expect(getObstacle(damaged, 2, 3)?.hp).toBe(max - 3);
+    expect(tileKind(damaged, 2, 3)).toBe("obstacle");
+    const gone = damageObstacle(damaged, 2, 3, max);
+    expect(hasObstacle(gone, 2, 3)).toBe(false);
     expect(tileKind(gone, 2, 3)).toBe("empty");
   });
 });
@@ -220,5 +277,21 @@ describe("viewportToTile", () => {
     expect(viewportToTile(layout, 99, 0)).toBeNull();
     expect(viewportToTile(layout, 100 + 800, 0)).toBeNull();
     expect(viewportToTile(layout, 100, -1)).toBeNull();
+  });
+});
+
+describe("withTowers", () => {
+  it("restores towers and skips Start, Base, and obstacle tiles", () => {
+    const grid = createGrid(8, 6, { x: 0, y: 2 }, { x: 7, y: 2 }, [{ kind: "rock", x: 3, y: 2 }]);
+    const restored = withTowers(grid, [
+      { x: 1, y: 2, hp: 8, typeId: "archer", level: 1, buildTimeLeft: 0 },
+      { x: 0, y: 2, hp: 8, typeId: "wall", level: 1, buildTimeLeft: 0 },
+      { x: 3, y: 2, hp: 8, typeId: "cannon", level: 1, buildTimeLeft: 0 },
+      { x: 1, y: 2, hp: 8, typeId: "mage", level: 2, buildTimeLeft: 0 },
+    ]);
+    expect(restored.towers).toEqual([
+      { x: 1, y: 2, hp: 8, typeId: "archer", level: 1, buildTimeLeft: 0 },
+    ]);
+    expect(getTower(restored, 1, 2)?.typeId).toBe("archer");
   });
 });

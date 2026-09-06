@@ -3,7 +3,8 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { Application } from "pixi.js";
 import {
   canUpgrade,
-  createMapGrid,
+  campaignCycle,
+  createBattleGrid,
   createSim,
   getGameMap,
   getTower,
@@ -27,6 +28,7 @@ import {
   type HudSnapshot,
   type MapId,
   type TimeScale,
+  type Tower,
   type TowerTypeId,
 } from "@/core";
 import {
@@ -48,16 +50,23 @@ type Shop =
 
 const props = defineProps<{
   mapId: MapId;
+  stageId: number;
+  towers: readonly Tower[];
 }>();
 
 const emit = defineEmits<{
   leave: [];
+  victory: [stageId: number];
+  saveTowers: [towers: readonly Tower[]];
 }>();
 
-const makeBattle = () => setTimeScale(createSim(createMapGrid(props.mapId)), 0);
+const makeBattle = () =>
+  setTimeScale(createSim(createBattleGrid(props.mapId, props.towers), props.stageId), 0);
 
 const hostRef = ref<HTMLElement | null>(null);
 let sim = makeBattle();
+let reportedVictory = false;
+let lastTowerSave = JSON.stringify(sim.grid.towers);
 const hud = ref<HudSnapshot>(hudSnapshot(sim));
 const shop = ref<Shop | null>(null);
 const shopError = ref("");
@@ -75,7 +84,17 @@ const leftoverLabel = computed(() =>
   hud.value.leftoverAllies > 0 ? `남은 아군 ${hud.value.leftoverAllies}` : "",
 );
 const mapLabel = computed(() => `맵 ${props.mapId} ${getGameMap(props.mapId).name}`);
-const stageLabel = computed(() => `스테이지 ${hud.value.stageId}`);
+const stageLabel = computed(() => {
+  const cycle = campaignCycle(hud.value.stageId);
+  return cycle > 0
+    ? `스테이지 ${hud.value.stageId} · 사이클 ${cycle + 1}`
+    : `스테이지 ${hud.value.stageId}`;
+});
+const loopHint = computed(() =>
+  campaignCycle(hud.value.stageId) > 0
+    ? "이전 사이클보다 적이 강합니다. 타워를 보강하세요."
+    : "",
+);
 const waveLabel = computed(
   () => `웨이브 ${hud.value.waveIndex + 1} / ${hud.value.waveCount}`,
 );
@@ -145,8 +164,22 @@ const closeShop = (): void => {
   pushView();
 };
 
+const saveTowersIfChanged = (): void => {
+  const raw = JSON.stringify(sim.grid.towers);
+  if (raw === lastTowerSave) {
+    return;
+  }
+  lastTowerSave = raw;
+  emit("saveTowers", sim.grid.towers);
+};
+
 const pushHud = (): void => {
   hud.value = hudSnapshot(sim);
+  if (hud.value.outcome === "victory" && !reportedVictory) {
+    reportedVictory = true;
+    emit("victory", props.stageId);
+  }
+  saveTowersIfChanged();
   if (shop.value?.mode === "upgrade" && !getTower(sim.grid, shop.value.x, shop.value.y)) {
     closeShop();
   }
@@ -172,12 +205,15 @@ const onTimeScale = (scale: TimeScale): void => {
 
 const onRestart = (): void => {
   sim = makeBattle();
+  reportedVictory = false;
+  lastTowerSave = JSON.stringify(sim.grid.towers);
   closeShop();
   pushHud();
   pushView();
 };
 
 const onLeaveWorldMap = (): void => {
+  saveTowersIfChanged();
   emit("leave");
 };
 
@@ -186,7 +222,7 @@ const onTileClick = (x: number, y: number): void => {
     return;
   }
   const kind = tileKind(sim.grid, x, y);
-  if (kind === "start" || kind === "base") {
+  if (kind === "start" || kind === "base" || kind === "obstacle") {
     return;
   }
   shopError.value = "";
@@ -301,6 +337,12 @@ onUnmounted(() => {
         </p>
         <p class="stage">
           {{ stageLabel }}
+        </p>
+        <p
+          v-if="loopHint"
+          class="loop-hint"
+        >
+          {{ loopHint }}
         </p>
         <p class="wave">
           {{ waveLabel }}
@@ -541,6 +583,7 @@ onUnmounted(() => {
 .gold,
 .base-hp,
 .leftover,
+.loop-hint,
 .blocked {
   width: fit-content;
   padding: 8px 14px;
@@ -587,6 +630,12 @@ onUnmounted(() => {
 
 .leftover {
   color: #b8e0c8;
+}
+
+.loop-hint {
+  margin: 0;
+  color: #e8b060;
+  font-size: 13px;
 }
 
 .gold {

@@ -1,6 +1,6 @@
-/** A* from Start to Base. Towers are blocked; empty / Start / Base are walkable. */
+/** A* from Start to Base. Towers and obstacles are blocked; empty / Start / Base are walkable. */
 
-import { hasTower, inBounds, sameTile, type Grid, type TileCoord } from "./grid";
+import { inBounds, isBlocked, sameTile, type Grid, type TileCoord } from "./grid";
 
 export type Path = readonly TileCoord[];
 
@@ -16,7 +16,7 @@ function tileKey(x: number, y: number): string {
 }
 
 export function isWalkable(grid: Grid, x: number, y: number): boolean {
-  return inBounds(grid, x, y) && !hasTower(grid, x, y);
+  return inBounds(grid, x, y) && !isBlocked(grid, x, y);
 }
 
 function manhattan(a: TileCoord, b: TileCoord): number {

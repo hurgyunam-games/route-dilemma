@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createGrid } from "./grid";
+import { createGrid, getObstacle, obstacleMaxHp, TOWER_MAX_HP, placeTower } from "./grid";
 import { findPath } from "./path";
 import {
+  createBattleGrid,
   createMapGrid,
   getGameMap,
   isMapId,
@@ -16,6 +17,15 @@ function layoutKey(map: {
   base: { x: number; y: number };
 }): string {
   return `${map.cols}x${map.rows}:${map.start.x},${map.start.y}->${map.base.x},${map.base.y}`;
+}
+
+function obstacleKey(map: {
+  obstacles: readonly { kind: string; x: number; y: number }[];
+}): string {
+  return [...map.obstacles]
+    .map((obstacle) => `${obstacle.kind}:${obstacle.x},${obstacle.y}`)
+    .sort()
+    .join("|");
 }
 
 describe("world maps", () => {
@@ -49,11 +59,38 @@ describe("world maps", () => {
       expect(grid.start).toEqual(map.start);
       expect(grid.base).toEqual(map.base);
       expect(grid.towers).toEqual([]);
+      expect(grid.obstacles.length).toBe(map.obstacles.length);
       expect(createMapGrid(map.id)).toEqual(grid);
       expect(findPath(grid)?.at(0)).toEqual(map.start);
       expect(findPath(grid)?.at(-1)).toEqual(map.base);
     }
-    expect(createMapGrid(1)).toEqual(createGrid());
+    const plains = createMapGrid(1);
+    expect(plains.cols).toBe(createGrid().cols);
+    expect(plains.rows).toBe(createGrid().rows);
+    expect(plains.start).toEqual(createGrid().start);
+    expect(plains.base).toEqual(createGrid().base);
+    expect(plains.obstacles.length).toBeGreaterThan(0);
+    expect(createGrid().obstacles).toEqual([]);
+  });
+
+  it("places fixed natural obstacles that differ by map", () => {
+    expect(WORLD_MAPS.every((map) => map.obstacles.length > 0)).toBe(true);
+    expect(new Set(WORLD_MAPS.map(obstacleKey)).size).toBe(5);
+    for (const map of WORLD_MAPS) {
+      const grid = createMapGrid(map.id);
+      const kinds = new Set(grid.obstacles.map((obstacle) => obstacle.kind));
+      expect(kinds.has("rock")).toBe(true);
+      expect(kinds.has("tree")).toBe(true);
+      expect(createMapGrid(map.id).obstacles).toEqual(grid.obstacles);
+      for (const obstacle of grid.obstacles) {
+        expect(obstacle.hp).toBe(obstacleMaxHp(obstacle.kind));
+        expect(obstacle.hp).toBeGreaterThan(TOWER_MAX_HP);
+        expect(findPath(grid)?.some((tile) => tile.x === obstacle.x && tile.y === obstacle.y)).toBe(
+          false,
+        );
+        expect(getObstacle(grid, obstacle.x, obstacle.y)?.kind).toBe(obstacle.kind);
+      }
+    }
   });
 
   it("does not change layouts when the world map is listed again", () => {
@@ -68,6 +105,15 @@ describe("world maps", () => {
     expect(isMapId(6)).toBe(false);
     expect(() => getGameMap(0)).toThrow();
     expect(() => createMapGrid(99)).toThrow();
+  });
+
+  it("restores saved towers onto a battle grid", () => {
+    const base = createMapGrid(1);
+    const built = placeTower(base, 2, 3, "archer", 0);
+    const restored = createBattleGrid(1, built.towers);
+    expect(restored.towers).toEqual(built.towers);
+    expect(restored.obstacles).toEqual(base.obstacles);
+    expect(createBattleGrid(1)).toEqual(base);
   });
 });
 

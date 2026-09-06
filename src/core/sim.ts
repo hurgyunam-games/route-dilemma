@@ -3,10 +3,12 @@
 import {
   advanceTowerBuilds,
   createGrid,
-  damageTower,
+  damageBlocker,
   getTower,
+  hasObstacle,
   hasTower,
   inBounds,
+  isBlocked,
   placeTower,
   removeTower,
   sameTile,
@@ -40,7 +42,14 @@ import {
   type WaveBurst,
 } from "./waves";
 
-export { ENEMY_TYPE_IDS, getStageWave, STAGE_COUNT } from "./waves";
+export {
+  ENEMY_TYPE_IDS,
+  getStageWave,
+  STAGE_COUNT,
+  campaignCycle,
+  previousCycleStage,
+  enemySpeedMultiplier,
+} from "./waves";
 export type { EnemyTypeId, StageWave, WaveBurst } from "./waves";
 export {
   BUILD_DURATION_SEC,
@@ -113,6 +122,7 @@ export type Unit = {
   readonly x: number;
   readonly y: number;
   readonly hp: number;
+  readonly speed: number;
   readonly slowLeft: number;
   readonly slowFactor: number;
   /** Tower being hit; null while walking or waiting. */
@@ -178,11 +188,12 @@ export function unitTile(unit: Pick<Unit, "x" | "y">): TileCoord {
 }
 
 export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
-  const stage = getStageWave(stageId);
+  const requested = Math.max(1, Math.round(stageId));
+  const stage = getStageWave(requested);
   const first = stage.bursts[0]!;
   return {
     grid,
-    units: [spawnFromBurst(1, grid.start, "enemy", first, 0)],
+    units: [spawnFromBurst(1, grid.start, "enemy", first, 0, stage.speed)],
     towerShots: [],
     fireCooldown: {},
     nextShotId: 1,
@@ -193,7 +204,7 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
     timeScale: 1,
     gold: START_GOLD,
     baseHp: BASE_MAX_HP,
-    stageId: stage.id,
+    stageId: requested,
     waveIndex: 0,
     waveCount: BATTLE_WAVE_COUNT,
     burstIndex: 0,
@@ -265,6 +276,9 @@ export function simBeginBuild(
   }
   if (hasTower(state.grid, x, y)) {
     return { ok: false, reason: "이미 타워가 있습니다" };
+  }
+  if (hasObstacle(state.grid, x, y)) {
+    return { ok: false, reason: "여기에 지을 수 없습니다" };
   }
   const cost = towerBuildCost(typeId);
   if (state.gold < cost) {
@@ -589,7 +603,7 @@ function trySpawnWave(
   return {
     units: enemiesCatchAllies([
       ...units,
-      spawnFromBurst(nextUnitId, start, "enemy", burst, spawnedInBurst),
+      spawnFromBurst(nextUnitId, start, "enemy", burst, spawnedInBurst, stage.speed),
     ]),
     nextUnitId: nextUnitId + 1,
     burstIndex,
@@ -616,9 +630,17 @@ function spawnFromBurst(
   kind: UnitKind,
   burst: WaveBurst,
   index: number,
+  speedMul: number,
 ): Unit {
   const enemyType = burst.types[index % burst.types.length] ?? burst.types[0] ?? "slime";
-  return spawnUnit(id, tile, kind, enemyType, burst.hp);
+  return spawnUnit(
+    id,
+    tile,
+    kind,
+    enemyType,
+    burst.hp,
+    UNIT_SPEED_TILES_PER_SEC * speedMul,
+  );
 }
 
 function spawnUnit(
@@ -627,6 +649,7 @@ function spawnUnit(
   kind: UnitKind,
   enemyType: EnemyTypeId | null = null,
   hp: number = UNIT_MAX_HP,
+  speed: number = UNIT_SPEED_TILES_PER_SEC,
 ): Unit {
   return {
     id,
@@ -635,6 +658,7 @@ function spawnUnit(
     x: tile.x,
     y: tile.y,
     hp,
+    speed,
     slowLeft: 0,
     slowFactor: 1,
     attackTile: null,
@@ -671,12 +695,12 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
           slowFactor,
           attackTile: { x: target.x, y: target.y },
         },
-        grid: damageTower(grid, target.x, target.y, UNIT_ATTACK_DPS * dt),
+        grid: damageBlocker(grid, target.x, target.y, UNIT_ATTACK_DPS * dt),
       };
     }
   }
 
-  let remaining = UNIT_SPEED_TILES_PER_SEC * slowFactor * dt;
+  let remaining = unit.speed * slowFactor * dt;
   for (let iter = 0; iter < MAX_MOVE_ITERS && remaining > 1e-6; iter += 1) {
     const here = unitTile({ x, y });
     if (!isWalkable(grid, here.x, here.y)) {
@@ -960,15 +984,15 @@ function joinSharedPath(
   return best;
 }
 
-function attackTarget(grid: Grid, from: TileCoord): Tower | null {
+function attackTarget(grid: Grid, from: TileCoord): TileCoord | null {
   if (findPath(grid, from, grid.base)) {
     return null;
   }
-  return nearestChokepointTower(grid, from);
+  return nearestChokepointBlocker(grid, from);
 }
 
 function approachTowerRoute(grid: Grid, from: TileCoord): readonly TileCoord[] | null {
-  const target = nearestChokepointTower(grid, from);
+  const target = nearestChokepointBlocker(grid, from);
   if (!target) {
     return null;
   }
@@ -982,16 +1006,22 @@ function approachTowerRoute(grid: Grid, from: TileCoord): readonly TileCoord[] |
   return findPath(grid, from, stand);
 }
 
-function nearestChokepointTower(grid: Grid, from: TileCoord): Tower | null {
+function allBlockerTiles(grid: Grid): TileCoord[] {
+  return [
+    ...grid.towers.map((tower) => ({ x: tower.x, y: tower.y })),
+    ...grid.obstacles.map((obstacle) => ({ x: obstacle.x, y: obstacle.y })),
+  ];
+}
+
+function nearestChokepointBlocker(grid: Grid, from: TileCoord): TileCoord | null {
   const reachable = walkableRegion(grid, from);
-  const candidates: Tower[] = [];
+  const candidates: TileCoord[] = [];
   const seen = new Set<string>();
   for (const tile of reachable) {
     for (const step of ORTHOGONAL) {
       const x = tile.x + step.x;
       const y = tile.y + step.y;
-      const tower = getTower(grid, x, y);
-      if (!tower) {
+      if (!isBlocked(grid, x, y)) {
         continue;
       }
       const key = `${x},${y}`;
@@ -999,21 +1029,21 @@ function nearestChokepointTower(grid: Grid, from: TileCoord): Tower | null {
         continue;
       }
       seen.add(key);
-      candidates.push(tower);
+      candidates.push({ x, y });
     }
   }
-  const pool = candidates.length > 0 ? candidates : [...grid.towers];
+  const pool = candidates.length > 0 ? candidates : allBlockerTiles(grid);
   if (pool.length === 0) {
     return null;
   }
-  return pool.reduce((best, tower) =>
-    betterTarget(tower, best, from, grid.base) ? tower : best,
+  return pool.reduce((best, blocker) =>
+    betterTarget(blocker, best, from, grid.base) ? blocker : best,
   );
 }
 
 function betterTarget(
-  candidate: Tower,
-  current: Tower,
+  candidate: TileCoord,
+  current: TileCoord,
   from: TileCoord,
   base: TileCoord,
 ): boolean {
@@ -1033,11 +1063,11 @@ function betterTarget(
   return candidate.x < current.x;
 }
 
-function standingTile(grid: Grid, from: TileCoord, tower: Tower): TileCoord | null {
+function standingTile(grid: Grid, from: TileCoord, blocker: TileCoord): TileCoord | null {
   let best: TileCoord | null = null;
   let bestLength = Infinity;
   for (const step of ORTHOGONAL) {
-    const tile = { x: tower.x + step.x, y: tower.y + step.y };
+    const tile = { x: blocker.x + step.x, y: blocker.y + step.y };
     if (!isWalkable(grid, tile.x, tile.y)) {
       continue;
     }
