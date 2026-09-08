@@ -1,4 +1,4 @@
-import type { Texture } from "pixi.js";
+import { Rectangle, Texture } from "pixi.js";
 import { type TowerTypeId } from "@/core";
 import { loadLocalSheet } from "@/render/local-image";
 
@@ -143,4 +143,51 @@ export function towerVisualFrames(
   level: number,
 ): Texture[] {
   return framesFrom(atlases[typeId], complete, level);
+}
+
+const sliceTextureCache = new WeakMap<Texture, Map<string, Texture>>();
+
+function towerSliceTexture(
+  frame: Texture,
+  fromTop: number,
+  heightFrac: number,
+): Texture | null {
+  if (heightFrac <= 0) {
+    return null;
+  }
+  const src = frame.frame;
+  const y0 = Math.round(src.height * fromTop);
+  if (y0 >= src.height) {
+    return null;
+  }
+  const sliceH = Math.max(1, Math.min(src.height - y0, Math.round(src.height * heightFrac)));
+  const key = `${y0}:${sliceH}`;
+  let byCut = sliceTextureCache.get(frame);
+  if (!byCut) {
+    byCut = new Map();
+    sliceTextureCache.set(frame, byCut);
+  }
+  const cached = byCut.get(key);
+  if (cached) {
+    return cached;
+  }
+  const slice = new Texture({
+    source: frame.source,
+    frame: new Rectangle(src.x, src.y + y0, src.width, sliceH),
+  });
+  byCut.set(key, slice);
+  return slice;
+}
+
+/** 타워 프레임 위쪽 `fromTop` 비율만 잘라 지붕 레이어로 쓴다. */
+export function towerRoofTexture(frame: Texture, fromTop: number): Texture | null {
+  return towerSliceTexture(frame, 0, fromTop);
+}
+
+/** 타워 프레임 `fromTop`부터 맨 아래까지 잘라 앞벽·하단 레이어로 쓴다. */
+export function towerWallTexture(frame: Texture, fromTop: number): Texture | null {
+  if (fromTop <= 0) {
+    return null;
+  }
+  return towerSliceTexture(frame, fromTop, 1 - fromTop);
 }

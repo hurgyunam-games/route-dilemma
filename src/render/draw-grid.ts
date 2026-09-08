@@ -48,11 +48,17 @@ import {
   layoutEnemySprite,
   layoutOccupantSprite,
   layoutObstacleSprite,
+  layoutTowerRoofSprite,
   layoutTowerSprite,
+  layoutTowerWallSprite,
   spriteLayout,
+  towerRoofFromTop,
+  towerWallFromTop,
 } from "@/render/sprite-layout";
 import {
+  towerRoofTexture,
   towerVisualFrames,
+  towerWallTexture,
   type TowerAtlasMap,
 } from "@/render/tower-sprites";
 
@@ -433,6 +439,10 @@ type OccupantClip = "idle" | "attack";
 type TowerSprite = {
   sprite: AnimatedSprite;
   occupant: AnimatedSprite;
+  roof: Sprite;
+  wall: Sprite;
+  roofFromTop: number;
+  wallTop: number;
   visual: string;
   occupantClip: OccupantClip | "none";
   occupantVariant: number;
@@ -490,6 +500,38 @@ function applyOccupantVisual(
     occupant.play();
   }
   record.occupantFacing = facing;
+}
+
+function syncTowerFrontFrames(record: TowerSprite): void {
+  const roofTex = towerRoofTexture(record.sprite.texture, record.roofFromTop);
+  if (!roofTex) {
+    record.roof.visible = false;
+  } else {
+    record.roof.texture = roofTex;
+    record.roof.visible = record.sprite.visible;
+  }
+  const wallTex = towerWallTexture(record.sprite.texture, record.wallTop);
+  if (!wallTex) {
+    record.wall.visible = false;
+  } else {
+    record.wall.texture = wallTex;
+    record.wall.visible = record.sprite.visible;
+  }
+}
+
+function applyTowerFront(record: TowerSprite, tower: Tower): void {
+  const overlay = isTowerComplete(tower);
+  record.roofFromTop = overlay ? towerRoofFromTop(tower.typeId, tower.level) : 0;
+  record.wallTop = overlay ? towerWallFromTop(tower.typeId, tower.level) : 0;
+  syncTowerFrontFrames(record);
+  if (record.wall.visible) {
+    layoutTowerWallSprite(record.wall, record.sprite, record.wallTop);
+    record.wall.zIndex = tower.y;
+  }
+  if (record.roof.visible) {
+    layoutTowerRoofSprite(record.roof, record.sprite, record.roofFromTop);
+    record.roof.zIndex = tower.y + 0.1;
+  }
 }
 
 function towerVisualKey(tower: Tower): string {
@@ -584,6 +626,8 @@ export function createGridView(
   towerLayer.sortableChildren = true;
   const occupantLayer = new Container();
   occupantLayer.sortableChildren = true;
+  const roofLayer = new Container();
+  roofLayer.sortableChildren = true;
   const hpGraphics = new Graphics();
   hpGraphics.eventMode = "none";
   const unitLayer = new Container();
@@ -623,6 +667,7 @@ export function createGridView(
     pathGraphics,
     towerLayer,
     occupantLayer,
+    roofLayer,
     startLabel,
     baseLabel,
     unitLayer,
@@ -634,6 +679,8 @@ export function createGridView(
     for (const record of towers.values()) {
       record.sprite.visible = false;
       record.occupant.visible = false;
+      record.roof.visible = false;
+      record.wall.visible = false;
     }
     for (const sprite of obstacles.values()) {
       sprite.visible = false;
@@ -768,15 +815,33 @@ export function createGridView(
         occupant.anchor.set(0.5, spriteLayout.occupantAnchorY);
         occupant.eventMode = "none";
         occupantLayer.addChild(occupant);
-        record = {
+        const roof = new Sprite(sprite.texture);
+        roof.anchor.set(0.5, 1);
+        roof.eventMode = "none";
+        roof.visible = false;
+        roofLayer.addChild(roof);
+        const wall = new Sprite(sprite.texture);
+        wall.anchor.set(0.5, 0);
+        wall.eventMode = "none";
+        wall.visible = false;
+        roofLayer.addChild(wall);
+        const created: TowerSprite = {
           sprite,
           occupant,
+          roof,
+          wall,
+          roofFromTop: 0,
+          wallTop: 0,
           visual: "",
           occupantClip: "none",
           occupantVariant: -1,
           occupantFacing: 1,
         };
-        towers.set(key, record);
+        sprite.onFrameChange = () => {
+          syncTowerFrontFrames(created);
+        };
+        record = created;
+        towers.set(key, created);
       }
       record.sprite.visible = true;
       const firing = firingKeys.has(key);
@@ -791,6 +856,7 @@ export function createGridView(
         record.occupantFacing,
         tower,
       );
+      applyTowerFront(record, tower);
       drawTowerHp(
         hpGraphics,
         layout,
@@ -918,6 +984,8 @@ export function createGridView(
       if (!liveTowers.has(key)) {
         record.sprite.destroy();
         record.occupant.destroy();
+        record.roof.destroy();
+        record.wall.destroy();
         towers.delete(key);
       }
     }

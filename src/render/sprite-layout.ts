@@ -4,6 +4,7 @@ import type {
   Obstacle,
   ObstacleKind,
   Tower,
+  TowerTypeId,
   Unit,
 } from "@/core";
 import type { AnimatedSprite, Sprite, Texture } from "pixi.js";
@@ -15,12 +16,20 @@ export type SpriteLayout = {
   occupantAnchorY: number;
   archerAnchorY: number;
   archerDeckInSprite: number[];
+  /** 스프라이트 높이에서 위에서부터 지붕으로 덮는 비율. 0이면 지붕 레이어 없음. */
+  archerRoofInSprite: number[];
+  /** 앞벽 시작(위에서부터). 이 줄부터 스프라이트 맨 아래까지 유닛 앞. */
+  archerWallTopInSprite: number[];
   archerOccupantXInTile: number[];
   cannonDeckInSprite: number;
   cannonWidthInTile: number;
   cannonOccupantXInTile: number;
   mageDeckInSprite: number;
   mageOccupantXInTile: number;
+  /** 마법사 지붕·수정. 0이면 없음. */
+  mageRoofInSprite: number[];
+  /** 마법사 앞벽 시작(위에서부터). 여기부터 맨 아래까지 유닛 앞. */
+  mageWallTopInSprite: number[];
   arrowLengthInTile: number;
   cannonProjSizeInTile: number;
   mageProjSizeInTile: number;
@@ -44,13 +53,17 @@ export const spriteLayout: SpriteLayout = {
   occupantWidthInTile: 0.72,
   occupantAnchorY: 40 / 48,
   archerAnchorY: 32 / 48,
-  archerDeckInSprite: [0.381, 0.381, 0.381, 0.381, 0.381],
+  archerDeckInSprite: [0.381, 0.261, 0.381, 0.381, 0.321],
+  archerRoofInSprite: [0, 73 / 130, 0, 0, 70 / 130],
+  archerWallTopInSprite: [0, 83 / 130, 0, 0, 76 / 130],
   archerOccupantXInTile: [0, 0, 0, 0, 0],
   cannonDeckInSprite: 0.55,
   cannonWidthInTile: 0.5,
   cannonOccupantXInTile: 0,
-  mageDeckInSprite: 0.34,
+  mageDeckInSprite: 0.28,
   mageOccupantXInTile: 0,
+  mageRoofInSprite: [59 / 130, 53 / 130, 48 / 130, 63 / 130, 63 / 130],
+  mageWallTopInSprite: [0.625, 76 / 130, 72 / 130, 72 / 130, 72 / 130],
   arrowLengthInTile: 0.22,
   cannonProjSizeInTile: 0.38,
   mageProjSizeInTile: 0.32,
@@ -97,7 +110,11 @@ function cloneSpriteLayout(src: SpriteLayout): SpriteLayout {
   return {
     ...src,
     archerDeckInSprite: [...src.archerDeckInSprite],
+    archerRoofInSprite: [...src.archerRoofInSprite],
+    archerWallTopInSprite: [...src.archerWallTopInSprite],
     archerOccupantXInTile: [...src.archerOccupantXInTile],
+    mageRoofInSprite: [...src.mageRoofInSprite],
+    mageWallTopInSprite: [...src.mageWallTopInSprite],
     enemyWidthInTile: { ...src.enemyWidthInTile },
     enemyAnchorY: { ...src.enemyAnchorY },
     enemyFootInTile: { ...src.enemyFootInTile },
@@ -112,6 +129,8 @@ function copySpriteLayout(from: SpriteLayout, to: SpriteLayout): void {
   to.occupantAnchorY = from.occupantAnchorY;
   to.archerAnchorY = from.archerAnchorY;
   to.archerDeckInSprite.splice(0, to.archerDeckInSprite.length, ...from.archerDeckInSprite);
+  to.archerRoofInSprite.splice(0, to.archerRoofInSprite.length, ...from.archerRoofInSprite);
+  to.archerWallTopInSprite.splice(0, to.archerWallTopInSprite.length, ...from.archerWallTopInSprite);
   to.archerOccupantXInTile.splice(
     0,
     to.archerOccupantXInTile.length,
@@ -122,6 +141,8 @@ function copySpriteLayout(from: SpriteLayout, to: SpriteLayout): void {
   to.cannonOccupantXInTile = from.cannonOccupantXInTile;
   to.mageDeckInSprite = from.mageDeckInSprite;
   to.mageOccupantXInTile = from.mageOccupantXInTile;
+  to.mageRoofInSprite.splice(0, to.mageRoofInSprite.length, ...from.mageRoofInSprite);
+  to.mageWallTopInSprite.splice(0, to.mageWallTopInSprite.length, ...from.mageWallTopInSprite);
   to.arrowLengthInTile = from.arrowLengthInTile;
   to.cannonProjSizeInTile = from.cannonProjSizeInTile;
   to.mageProjSizeInTile = from.mageProjSizeInTile;
@@ -162,12 +183,16 @@ export function formatSpriteLayoutSource(): string {
   occupantAnchorY: ${fmt(s.occupantAnchorY)},
   archerAnchorY: ${fmt(s.archerAnchorY)},
   archerDeckInSprite: [${s.archerDeckInSprite.map(fmt).join(", ")}],
+  archerRoofInSprite: [${s.archerRoofInSprite.map(fmt).join(", ")}],
+  archerWallTopInSprite: [${s.archerWallTopInSprite.map(fmt).join(", ")}],
   archerOccupantXInTile: [${s.archerOccupantXInTile.map(fmt).join(", ")}],
   cannonDeckInSprite: ${fmt(s.cannonDeckInSprite)},
   cannonWidthInTile: ${fmt(s.cannonWidthInTile)},
   cannonOccupantXInTile: ${fmt(s.cannonOccupantXInTile)},
   mageDeckInSprite: ${fmt(s.mageDeckInSprite)},
   mageOccupantXInTile: ${fmt(s.mageOccupantXInTile)},
+  mageRoofInSprite: [${s.mageRoofInSprite.map(fmt).join(", ")}],
+  mageWallTopInSprite: [${s.mageWallTopInSprite.map(fmt).join(", ")}],
   arrowLengthInTile: ${fmt(s.arrowLengthInTile)},
   cannonProjSizeInTile: ${fmt(s.cannonProjSizeInTile)},
   mageProjSizeInTile: ${fmt(s.mageProjSizeInTile)},
@@ -199,6 +224,82 @@ export const ENEMY_ANCHOR_Y = spriteLayout.enemyAnchorY;
 export function archerDeckInSprite(level: number): number {
   const index = Math.min(spriteLayout.archerDeckInSprite.length, Math.max(1, level)) - 1;
   return spriteLayout.archerDeckInSprite[index]!;
+}
+
+export function archerRoofInSprite(level: number): number {
+  const index = Math.min(spriteLayout.archerRoofInSprite.length, Math.max(1, level)) - 1;
+  return spriteLayout.archerRoofInSprite[index] ?? 0;
+}
+
+export function archerWallTopInSprite(level: number): number {
+  const index = Math.min(spriteLayout.archerWallTopInSprite.length, Math.max(1, level)) - 1;
+  return spriteLayout.archerWallTopInSprite[index] ?? 0;
+}
+
+export function mageRoofInSprite(level: number): number {
+  const index = Math.min(spriteLayout.mageRoofInSprite.length, Math.max(1, level)) - 1;
+  return spriteLayout.mageRoofInSprite[index] ?? 0;
+}
+
+export function mageWallTopInSprite(level: number): number {
+  const index = Math.min(spriteLayout.mageWallTopInSprite.length, Math.max(1, level)) - 1;
+  return spriteLayout.mageWallTopInSprite[index] ?? 0;
+}
+
+export function towerRoofFromTop(typeId: TowerTypeId, level: number): number {
+  if (typeId === "archer") {
+    return archerRoofInSprite(level);
+  }
+  if (typeId === "mage") {
+    return mageRoofInSprite(level);
+  }
+  return 0;
+}
+
+export function towerWallFromTop(typeId: TowerTypeId, level: number): number {
+  if (typeId === "archer") {
+    return archerWallTopInSprite(level);
+  }
+  if (typeId === "mage") {
+    return mageWallTopInSprite(level);
+  }
+  return 0;
+}
+
+export function layoutTowerRoofSprite(
+  roof: Sprite,
+  towerSprite: AnimatedSprite,
+  fromTop: number,
+): void {
+  if (fromTop <= 0) {
+    roof.visible = false;
+    return;
+  }
+  roof.visible = towerSprite.visible;
+  roof.scale.copyFrom(towerSprite.scale);
+  roof.anchor.set(0.5, 1);
+  roof.position.set(
+    towerSprite.x,
+    towerSprite.y - towerSprite.height * (1 - fromTop),
+  );
+}
+
+export function layoutTowerWallSprite(
+  wall: Sprite,
+  towerSprite: AnimatedSprite,
+  wallTop: number,
+): void {
+  if (wallTop <= 0) {
+    wall.visible = false;
+    return;
+  }
+  wall.visible = towerSprite.visible;
+  wall.scale.copyFrom(towerSprite.scale);
+  wall.anchor.set(0.5, 0);
+  wall.position.set(
+    towerSprite.x,
+    towerSprite.y - towerSprite.height * (1 - wallTop),
+  );
 }
 
 export function obstacleWidthInTile(kind: ObstacleKind, texture: Texture): number {

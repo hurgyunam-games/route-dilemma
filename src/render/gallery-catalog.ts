@@ -158,6 +158,30 @@ export function knobsForItem(item: GalleryItem): LayoutKnob[] {
           },
         }),
         knob({
+          id: "archerRoof",
+          source: `archerRoofInSprite[${levelIndex}]`,
+          label: "지붕",
+          hint: "클수록 아래로 덮음. 나무 바닥은 넣지 않음.",
+          axis: "y",
+          screenSign: -1,
+          get: () => spriteLayout.archerRoofInSprite[levelIndex] ?? 0,
+          set: (value) => {
+            spriteLayout.archerRoofInSprite[levelIndex] = value;
+          },
+        }),
+        knob({
+          id: "archerWallTop",
+          source: `archerWallTopInSprite[${levelIndex}]`,
+          label: "앞벽 위치",
+          hint: "클수록 아래로. 여기부터 맨 아래까지 유닛 앞.",
+          axis: "y",
+          screenSign: -1,
+          get: () => spriteLayout.archerWallTopInSprite[levelIndex] ?? 0,
+          set: (value) => {
+            spriteLayout.archerWallTopInSprite[levelIndex] = value;
+          },
+        }),
+        knob({
           id: "archerX",
           source: `archerOccupantXInTile[${levelIndex}]`,
           label: "궁수 좌우",
@@ -213,6 +237,30 @@ export function knobsForItem(item: GalleryItem): LayoutKnob[] {
           get: () => spriteLayout.mageDeckInSprite,
           set: (value) => {
             spriteLayout.mageDeckInSprite = value;
+          },
+        }),
+        knob({
+          id: "mageRoof",
+          source: `mageRoofInSprite[${levelIndex}]`,
+          label: "지붕·수정",
+          hint: "클수록 아래로 덮음. 나무 바닥은 넣지 않음. Lv별 값.",
+          axis: "y",
+          screenSign: -1,
+          get: () => spriteLayout.mageRoofInSprite[levelIndex] ?? 0,
+          set: (value) => {
+            spriteLayout.mageRoofInSprite[levelIndex] = value;
+          },
+        }),
+        knob({
+          id: "mageWallTop",
+          source: `mageWallTopInSprite[${levelIndex}]`,
+          label: "앞벽 위치",
+          hint: "클수록 아래로. 여기부터 맨 아래까지 유닛 앞. Lv별 값.",
+          axis: "y",
+          screenSign: -1,
+          get: () => spriteLayout.mageWallTopInSprite[levelIndex] ?? 0,
+          set: (value) => {
+            spriteLayout.mageWallTopInSprite[levelIndex] = value;
           },
         }),
         knob({

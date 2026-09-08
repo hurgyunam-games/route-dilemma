@@ -43,10 +43,20 @@ import {
   layoutEnemySprite,
   layoutOccupantSprite,
   layoutObstacleSprite,
+  layoutTowerRoofSprite,
   layoutTowerSprite,
+  layoutTowerWallSprite,
   spriteLayout,
+  towerRoofFromTop,
+  towerWallFromTop,
 } from "@/render/sprite-layout";
-import { loadTowerFrames, towerVisualFrames, type TowerAtlasMap } from "@/render/tower-sprites";
+import {
+  loadTowerFrames,
+  towerRoofTexture,
+  towerVisualFrames,
+  towerWallTexture,
+  type TowerAtlasMap,
+} from "@/render/tower-sprites";
 
 const START_FILL = 0x2f6fb3;
 const BASE_FILL = 0xb45a28;
@@ -86,6 +96,8 @@ type SlotRecord = {
   readonly groundY: number;
   tower: AnimatedSprite | null;
   occupant: AnimatedSprite | null;
+  roof: Sprite | null;
+  wall: Sprite | null;
   unit: AnimatedSprite | null;
   sprite: Sprite | null;
   readonly label: Text;
@@ -121,6 +133,39 @@ function dummyTower(item: Extract<GalleryItem, { group: "tower" }>, x: number, y
   };
 }
 
+function applyGalleryFront(record: SlotRecord): void {
+  const roof = record.roof;
+  const wall = record.wall;
+  const towerSprite = record.tower;
+  const item = record.item;
+  if (!towerSprite || item.group !== "tower") {
+    return;
+  }
+  const overlay = item.group === "tower";
+  const roofFromTop = overlay ? towerRoofFromTop(item.typeId, item.level) : 0;
+  const wallTop = overlay ? towerWallFromTop(item.typeId, item.level) : 0;
+  if (wall) {
+    const tex = towerWallTexture(towerSprite.texture, wallTop);
+    if (!tex) {
+      wall.visible = false;
+    } else {
+      wall.texture = tex;
+      layoutTowerWallSprite(wall, towerSprite, wallTop);
+      wall.zIndex = record.groundY + 0.4;
+    }
+  }
+  if (roof) {
+    const tex = towerRoofTexture(towerSprite.texture, roofFromTop);
+    if (!tex) {
+      roof.visible = false;
+    } else {
+      roof.texture = tex;
+      layoutTowerRoofSprite(roof, towerSprite, roofFromTop);
+      roof.zIndex = record.groundY + 0.5;
+    }
+  }
+}
+
 function dummyObstacle(
   item: Extract<GalleryItem, { group: "obstacle" }>,
   x: number,
@@ -143,6 +188,7 @@ function layoutSlot(
     if (record.occupant) {
       layoutOccupantSprite(record.occupant, record.tower, layout, y, 1, tower);
     }
+    applyGalleryFront(record);
   } else if ((item.group === "enemy" || item.group === "ally") && record.unit) {
     const enemyType = item.group === "enemy" ? item.enemyType : null;
     layoutEnemySprite(record.unit, layout, { x, y }, -1, enemyType);
@@ -196,6 +242,8 @@ function createSlot(
     groundY,
     tower: null,
     occupant: null,
+    roof: null,
+    wall: null,
     unit: null,
     sprite: null,
     label: new Text({
@@ -225,6 +273,21 @@ function createSlot(
     sprite.play();
     layer.addChild(sprite);
     record.tower = sprite;
+    const roof = new Sprite(sprite.texture);
+    roof.anchor.set(0.5, 1);
+    roof.eventMode = "none";
+    roof.visible = false;
+    layer.addChild(roof);
+    record.roof = roof;
+    const wall = new Sprite(sprite.texture);
+    wall.anchor.set(0.5, 0);
+    wall.eventMode = "none";
+    wall.visible = false;
+    layer.addChild(wall);
+    record.wall = wall;
+    sprite.onFrameChange = () => {
+      applyGalleryFront(record);
+    };
     if (itemHasOccupant(item)) {
       const occupant = new AnimatedSprite({
         textures: occupantClipFrames(
@@ -461,6 +524,12 @@ export async function createGalleryApp(
       }
       if (slot.occupant) {
         slot.occupant.zIndex = slot.groundY + 0.2;
+      }
+      if (slot.wall) {
+        slot.wall.zIndex = slot.groundY + 0.4;
+      }
+      if (slot.roof) {
+        slot.roof.zIndex = slot.groundY + 0.5;
       }
       if (slot.unit) {
         slot.unit.zIndex = slot.groundY;
