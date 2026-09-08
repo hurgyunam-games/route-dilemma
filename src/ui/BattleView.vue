@@ -317,41 +317,54 @@ onUnmounted(() => {
       class="canvas-host"
     />
     <div class="hud">
-      <button
-        type="button"
-        class="world-map-btn"
-        @click="onLeaveWorldMap"
-      >
-        월드맵
-      </button>
-      <div class="phase-stack">
-        <div
-          class="phase-bar"
-          :class="hud.phase"
+      <div class="hud-top">
+        <button
+          type="button"
+          class="world-map-btn"
+          @click="onLeaveWorldMap"
         >
-          <span class="phase-name">{{ phaseLabel }}</span>
-          <span class="phase-timer">{{ phaseTimeLabel }}</span>
+          월드맵
+        </button>
+        <div class="hud-main">
+          <div
+            class="phase-bar"
+            :class="hud.phase"
+          >
+            <span class="phase-name">{{ phaseLabel }}</span>
+            <span class="phase-timer">{{ phaseTimeLabel }}</span>
+          </div>
+          <p class="gold">
+            {{ goldLabel }}
+          </p>
+          <p class="base-hp">
+            {{ baseHpLabel }}
+          </p>
         </div>
-        <p class="stage">
-          {{ mapLabel }}
-        </p>
-        <p class="stage">
-          {{ stageLabel }}
+        <div
+          class="time-controls"
+          role="group"
+          aria-label="타임 컨트롤러"
+        >
+          <button
+            v-for="option in TIME_CONTROLS"
+            :key="option.scale"
+            type="button"
+            :class="{ active: hud.timeScale === option.scale }"
+            @click="onTimeScale(option.scale)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+      <div class="hud-sub">
+        <p class="meta">
+          {{ mapLabel }} · {{ stageLabel }} · {{ waveLabel }}
         </p>
         <p
           v-if="loopHint"
           class="loop-hint"
         >
           {{ loopHint }}
-        </p>
-        <p class="wave">
-          {{ waveLabel }}
-        </p>
-        <p class="gold">
-          {{ goldLabel }}
-        </p>
-        <p class="base-hp">
-          {{ baseHpLabel }}
         </p>
         <p
           v-if="leftoverLabel"
@@ -365,21 +378,6 @@ onUnmounted(() => {
         >
           길이 없습니다
         </p>
-      </div>
-      <div
-        class="time-controls"
-        role="group"
-        aria-label="타임 컨트롤러"
-      >
-        <button
-          v-for="option in TIME_CONTROLS"
-          :key="option.scale"
-          type="button"
-          :class="{ active: hud.timeScale === option.scale }"
-          @click="onTimeScale(option.scale)"
-        >
-          {{ option.label }}
-        </button>
       </div>
     </div>
     <div
@@ -569,34 +567,53 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.phase-stack {
+.hud-top {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding-top: 16px;
+  gap: 10px;
+  padding: 12px 12px 0;
+}
+
+.hud-main {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hud-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px 0;
 }
 
 .phase-bar,
-.stage,
-.wave,
 .gold,
 .base-hp,
 .leftover,
 .loop-hint,
-.blocked {
+.blocked,
+.meta {
   width: fit-content;
-  padding: 8px 14px;
+  margin: 0;
+  padding: 6px 10px;
   border-radius: 6px;
   background: rgba(20, 12, 10, 0.82);
-  font: 700 14px/1.3 "Segoe UI", sans-serif;
+  font: 700 13px/1.2 "Segoe UI", sans-serif;
   letter-spacing: 0.02em;
 }
 
 .phase-bar {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 10px;
 }
 
 .phase-bar.enemy {
@@ -617,15 +634,14 @@ onUnmounted(() => {
 .gold,
 .base-hp,
 .leftover,
-.stage,
-.wave {
-  margin: 0;
+.meta {
   font-variant-numeric: tabular-nums;
 }
 
-.stage,
-.wave {
+.meta {
   color: #d8cfc6;
+  font-size: 12px;
+  padding: 4px 8px;
 }
 
 .leftover {
@@ -633,9 +649,9 @@ onUnmounted(() => {
 }
 
 .loop-hint {
-  margin: 0;
   color: #e8b060;
-  font-size: 13px;
+  font-size: 12px;
+  padding: 4px 8px;
 }
 
 .gold {
@@ -647,14 +663,11 @@ onUnmounted(() => {
 }
 
 .blocked {
-  margin: 0;
   color: #f3d7c4;
 }
 
 .world-map-btn {
-  position: absolute;
-  top: 16px;
-  left: 16px;
+  flex-shrink: 0;
   margin: 0;
   padding: 8px 12px;
   border: 0;
@@ -674,10 +687,8 @@ onUnmounted(() => {
 }
 
 .time-controls {
-  position: absolute;
-  top: 16px;
-  right: 16px;
   display: flex;
+  flex-shrink: 0;
   gap: 6px;
   pointer-events: auto;
 }

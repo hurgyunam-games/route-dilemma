@@ -27,5 +27,8 @@ Place the following files here on your machine if you have the rights to use the
 - `mage-proj-01.png` … `mage-proj-03.png` (mage projectile by tower level)
 - `enemy-walk.png` (1×6 walk sheet)
 - `enemy-attack.png` (1×6 attack sheet)
+- `obstacle-rock-1.png` … `obstacle-rock-3.png` (rock tiles)
+- `obstacle-tree-1.png` (tall tree)
+- `obstacle-bush-1.png` … `obstacle-bush-6.png` (tree-tile bushes)
 
 Without these files the app still runs, using solid-color placeholders.

@@ -24,6 +24,7 @@ import {
   type Grid,
   type GridLayout,
   type Obstacle,
+  type ObstacleKind,
   type Path,
   type TileCoord,
   type TileKind,
@@ -39,6 +40,10 @@ import {
   type OccupantAtlas,
 } from "@/render/occupant-sprites";
 import { arrowFrameIndex, arrowUniformScale } from "@/render/arrow-sprites";
+import {
+  obstacleTexture,
+  type ObstacleAtlas,
+} from "@/render/obstacle-sprites";
 import { projectileVariantIndex } from "@/render/projectile-sprites";
 import {
   towerVisualFrames,
@@ -47,8 +52,6 @@ import {
 
 const START_FILL = 0x2f6fb3;
 const BASE_FILL = 0xb45a28;
-const ROCK_TILE_FILL = 0x5a564c;
-const TREE_TILE_FILL = 0x2d4a28;
 const TILE_BORDER = 0x161c16;
 const LABEL_FILL = 0xf4f1ea;
 const PATH_FILL = 0xc9a227;
@@ -60,16 +63,24 @@ const OCCUPANT_WIDTH_IN_TILE = 0.72;
 const OCCUPANT_ANCHOR_Y = 40 / 48;
 const OCCUPANT_IDLE_SPEED = 0.1;
 const OCCUPANT_ATTACK_SPEED = 0.2;
-/** Occupant feet as a fraction of tile height from the floor. 0 = ground, 1 = tile top. */
-const OCCUPANT_FEET_Y_IN_TILE = 0.52;
+/** Archer sprite feet sit at this row of the 48px frame. */
+const ARCHER_ANCHOR_Y = 32 / 48;
+/**
+ * Archer feet as a fraction of keep-sprite height from the bottom (lv1–lv5).
+ * Matches the battlement / roof of each idle sheet so they stand on the wall.
+ */
+const ARCHER_DECK_IN_SPRITE = [0.55, 0.6, 0.57, 0.65, 0.75] as const;
 /** Cannon sits this fraction of the keep sprite height above the sprite bottom. */
 const CANNON_DECK_IN_SPRITE = 0.62;
 const CANNON_WIDTH_IN_TILE = 0.5;
 /** Mage stands on the wizard-tower deck, as a fraction of sprite height from the bottom. */
 const MAGE_DECK_IN_SPRITE = 0.34;
-const ARROW_LENGTH_IN_TILE = 0.55;
+const ARROW_LENGTH_IN_TILE = 0.22;
 const CANNON_PROJ_SIZE_IN_TILE = 0.38;
 const MAGE_PROJ_SIZE_IN_TILE = 0.32;
+const ROCK_WIDTH_IN_TILE = 0.92;
+const BUSH_WIDTH_IN_TILE = 0.9;
+const TREE_WIDTH_IN_TILE = 1.08;
 /** HP bar sits this fraction of a tile above the floor (on the dirt, under the occupant). */
 const TOWER_HP_Y_IN_TILE = 0.08;
 const ENEMY_ANIMATION_SPEED = 0.14;
@@ -103,65 +114,33 @@ function markerFill(kind: TileKind): number | null {
   return null;
 }
 
-function drawRock(
-  graphics: Graphics,
-  layout: GridLayout,
-  x: number,
-  y: number,
-): void {
-  const size = layout.tileSize;
-  const cx = layout.originX + (x + 0.5) * size;
-  const cy = layout.originY + (y + 0.58) * size;
-  graphics.ellipse(cx, cy, size * 0.34, size * 0.26).fill({ color: 0x7a7468 });
-  graphics
-    .ellipse(cx - size * 0.08, cy - size * 0.04, size * 0.2, size * 0.14)
-    .fill({ color: 0x9a9488, alpha: 0.9 });
-  graphics
-    .ellipse(cx + size * 0.12, cy + size * 0.04, size * 0.16, size * 0.11)
-    .fill({ color: 0x5c574e });
+function obstacleWidthInTile(kind: ObstacleKind, texture: Texture): number {
+  if (kind === "rock") {
+    return ROCK_WIDTH_IN_TILE;
+  }
+  if (texture.height / Math.max(1, texture.width) >= 1.1) {
+    return TREE_WIDTH_IN_TILE;
+  }
+  return BUSH_WIDTH_IN_TILE;
 }
 
-function drawTree(
-  graphics: Graphics,
-  layout: GridLayout,
-  x: number,
-  y: number,
-): void {
-  const size = layout.tileSize;
-  const cx = layout.originX + (x + 0.5) * size;
-  const base = layout.originY + (y + 0.84) * size;
-  const trunkW = size * 0.14;
-  const trunkH = size * 0.26;
-  graphics
-    .rect(cx - trunkW / 2, base - trunkH, trunkW, trunkH)
-    .fill({ color: 0x6b4423 });
-  graphics.circle(cx, base - trunkH - size * 0.06, size * 0.26).fill({
-    color: 0x3d7a3a,
-  });
-  graphics
-    .circle(cx - size * 0.12, base - trunkH + size * 0.02, size * 0.16)
-    .fill({ color: 0x4a8f45 });
-  graphics
-    .circle(cx + size * 0.1, base - trunkH - size * 0.02, size * 0.14)
-    .fill({ color: 0x2f6a32 });
-}
-
-function drawObstacle(
-  graphics: Graphics,
+function layoutObstacleSprite(
+  sprite: Sprite,
   layout: GridLayout,
   obstacle: Obstacle,
+  texture: Texture,
 ): void {
-  const px = layout.originX + obstacle.x * layout.tileSize;
-  const py = layout.originY + obstacle.y * layout.tileSize;
-  const fill = obstacle.kind === "rock" ? ROCK_TILE_FILL : TREE_TILE_FILL;
-  graphics
-    .rect(px, py, layout.tileSize, layout.tileSize)
-    .fill({ color: fill, alpha: 0.55 });
-  if (obstacle.kind === "rock") {
-    drawRock(graphics, layout, obstacle.x, obstacle.y);
-  } else {
-    drawTree(graphics, layout, obstacle.x, obstacle.y);
-  }
+  sprite.texture = texture;
+  sprite.anchor.set(0.5, 1);
+  const widthInTile = obstacleWidthInTile(obstacle.kind, texture);
+  const scale = (layout.tileSize * widthInTile) / Math.max(1, texture.width);
+  sprite.scale.set(scale);
+  sprite.position.set(
+    layout.originX + (obstacle.x + 0.5) * layout.tileSize,
+    layout.originY + (obstacle.y + 1) * layout.tileSize - layout.tileSize * 0.04,
+  );
+  sprite.zIndex = obstacle.y;
+  sprite.visible = true;
 }
 
 function tileKey(x: number, y: number): string {
@@ -332,7 +311,11 @@ function drawTowerHp(
   y: number,
   hp: number,
   maxHp: number,
+  hideWhenFull = false,
 ): void {
+  if (hideWhenFull && hp >= maxHp) {
+    return;
+  }
   const width = layout.tileSize * 0.7;
   const height = Math.max(4, Math.round(layout.tileSize * 0.1));
   const left = layout.originX + (x + 0.5) * layout.tileSize - width / 2;
@@ -536,11 +519,15 @@ export type RangePreview = {
   readonly range: number;
 };
 
+function archerDeckInSprite(level: number): number {
+  const index = Math.min(ARCHER_DECK_IN_SPRITE.length, Math.max(1, level)) - 1;
+  return ARCHER_DECK_IN_SPRITE[index]!;
+}
+
 function layoutOccupantSprite(
   sprite: AnimatedSprite,
   towerSprite: AnimatedSprite,
   layout: GridLayout,
-  x: number,
   y: number,
   facing: 1 | -1,
   tower: Tower,
@@ -550,19 +537,22 @@ function layoutOccupantSprite(
   const sizeScale = (layout.tileSize * widthInTile) / sprite.texture.width;
   sprite.scale.set(sizeScale * facing, sizeScale);
   if (tower.typeId === "cannon") {
+    sprite.anchor.set(0.5, OCCUPANT_ANCHOR_Y);
     sprite.position.set(
       towerSprite.x,
       towerSprite.y - towerSprite.height * CANNON_DECK_IN_SPRITE,
     );
   } else if (tower.typeId === "mage") {
+    sprite.anchor.set(0.5, OCCUPANT_ANCHOR_Y);
     sprite.position.set(
       towerSprite.x,
       towerSprite.y - towerSprite.height * MAGE_DECK_IN_SPRITE,
     );
   } else {
+    sprite.anchor.set(0.5, ARCHER_ANCHOR_Y);
     sprite.position.set(
-      layout.originX + (x + 0.5) * layout.tileSize,
-      layout.originY + (y + 1 - OCCUPANT_FEET_Y_IN_TILE) * layout.tileSize,
+      towerSprite.x,
+      towerSprite.y - towerSprite.height * archerDeckInSprite(tower.level),
     );
   }
   sprite.zIndex = y + 0.2;
@@ -698,6 +688,7 @@ export function createGridView(
   arrowFrames: Texture[],
   cannonProjFrames: Texture[],
   mageProjFrames: Texture[],
+  obstacleAtlas: ObstacleAtlas,
 ): {
   readonly container: Container;
   sync(
@@ -731,6 +722,7 @@ export function createGridView(
   const arrowLayer = new Container();
   arrowLayer.eventMode = "none";
   const towers = new Map<string, TowerSprite>();
+  const obstacles = new Map<string, Sprite>();
   const buildLabels = new Map<string, Text>();
   const unitSprites = new Map<number, UnitSprite>();
   const arrowSprites: Sprite[] = [];
@@ -772,6 +764,9 @@ export function createGridView(
     for (const record of towers.values()) {
       record.sprite.visible = false;
       record.occupant.visible = false;
+    }
+    for (const sprite of obstacles.values()) {
+      sprite.visible = false;
     }
     for (const label of buildLabels.values()) {
       label.visible = false;
@@ -823,6 +818,7 @@ export function createGridView(
       shotByTower.set(tileKey(shot.fromX, shot.fromY), shot);
     }
     const liveTowers = new Set<string>();
+    const liveObstacles = new Set<string>();
     const liveBuilding = new Set<string>();
     forEachTile(grid, (x, y) => {
       const px = layout.originX + x * layout.tileSize;
@@ -831,7 +827,22 @@ export function createGridView(
       if (kind === "obstacle") {
         const obstacle = getObstacle(grid, x, y);
         if (obstacle) {
-          drawObstacle(graphics, layout, obstacle);
+          const key = tileKey(x, y);
+          liveObstacles.add(key);
+          let sprite = obstacles.get(key);
+          if (!sprite) {
+            sprite = new Sprite(obstacleTexture(obstacleAtlas, obstacle.kind, x, y));
+            sprite.eventMode = "none";
+            sprite.anchor.set(0.5, 1);
+            towerLayer.addChild(sprite);
+            obstacles.set(key, sprite);
+          }
+          layoutObstacleSprite(
+            sprite,
+            layout,
+            obstacle,
+            obstacleTexture(obstacleAtlas, obstacle.kind, x, y),
+          );
           drawTowerHp(
             hpGraphics,
             layout,
@@ -906,7 +917,6 @@ export function createGridView(
         record.occupant,
         record.sprite,
         layout,
-        x,
         y,
         record.occupantFacing,
         tower,
@@ -918,6 +928,7 @@ export function createGridView(
         y,
         tower.hp,
         towerMaxHp(tower),
+        true,
       );
       if (isTowerComplete(tower)) {
         drawLevelPips(hpGraphics, layout, x, y, tower.level);
@@ -1038,6 +1049,12 @@ export function createGridView(
         record.sprite.destroy();
         record.occupant.destroy();
         towers.delete(key);
+      }
+    }
+    for (const [key, sprite] of obstacles) {
+      if (!liveObstacles.has(key)) {
+        sprite.destroy();
+        obstacles.delete(key);
       }
     }
     for (const [key, label] of buildLabels) {
