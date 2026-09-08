@@ -23,8 +23,6 @@ import {
   type EnemyTypeId,
   type Grid,
   type GridLayout,
-  type Obstacle,
-  type ObstacleKind,
   type Path,
   type TileCoord,
   type TileKind,
@@ -46,6 +44,14 @@ import {
 } from "@/render/obstacle-sprites";
 import { projectileVariantIndex } from "@/render/projectile-sprites";
 import {
+  ENEMY_ANCHOR_Y,
+  layoutEnemySprite,
+  layoutOccupantSprite,
+  layoutObstacleSprite,
+  layoutTowerSprite,
+  spriteLayout,
+} from "@/render/sprite-layout";
+import {
   towerVisualFrames,
   type TowerAtlasMap,
 } from "@/render/tower-sprites";
@@ -58,49 +64,13 @@ const PATH_FILL = 0xc9a227;
 const PATH_LINE = 0xf4d35e;
 const TOWER_ANIMATION_SPEED = 0.08;
 const TOWER_FIRE_ANIMATION_SPEED = 0.22;
-const TOWER_WIDTH_IN_TILE = 1.05;
-const OCCUPANT_WIDTH_IN_TILE = 0.72;
-const OCCUPANT_ANCHOR_Y = 40 / 48;
 const OCCUPANT_IDLE_SPEED = 0.1;
 const OCCUPANT_ATTACK_SPEED = 0.2;
-/** Archer sprite feet sit at this row of the 48px frame. */
-const ARCHER_ANCHOR_Y = 32 / 48;
-/**
- * Archer feet as a fraction of keep-sprite height from the bottom (lv1–lv5).
- * Matches the battlement / roof of each idle sheet so they stand on the wall.
- */
-const ARCHER_DECK_IN_SPRITE = [0.55, 0.6, 0.57, 0.65, 0.75] as const;
-/** Cannon sits this fraction of the keep sprite height above the sprite bottom. */
-const CANNON_DECK_IN_SPRITE = 0.62;
-const CANNON_WIDTH_IN_TILE = 0.5;
-/** Mage stands on the wizard-tower deck, as a fraction of sprite height from the bottom. */
-const MAGE_DECK_IN_SPRITE = 0.34;
-const ARROW_LENGTH_IN_TILE = 0.22;
-const CANNON_PROJ_SIZE_IN_TILE = 0.38;
-const MAGE_PROJ_SIZE_IN_TILE = 0.32;
-const ROCK_WIDTH_IN_TILE = 0.92;
-const BUSH_WIDTH_IN_TILE = 0.9;
-const TREE_WIDTH_IN_TILE = 1.08;
 /** HP bar sits this fraction of a tile above the floor (on the dirt, under the occupant). */
 const TOWER_HP_Y_IN_TILE = 0.08;
 const ENEMY_ANIMATION_SPEED = 0.14;
 const ENEMY_ATTACK_ANIMATION_SPEED = 0.18;
 const ENEMY_DEATH_ANIMATION_SPEED = 0.16;
-const ENEMY_WIDTH_IN_TILE: Record<EnemyTypeId, number> = {
-  beast: 1.35,
-  cavalry: 1.9,
-  wolf: 1.4,
-  slime: 1.05,
-  goblin: 1.25,
-};
-/** Feet sit near the bottom of each sheet's frame. */
-const ENEMY_ANCHOR_Y: Record<EnemyTypeId, number> = {
-  beast: 86 / 96,
-  cavalry: 88 / 96,
-  wolf: 40 / 48,
-  slime: 42 / 48,
-  goblin: 38 / 48,
-};
 const UNIT_MOVE_EPS = 0.002;
 const BASE_ARRIVE_EPS = 0.2;
 
@@ -112,35 +82,6 @@ function markerFill(kind: TileKind): number | null {
     return BASE_FILL;
   }
   return null;
-}
-
-function obstacleWidthInTile(kind: ObstacleKind, texture: Texture): number {
-  if (kind === "rock") {
-    return ROCK_WIDTH_IN_TILE;
-  }
-  if (texture.height / Math.max(1, texture.width) >= 1.1) {
-    return TREE_WIDTH_IN_TILE;
-  }
-  return BUSH_WIDTH_IN_TILE;
-}
-
-function layoutObstacleSprite(
-  sprite: Sprite,
-  layout: GridLayout,
-  obstacle: Obstacle,
-  texture: Texture,
-): void {
-  sprite.texture = texture;
-  sprite.anchor.set(0.5, 1);
-  const widthInTile = obstacleWidthInTile(obstacle.kind, texture);
-  const scale = (layout.tileSize * widthInTile) / Math.max(1, texture.width);
-  sprite.scale.set(scale);
-  sprite.position.set(
-    layout.originX + (obstacle.x + 0.5) * layout.tileSize,
-    layout.originY + (obstacle.y + 1) * layout.tileSize - layout.tileSize * 0.04,
-  );
-  sprite.zIndex = obstacle.y;
-  sprite.visible = true;
 }
 
 function tileKey(x: number, y: number): string {
@@ -254,23 +195,6 @@ function horizontalFacing(dx: number, fallback: 1 | -1): 1 | -1 {
     return 1;
   }
   return fallback;
-}
-
-function layoutEnemySprite(
-  sprite: AnimatedSprite,
-  layout: GridLayout,
-  unit: Pick<Unit, "x" | "y">,
-  facing: 1 | -1,
-  enemyType: EnemyTypeId | null,
-): void {
-  const widthInTile = ENEMY_WIDTH_IN_TILE[enemyType ?? "beast"];
-  const sizeScale = (layout.tileSize * widthInTile) / sprite.texture.width;
-  sprite.scale.set(sizeScale * facing, sizeScale);
-  sprite.position.set(
-    layout.originX + (unit.x + 0.5) * layout.tileSize,
-    layout.originY + (unit.y + 0.78) * layout.tileSize,
-  );
-  sprite.zIndex = unit.y;
 }
 
 function hpFill(ratio: number): number {
@@ -483,21 +407,6 @@ function syncShotSprites(
   }
 }
 
-function layoutTowerSprite(
-  sprite: AnimatedSprite,
-  layout: GridLayout,
-  x: number,
-  y: number,
-): void {
-  const scale = (layout.tileSize * TOWER_WIDTH_IN_TILE) / sprite.texture.width;
-  sprite.scale.set(scale);
-  sprite.position.set(
-    layout.originX + (x + 0.5) * layout.tileSize,
-    layout.originY + (y + 1) * layout.tileSize - layout.tileSize * 0.06,
-  );
-  sprite.zIndex = y;
-}
-
 function layoutFloor(
   floor: TilingSprite,
   texture: Texture,
@@ -518,45 +427,6 @@ export type RangePreview = {
   readonly y: number;
   readonly range: number;
 };
-
-function archerDeckInSprite(level: number): number {
-  const index = Math.min(ARCHER_DECK_IN_SPRITE.length, Math.max(1, level)) - 1;
-  return ARCHER_DECK_IN_SPRITE[index]!;
-}
-
-function layoutOccupantSprite(
-  sprite: AnimatedSprite,
-  towerSprite: AnimatedSprite,
-  layout: GridLayout,
-  y: number,
-  facing: 1 | -1,
-  tower: Tower,
-): void {
-  const widthInTile =
-    tower.typeId === "cannon" ? CANNON_WIDTH_IN_TILE : OCCUPANT_WIDTH_IN_TILE;
-  const sizeScale = (layout.tileSize * widthInTile) / sprite.texture.width;
-  sprite.scale.set(sizeScale * facing, sizeScale);
-  if (tower.typeId === "cannon") {
-    sprite.anchor.set(0.5, OCCUPANT_ANCHOR_Y);
-    sprite.position.set(
-      towerSprite.x,
-      towerSprite.y - towerSprite.height * CANNON_DECK_IN_SPRITE,
-    );
-  } else if (tower.typeId === "mage") {
-    sprite.anchor.set(0.5, OCCUPANT_ANCHOR_Y);
-    sprite.position.set(
-      towerSprite.x,
-      towerSprite.y - towerSprite.height * MAGE_DECK_IN_SPRITE,
-    );
-  } else {
-    sprite.anchor.set(0.5, ARCHER_ANCHOR_Y);
-    sprite.position.set(
-      towerSprite.x,
-      towerSprite.y - towerSprite.height * archerDeckInSprite(tower.level),
-    );
-  }
-  sprite.zIndex = y + 0.2;
-}
 
 type OccupantClip = "idle" | "attack";
 
@@ -895,7 +765,7 @@ export function createGridView(
           loop: true,
           autoPlay: false,
         });
-        occupant.anchor.set(0.5, OCCUPANT_ANCHOR_Y);
+        occupant.anchor.set(0.5, spriteLayout.occupantAnchorY);
         occupant.eventMode = "none";
         occupantLayer.addChild(occupant);
         record = {
@@ -1112,7 +982,7 @@ export function createGridView(
     const arrowScale = arrowUniformScale(
       arrowFrames,
       layout.tileSize,
-      ARROW_LENGTH_IN_TILE,
+      spriteLayout.arrowLengthInTile,
     );
     syncShotSprites(
       arrowSprites,
@@ -1134,7 +1004,7 @@ export function createGridView(
           layout,
           shot,
           cannonProjFrames,
-          CANNON_PROJ_SIZE_IN_TILE,
+          spriteLayout.cannonProjSizeInTile,
           tower?.level ?? 1,
         );
       },
@@ -1151,7 +1021,7 @@ export function createGridView(
           layout,
           shot,
           mageProjFrames,
-          MAGE_PROJ_SIZE_IN_TILE,
+          spriteLayout.mageProjSizeInTile,
           tower?.level ?? 1,
         );
       },

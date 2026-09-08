@@ -20,6 +20,9 @@ const TREE_FILES = [
   "obstacle-bush-6.png",
 ] as const;
 
+export const ROCK_VARIANT_COUNT = ROCK_FILES.length;
+export const TREE_VARIANT_COUNT = TREE_FILES.length;
+
 async function loadNamed(file: string, fallback: string, w: number, h: number): Promise<Texture> {
   return loadLocalTexture(file, fallback, w, h);
 }
@@ -41,6 +44,19 @@ export function obstacleVariantIndex(x: number, y: number, count: number): numbe
     return 0;
   }
   return Math.abs(x * 13 + y * 7) % count;
+}
+
+export function obstacleTextureByIndex(
+  atlas: ObstacleAtlas,
+  kind: ObstacleKind,
+  index: number,
+): Texture {
+  const frames = atlas[kind];
+  if (frames.length === 0) {
+    throw new Error(`No obstacle frames for ${kind}`);
+  }
+  const wrapped = ((index % frames.length) + frames.length) % frames.length;
+  return frames[wrapped]!;
 }
 
 export function obstacleTexture(

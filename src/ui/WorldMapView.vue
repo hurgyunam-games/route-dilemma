@@ -17,6 +17,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [id: MapId];
+  gallery: [];
 }>();
 
 const MAP_ACCENTS: Record<MapId, string> = {
@@ -81,6 +82,13 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
       <p>
         스테이지 1–5는 맵 1–5와 하나씩 대응합니다. 스테이지 6부터는 맵 1로 돌아오며, 그 맵에 지은 타워가 남아 있습니다.
       </p>
+      <button
+        type="button"
+        class="gallery-link"
+        @click="emit('gallery')"
+      >
+        스프라이트 갤러리
+      </button>
       <p
         v-if="loopHint"
         class="loop-hint"
@@ -182,6 +190,24 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
 .world-head .loop-hint {
   margin: 8px 0 0;
   color: #e8b060;
+}
+
+.gallery-link {
+  display: inline-block;
+  margin: 14px 0 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #3a3228;
+  color: #f7efe6;
+  font: 700 13px/1.2 "Segoe UI", sans-serif;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.45);
+}
+
+.gallery-link:focus-visible {
+  outline: 2px solid #e8b060;
+  outline-offset: 3px;
 }
 
 .map-row {
