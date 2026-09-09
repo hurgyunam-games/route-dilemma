@@ -405,6 +405,37 @@ export function knobsForItem(item: GalleryItem): LayoutKnob[] {
       }),
     ];
   }
+  if (item.group === "marker") {
+    const isStart = item.marker === "start";
+    const footField = isStart ? "startFootInTile" : "baseFootInTile";
+    const widthField = isStart ? "startWidthInTile" : "baseWidthInTile";
+    return [
+      knob({
+        id: isStart ? "startFoot" : "baseFoot",
+        source: footField,
+        label: "바닥",
+        hint: "클수록 위로.",
+        axis: "y",
+        screenSign: 1,
+        get: () => spriteLayout[footField],
+        set: (value) => {
+          spriteLayout[footField] = value;
+        },
+      }),
+      knob({
+        id: isStart ? "startWidth" : "baseWidth",
+        source: widthField,
+        label: "크기",
+        hint: "타일 대비 너비.",
+        axis: "x",
+        screenSign: 1,
+        get: () => spriteLayout[widthField],
+        set: (value) => {
+          spriteLayout[widthField] = value;
+        },
+      }),
+    ];
+  }
   return [];
 }
 

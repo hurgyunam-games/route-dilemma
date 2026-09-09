@@ -37,6 +37,10 @@ export type SpriteLayout = {
   bushWidthInTile: number;
   treeWidthInTile: number;
   obstacleFootInTile: number;
+  startWidthInTile: number;
+  startFootInTile: number;
+  baseWidthInTile: number;
+  baseFootInTile: number;
   enemyWidthInTile: Record<EnemyTypeId, number>;
   enemyAnchorY: Record<EnemyTypeId, number>;
   enemyFootInTile: Record<EnemyTypeId, number>;
@@ -71,6 +75,10 @@ export const spriteLayout: SpriteLayout = {
   bushWidthInTile: 0.9,
   treeWidthInTile: 1.08,
   obstacleFootInTile: 0.04,
+  startWidthInTile: 0.85,
+  startFootInTile: 0.06,
+  baseWidthInTile: 0.95,
+  baseFootInTile: 0.04,
   enemyWidthInTile: {
     beast: 1.35,
     cavalry: 1.9,
@@ -150,6 +158,10 @@ function copySpriteLayout(from: SpriteLayout, to: SpriteLayout): void {
   to.bushWidthInTile = from.bushWidthInTile;
   to.treeWidthInTile = from.treeWidthInTile;
   to.obstacleFootInTile = from.obstacleFootInTile;
+  to.startWidthInTile = from.startWidthInTile;
+  to.startFootInTile = from.startFootInTile;
+  to.baseWidthInTile = from.baseWidthInTile;
+  to.baseFootInTile = from.baseFootInTile;
   Object.assign(to.enemyWidthInTile, from.enemyWidthInTile);
   Object.assign(to.enemyAnchorY, from.enemyAnchorY);
   Object.assign(to.enemyFootInTile, from.enemyFootInTile);
@@ -200,6 +212,10 @@ export function formatSpriteLayoutSource(): string {
   bushWidthInTile: ${fmt(s.bushWidthInTile)},
   treeWidthInTile: ${fmt(s.treeWidthInTile)},
   obstacleFootInTile: ${fmt(s.obstacleFootInTile)},
+  startWidthInTile: ${fmt(s.startWidthInTile)},
+  startFootInTile: ${fmt(s.startFootInTile)},
+  baseWidthInTile: ${fmt(s.baseWidthInTile)},
+  baseFootInTile: ${fmt(s.baseFootInTile)},
   enemyWidthInTile: {
 ${enemyBlock(s.enemyWidthInTile)}
   },
@@ -310,6 +326,46 @@ export function obstacleWidthInTile(kind: ObstacleKind, texture: Texture): numbe
     return spriteLayout.treeWidthInTile;
   }
   return spriteLayout.bushWidthInTile;
+}
+
+export function layoutStartSprite(
+  sprite: Sprite,
+  layout: GridLayout,
+  x: number,
+  y: number,
+): void {
+  sprite.anchor.set(0.5, 1);
+  const scale =
+    (layout.tileSize * spriteLayout.startWidthInTile) / Math.max(1, sprite.texture.width);
+  sprite.scale.set(scale);
+  sprite.position.set(
+    layout.originX + (x + 0.5) * layout.tileSize,
+    layout.originY +
+      (y + 1) * layout.tileSize -
+      layout.tileSize * spriteLayout.startFootInTile,
+  );
+  sprite.zIndex = y;
+  sprite.visible = true;
+}
+
+export function layoutBaseSprite(
+  sprite: Sprite,
+  layout: GridLayout,
+  x: number,
+  y: number,
+): void {
+  sprite.anchor.set(0.5, 1);
+  const scale =
+    (layout.tileSize * spriteLayout.baseWidthInTile) / Math.max(1, sprite.texture.width);
+  sprite.scale.set(scale);
+  sprite.position.set(
+    layout.originX + (x + 0.5) * layout.tileSize,
+    layout.originY +
+      (y + 1) * layout.tileSize -
+      layout.tileSize * spriteLayout.baseFootInTile,
+  );
+  sprite.zIndex = y;
+  sprite.visible = true;
 }
 
 export function layoutObstacleSprite(

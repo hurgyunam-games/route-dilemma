@@ -26,7 +26,6 @@ import {
   type GridLayout,
   type Path,
   type TileCoord,
-  type TileKind,
   type Tower,
   type TowerShot,
   type Unit,
@@ -49,6 +48,8 @@ import {
   layoutEnemySprite,
   layoutOccupantSprite,
   layoutObstacleSprite,
+  layoutStartSprite,
+  layoutBaseSprite,
   layoutTowerRoofSprite,
   layoutTowerSprite,
   layoutTowerWallSprite,
@@ -63,16 +64,15 @@ import {
   type TowerAtlasMap,
 } from "@/render/tower-sprites";
 
-const START_FILL = 0x2f6fb3;
-const BASE_FILL = 0xb45a28;
 const TILE_BORDER = 0x161c16;
-const LABEL_FILL = 0xf4f1ea;
 const PATH_FILL = 0xc9a227;
 const PATH_LINE = 0xf4d35e;
 const TOWER_ANIMATION_SPEED = 0.08;
 const TOWER_FIRE_ANIMATION_SPEED = 0.22;
 const OCCUPANT_IDLE_SPEED = 0.1;
 const OCCUPANT_ATTACK_SPEED = 0.2;
+const START_ANIMATION_SPEED = 0.1;
+const BASE_ANIMATION_SPEED = 0.14;
 /** HP bar sits this fraction of a tile above the floor (on the dirt, under the occupant). */
 const TOWER_HP_Y_IN_TILE = 0.08;
 const ENEMY_ANIMATION_SPEED = 0.14;
@@ -81,34 +81,8 @@ const ENEMY_DEATH_ANIMATION_SPEED = 0.16;
 const UNIT_MOVE_EPS = 0.002;
 const BASE_ARRIVE_EPS = 0.2;
 
-function markerFill(kind: TileKind): number | null {
-  if (kind === "start") {
-    return START_FILL;
-  }
-  if (kind === "base") {
-    return BASE_FILL;
-  }
-  return null;
-}
-
 function tileKey(x: number, y: number): string {
   return `${x},${y}`;
-}
-
-function placeLabel(
-  label: Text,
-  originX: number,
-  originY: number,
-  tileSize: number,
-  x: number,
-  y: number,
-): void {
-  label.anchor.set(0.5);
-  label.style.fontSize = Math.max(10, Math.floor(tileSize * 0.26));
-  label.position.set(
-    originX + (x + 0.5) * tileSize,
-    originY + (y + 0.5) * tileSize,
-  );
 }
 
 function tileCenter(layout: GridLayout, x: number, y: number): { x: number; y: number } {
@@ -628,6 +602,8 @@ export function createGridView(
   cannonProjFrames: Texture[],
   mageProjFrames: Texture[],
   obstacleAtlas: ObstacleAtlas,
+  startFrames: Texture[],
+  baseFrames: Texture[],
 ): {
   readonly container: Container;
   sync(
@@ -670,24 +646,26 @@ export function createGridView(
   const cannonSprites: Sprite[] = [];
   const mageSprites: Sprite[] = [];
   let lastLayout: GridLayout | null = null;
-  const startLabel = new Text({
-    text: "Start",
-    style: {
-      fontFamily: "Segoe UI, sans-serif",
-      fontWeight: "700",
-      fill: LABEL_FILL,
-      align: "center",
-    },
+  const startSprite = new AnimatedSprite({
+    textures: startFrames,
+    animationSpeed: START_ANIMATION_SPEED,
+    loop: true,
+    autoPlay: false,
   });
-  const baseLabel = new Text({
-    text: "Base",
-    style: {
-      fontFamily: "Segoe UI, sans-serif",
-      fontWeight: "700",
-      fill: LABEL_FILL,
-      align: "center",
-    },
+  startSprite.anchor.set(0.5, 1);
+  startSprite.eventMode = "none";
+  startSprite.play();
+  towerLayer.addChild(startSprite);
+  const baseSprite = new AnimatedSprite({
+    textures: baseFrames,
+    animationSpeed: BASE_ANIMATION_SPEED,
+    loop: true,
+    autoPlay: false,
   });
+  baseSprite.anchor.set(0.5, 1);
+  baseSprite.eventMode = "none";
+  baseSprite.play();
+  towerLayer.addChild(baseSprite);
   container.addChild(
     floor,
     graphics,
@@ -695,8 +673,6 @@ export function createGridView(
     towerLayer,
     occupantLayer,
     roofLayer,
-    startLabel,
-    baseLabel,
     unitLayer,
     arrowLayer,
     hpGraphics,
@@ -741,8 +717,8 @@ export function createGridView(
     lastLayout = layout;
     if (layout.tileSize <= 0) {
       floor.visible = false;
-      startLabel.visible = false;
-      baseLabel.visible = false;
+      startSprite.visible = false;
+      baseSprite.visible = false;
       hideTowers();
       for (const record of unitSprites.values()) {
         record.sprite.visible = false;
@@ -751,8 +727,14 @@ export function createGridView(
       return;
     }
     layoutFloor(floor, floorTexture, layout);
-    startLabel.visible = true;
-    baseLabel.visible = true;
+    layoutStartSprite(startSprite, layout, grid.start.x, grid.start.y);
+    if (!startSprite.playing) {
+      startSprite.play();
+    }
+    layoutBaseSprite(baseSprite, layout, grid.base.x, grid.base.y);
+    if (!baseSprite.playing) {
+      baseSprite.play();
+    }
 
     const firingKeys = new Set(
       towerShots.map((shot) => tileKey(shot.fromX, shot.fromY)),
@@ -801,17 +783,9 @@ export function createGridView(
           .stroke({ width: 1, color: TILE_BORDER, alignment: 0 });
         return;
       }
-      const fill = markerFill(kind);
-      if (fill !== null) {
-        graphics
-          .rect(px, py, layout.tileSize, layout.tileSize)
-          .fill({ color: fill, alpha: 0.55 })
-          .stroke({ width: 1, color: TILE_BORDER, alignment: 0 });
-      } else {
-        graphics
-          .rect(px, py, layout.tileSize, layout.tileSize)
-          .stroke({ width: 1, color: TILE_BORDER, alignment: 0 });
-      }
+      graphics
+        .rect(px, py, layout.tileSize, layout.tileSize)
+        .stroke({ width: 1, color: TILE_BORDER, alignment: 0 });
 
       if (kind !== "tower") {
         return;
@@ -1127,22 +1101,6 @@ export function createGridView(
       },
     );
 
-    placeLabel(
-      startLabel,
-      layout.originX,
-      layout.originY,
-      layout.tileSize,
-      grid.start.x,
-      grid.start.y,
-    );
-    placeLabel(
-      baseLabel,
-      layout.originX,
-      layout.originY,
-      layout.tileSize,
-      grid.base.x,
-      grid.base.y,
-    );
   };
 
   const tileAt = (px: number, py: number): TileCoord | null => {

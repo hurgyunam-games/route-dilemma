@@ -34,6 +34,8 @@ import {
   obstacleTextureByIndex,
   type ObstacleAtlas,
 } from "@/render/obstacle-sprites";
+import { loadBaseFrames } from "@/render/base-sprites";
+import { loadStartFrames } from "@/render/start-sprites";
 import {
   loadCannonProjectileFrames,
   loadMageProjectileFrames,
@@ -43,6 +45,8 @@ import {
   layoutEnemySprite,
   layoutOccupantSprite,
   layoutObstacleSprite,
+  layoutStartSprite,
+  layoutBaseSprite,
   layoutTowerRoofSprite,
   layoutTowerSprite,
   layoutTowerWallSprite,
@@ -58,8 +62,6 @@ import {
   type TowerAtlasMap,
 } from "@/render/tower-sprites";
 
-const START_FILL = 0x2f6fb3;
-const BASE_FILL = 0xb45a28;
 const TILE_BORDER = 0x161c16;
 const CHECK_DARK = 0x1c2418;
 const CHECK_LIGHT = 0x2a3424;
@@ -68,6 +70,8 @@ const GROUND_LINE = 0xf4d35e;
 const TOWER_ANIMATION_SPEED = 0.08;
 const OCCUPANT_IDLE_SPEED = 0.1;
 const ENEMY_ANIMATION_SPEED = 0.14;
+const START_ANIMATION_SPEED = 0.1;
+const BASE_ANIMATION_SPEED = 0.14;
 const GALLERY_COLS = 8;
 const SLOT_TILE_ROWS = 2;
 const VIEW_PADDING = 20;
@@ -88,6 +92,8 @@ type GalleryAssets = {
   readonly cannonProjFrames: Texture[];
   readonly mageProjFrames: Texture[];
   readonly obstacleAtlas: ObstacleAtlas;
+  readonly startFrames: Texture[];
+  readonly baseFrames: Texture[];
 };
 
 type SlotRecord = {
@@ -220,6 +226,12 @@ function layoutSlot(
     } else {
       layoutCenteredSprite(record.sprite, layout, x, y, size);
     }
+  } else if (item.group === "marker" && record.sprite) {
+    if (item.marker === "start") {
+      layoutStartSprite(record.sprite, layout, x, y);
+    } else {
+      layoutBaseSprite(record.sprite, layout, x, y);
+    }
   }
   record.label.style.fontSize = Math.max(9, Math.floor(layout.tileSize * 0.18));
   record.label.position.set(
@@ -342,6 +354,20 @@ function createSlot(
     sprite.eventMode = "none";
     layer.addChild(sprite);
     record.sprite = sprite;
+  } else if (item.group === "marker") {
+    const textures = item.marker === "start" ? assets.startFrames : assets.baseFrames;
+    const sprite = new AnimatedSprite({
+      textures,
+      animationSpeed:
+        item.marker === "start" ? START_ANIMATION_SPEED : BASE_ANIMATION_SPEED,
+      loop: true,
+      autoPlay: false,
+    });
+    sprite.anchor.set(0.5, 1);
+    sprite.eventMode = "none";
+    sprite.play();
+    layer.addChild(sprite);
+    record.sprite = sprite;
   }
   return record;
 }
@@ -376,12 +402,6 @@ function drawBoard(
     const y = slot.groundY;
     const px = layout.originX + x * layout.tileSize;
     const py = layout.originY + y * layout.tileSize;
-    if (slot.item.group === "marker") {
-      graphics.rect(px, py, layout.tileSize, layout.tileSize).fill({
-        color: slot.item.marker === "start" ? START_FILL : BASE_FILL,
-        alpha: 0.7,
-      });
-    }
     const cx = px + layout.tileSize / 2;
     const cy = py + layout.tileSize / 2;
     const tick = Math.max(4, layout.tileSize * 0.12);
@@ -433,6 +453,8 @@ export async function createGalleryApp(
     cannonProjFrames,
     mageProjFrames,
     obstacleAtlas,
+    startFrames,
+    baseFrames,
   ] = await Promise.all([
     loadTowerFrames(),
     loadOccupantFrames(),
@@ -443,6 +465,8 @@ export async function createGalleryApp(
     loadCannonProjectileFrames(),
     loadMageProjectileFrames(),
     loadObstacleFrames(),
+    loadStartFrames(),
+    loadBaseFrames(),
   ]);
   const assets: GalleryAssets = {
     towerAtlas,
@@ -454,6 +478,8 @@ export async function createGalleryApp(
     cannonProjFrames,
     mageProjFrames,
     obstacleAtlas,
+    startFrames,
+    baseFrames,
   };
 
   const container = new Container();

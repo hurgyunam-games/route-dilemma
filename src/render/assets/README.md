@@ -30,5 +30,7 @@ Place the following files here on your machine if you have the rights to use the
 - `obstacle-rock-1.png` … `obstacle-rock-3.png` (rock tiles)
 - `obstacle-tree-1.png` (tall tree)
 - `obstacle-bush-1.png` … `obstacle-bush-6.png` (tree-tile bushes)
+- `start-banner.png` (1×6 waving flag on Start)
+- `base-campfire.png` (1×6 campfire on Base)
 
 Without these files the app still runs, using solid-color placeholders.

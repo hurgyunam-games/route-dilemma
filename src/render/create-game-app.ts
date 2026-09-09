@@ -11,6 +11,8 @@ import { loadEnemyFrames } from "@/render/enemy-sprites";
 import { loadFloorTexture } from "@/render/floor-tile";
 import { loadOccupantFrames } from "@/render/occupant-sprites";
 import { loadObstacleFrames } from "@/render/obstacle-sprites";
+import { loadBaseFrames } from "@/render/base-sprites";
+import { loadStartFrames } from "@/render/start-sprites";
 import { loadTowerFrames } from "@/render/tower-sprites";
 
 type GameSession = {
@@ -51,6 +53,8 @@ export async function createGameApp(
     cannonProjFrames,
     mageProjFrames,
     obstacleAtlas,
+    startFrames,
+    baseFrames,
   ] = await Promise.all([
     loadTowerFrames(),
     loadOccupantFrames(),
@@ -61,6 +65,8 @@ export async function createGameApp(
     loadCannonProjectileFrames(),
     loadMageProjectileFrames(),
     loadObstacleFrames(),
+    loadStartFrames(),
+    loadBaseFrames(),
   ]);
   const gridView = createGridView(
     towerAtlas,
@@ -72,6 +78,8 @@ export async function createGameApp(
     cannonProjFrames,
     mageProjFrames,
     obstacleAtlas,
+    startFrames,
+    baseFrames,
   );
   app.stage.addChild(gridView.container);
   app.stage.eventMode = "static";

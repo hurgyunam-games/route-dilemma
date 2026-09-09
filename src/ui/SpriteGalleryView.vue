@@ -58,8 +58,6 @@ const sourceText = computed(() => {
 
 const visibleCount = computed(() => galleryItemsFor(group.value).length);
 
-const isMarker = computed(() => selectedItem.value?.group === "marker");
-
 const applyKnob = (knob: LayoutKnob, value: number): void => {
   knob.set(value);
   layoutRev.value += 1;
@@ -198,7 +196,7 @@ onUnmounted(() => {
         class="selected"
       >
         <h2>{{ selectedItem.label }}</h2>
-        <template v-if="!isMarker && knobs.length > 0">
+        <template v-if="knobs.length > 0">
           <p class="hint">
             방향키 0.01 · Shift 0.05
           </p>
@@ -234,12 +232,6 @@ onUnmounted(() => {
             </p>
           </div>
         </template>
-        <p
-          v-else
-          class="hint"
-        >
-          Start / Base는 색 칸이라 좌표 상수가 없습니다.
-        </p>
       </section>
       <p
         v-else
