@@ -27,7 +27,10 @@ import {
   UNIT_MAX_HP,
   UNIT_SPEED_TILES_PER_SEC,
   unitTile,
+  allySpawnDurationSec,
+  enemySpawnDurationSec,
   getStageWave,
+  PHASE_TAIL_SEC,
   towerBuildCost,
   towerDps,
   towerRange,
@@ -497,11 +500,12 @@ describe("phase overlap leftover allies", () => {
 
   it("pays no gold when a leftover ally is caught by an enemy", () => {
     let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    expect(sim.phase).toBe("ally");
     sim = { ...sim, grid: wallColumn(sim.grid, 1) };
     const allyId = sim.units[0]!.id;
     expect(sim.gold).toBe(START_GOLD);
 
-    sim = advance(sim, sim.phaseTimeLeft);
+    sim = advance(sim, sim.phaseTimeLeft + 0.05);
     expect(sim.phase).toBe("enemy");
     expect(sim.units.some((unit) => unit.id === allyId)).toBe(false);
     expect(sim.units.some((unit) => unit.kind === "enemy")).toBe(true);
@@ -521,12 +525,12 @@ describe("phase overlap leftover allies", () => {
       baseHp: BASE_MAX_HP,
     };
 
-    sim = advance(sim, sim.phaseTimeLeft);
+    sim = advance(sim, sim.phaseTimeLeft + 0.05);
     expect(sim.phase).toBe("enemy");
     expect(sim.units.some((unit) => unit.id === ally.id)).toBe(true);
     expect(sim.gold).toBe(START_GOLD);
 
-    sim = advance(sim, sim.phaseTimeLeft);
+    sim = advance(sim, sim.phaseTimeLeft + 0.05);
     expect(sim.phase).toBe("ally");
     expect(sim.units.some((unit) => unit.id === ally.id)).toBe(false);
     expect(sim.gold).toBe(START_GOLD);
@@ -545,6 +549,20 @@ describe("phase overlap leftover allies", () => {
     expect(sim.units.some((unit) => unit.kind === "ally")).toBe(true);
     expect(sim.gold).toBe(START_GOLD);
     expect(hudSnapshot(sim).leftoverAllies).toBeGreaterThan(0);
+  });
+
+  it("leaves only a short wait after the last enemy spawns", () => {
+    const sim = advance(createSim(), enemySpawnDurationSec(STAGE_1));
+    expect(sim.phase).toBe("enemy");
+    expect(sim.phaseTimeLeft).toBeCloseTo(PHASE_TAIL_SEC, 1);
+  });
+
+  it("leaves only a short wait after the last ally spawns", () => {
+    let sim = advance(createSim(), STAGE_1.enemyPhaseSec);
+    expect(sim.phase).toBe("ally");
+    sim = advance(sim, allySpawnDurationSec(STAGE_1));
+    expect(sim.phase).toBe("ally");
+    expect(sim.phaseTimeLeft).toBeCloseTo(PHASE_TAIL_SEC, 1);
   });
 });
 

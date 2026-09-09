@@ -2,8 +2,8 @@
   "stages": [
     {
       "id": 1,
-      "enemyPhaseSec": 36,
-      "allyPhaseSec": 14,
+      "enemyPhaseSec": 20.8,
+      "allyPhaseSec": 6.8,
       "allyCount": 3,
       "allyInterval": 0.9,
       "bursts": [
@@ -41,8 +41,8 @@
     },
     {
       "id": 2,
-      "enemyPhaseSec": 38,
-      "allyPhaseSec": 14,
+      "enemyPhaseSec": 23.5,
+      "allyPhaseSec": 6.8,
       "allyCount": 3,
       "allyInterval": 0.9,
       "bursts": [
@@ -84,8 +84,8 @@
     },
     {
       "id": 3,
-      "enemyPhaseSec": 40,
-      "allyPhaseSec": 14,
+      "enemyPhaseSec": 24.5,
+      "allyPhaseSec": 6.7,
       "allyCount": 3,
       "allyInterval": 0.85,
       "bursts": [
@@ -129,8 +129,8 @@
     },
     {
       "id": 4,
-      "enemyPhaseSec": 42,
-      "allyPhaseSec": 13,
+      "enemyPhaseSec": 25.4,
+      "allyPhaseSec": 6.7,
       "allyCount": 3,
       "allyInterval": 0.85,
       "bursts": [
@@ -176,8 +176,8 @@
     },
     {
       "id": 5,
-      "enemyPhaseSec": 44,
-      "allyPhaseSec": 13,
+      "enemyPhaseSec": 24.8,
+      "allyPhaseSec": 6.7,
       "allyCount": 3,
       "allyInterval": 0.85,
       "bursts": [
@@ -223,8 +223,8 @@
     },
     {
       "id": 6,
-      "enemyPhaseSec": 48,
-      "allyPhaseSec": 13,
+      "enemyPhaseSec": 31.4,
+      "allyPhaseSec": 6.6,
       "allyCount": 3,
       "allyInterval": 0.8,
       "bursts": [
@@ -284,8 +284,8 @@
     },
     {
       "id": 7,
-      "enemyPhaseSec": 48,
-      "allyPhaseSec": 12,
+      "enemyPhaseSec": 26.4,
+      "allyPhaseSec": 6.6,
       "allyCount": 3,
       "allyInterval": 0.8,
       "bursts": [
@@ -335,8 +335,8 @@
     },
     {
       "id": 8,
-      "enemyPhaseSec": 50,
-      "allyPhaseSec": 12,
+      "enemyPhaseSec": 25.7,
+      "allyPhaseSec": 6.6,
       "allyCount": 3,
       "allyInterval": 0.8,
       "bursts": [
@@ -386,8 +386,8 @@
     },
     {
       "id": 9,
-      "enemyPhaseSec": 50,
-      "allyPhaseSec": 12,
+      "enemyPhaseSec": 26.3,
+      "allyPhaseSec": 7.4,
       "allyCount": 4,
       "allyInterval": 0.8,
       "bursts": [
@@ -439,8 +439,8 @@
     },
     {
       "id": 10,
-      "enemyPhaseSec": 52,
-      "allyPhaseSec": 12,
+      "enemyPhaseSec": 26.7,
+      "allyPhaseSec": 7.3,
       "allyCount": 4,
       "allyInterval": 0.75,
       "bursts": [
@@ -494,8 +494,8 @@
     },
     {
       "id": 11,
-      "enemyPhaseSec": 54,
-      "allyPhaseSec": 12,
+      "enemyPhaseSec": 30.8,
+      "allyPhaseSec": 7.3,
       "allyCount": 4,
       "allyInterval": 0.75,
       "bursts": [
@@ -561,8 +561,8 @@
     },
     {
       "id": 12,
-      "enemyPhaseSec": 54,
-      "allyPhaseSec": 12,
+      "enemyPhaseSec": 31.2,
+      "allyPhaseSec": 7.3,
       "allyCount": 4,
       "allyInterval": 0.75,
       "bursts": [
@@ -630,8 +630,8 @@
     },
     {
       "id": 13,
-      "enemyPhaseSec": 56,
-      "allyPhaseSec": 11,
+      "enemyPhaseSec": 24.6,
+      "allyPhaseSec": 7.1,
       "allyCount": 4,
       "allyInterval": 0.7,
       "bursts": [
@@ -685,8 +685,8 @@
     },
     {
       "id": 14,
-      "enemyPhaseSec": 56,
-      "allyPhaseSec": 11,
+      "enemyPhaseSec": 24.9,
+      "allyPhaseSec": 7.1,
       "allyCount": 4,
       "allyInterval": 0.7,
       "bursts": [
@@ -742,8 +742,8 @@
     },
     {
       "id": 15,
-      "enemyPhaseSec": 58,
-      "allyPhaseSec": 11,
+      "enemyPhaseSec": 30.3,
+      "allyPhaseSec": 7.1,
       "allyCount": 4,
       "allyInterval": 0.7,
       "bursts": [
@@ -813,8 +813,8 @@
     },
     {
       "id": 16,
-      "enemyPhaseSec": 58,
-      "allyPhaseSec": 11,
+      "enemyPhaseSec": 30.5,
+      "allyPhaseSec": 7.1,
       "allyCount": 4,
       "allyInterval": 0.7,
       "bursts": [
@@ -886,8 +886,8 @@
     },
     {
       "id": 17,
-      "enemyPhaseSec": 60,
-      "allyPhaseSec": 10,
+      "enemyPhaseSec": 24.6,
+      "allyPhaseSec": 7,
       "allyCount": 4,
       "allyInterval": 0.65,
       "bursts": [
@@ -945,8 +945,8 @@
     },
     {
       "id": 18,
-      "enemyPhaseSec": 60,
-      "allyPhaseSec": 10,
+      "enemyPhaseSec": 29.8,
+      "allyPhaseSec": 7,
       "allyCount": 4,
       "allyInterval": 0.65,
       "bursts": [
@@ -1020,8 +1020,8 @@
     },
     {
       "id": 19,
-      "enemyPhaseSec": 62,
-      "allyPhaseSec": 10,
+      "enemyPhaseSec": 29.8,
+      "allyPhaseSec": 7,
       "allyCount": 4,
       "allyInterval": 0.65,
       "bursts": [
@@ -1097,8 +1097,8 @@
     },
     {
       "id": 20,
-      "enemyPhaseSec": 64,
-      "allyPhaseSec": 10,
+      "enemyPhaseSec": 31,
+      "allyPhaseSec": 6.8,
       "allyCount": 4,
       "allyInterval": 0.6,
       "bursts": [

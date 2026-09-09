@@ -17,6 +17,8 @@ export const LOOP_COUNT_PER_BURST = 2;
 export const MIN_WAVE_STAGES = WORLD_MAP_COUNT;
 export const MAX_WAVE_STAGES = 40;
 export const MAX_WAVE_SPAWNS_PER_BURST = 80;
+/** Seconds left after the last unit of a phase has spawned. */
+export const PHASE_TAIL_SEC = 5;
 
 export type WaveSpawnRef = {
   readonly enemyId: string;
@@ -131,13 +133,16 @@ export function defaultStageWave(id: number, from?: StageWaveRow): StageWaveRow 
   if (from) {
     return { ...cloneRow(from), id };
   }
+  const bursts = [defaultWaveBurst()];
+  const allyCount = 3;
+  const allyInterval = 0.9;
   return {
     id,
-    enemyPhaseSec: 36,
-    allyPhaseSec: 14,
-    allyCount: 3,
-    allyInterval: 0.9,
-    bursts: [defaultWaveBurst()],
+    enemyPhaseSec: tightPhaseSec(enemySpawnDurationSec({ bursts })),
+    allyPhaseSec: tightPhaseSec(allySpawnDurationSec({ allyCount, allyInterval })),
+    allyCount,
+    allyInterval,
+    bursts,
   };
 }
 
@@ -343,6 +348,16 @@ export function enemySpawnDurationSec(
     const rest = index < all.length - 1 ? burst.restAfter : 0;
     return sum + spawn + rest;
   }, 0);
+}
+
+export function allySpawnDurationSec(
+  stage: Pick<StageWaveRow, "allyCount" | "allyInterval"> | Pick<StageWave, "allyCount" | "allyInterval">,
+): number {
+  return Math.max(0, stage.allyCount - 1) * stage.allyInterval;
+}
+
+export function tightPhaseSec(spawnDuration: number): number {
+  return Math.round((spawnDuration + PHASE_TAIL_SEC) * 10) / 10;
 }
 
 function cloneSpawn(spawn: WaveSpawnRef): WaveSpawnRef {

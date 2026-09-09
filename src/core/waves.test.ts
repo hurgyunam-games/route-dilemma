@@ -6,11 +6,15 @@ import {
   STAGE_COUNT,
   bundledWaveTable,
   campaignCycle,
+  defaultStageWave,
   cloneWaveTable,
+  allySpawnDurationSec,
   enemyCount,
   enemySpawnDurationSec,
   enemySpeedMultiplier,
   getStageWave,
+  PHASE_TAIL_SEC,
+  tightPhaseSec,
   getWaveTable,
   insertWaveSpawn,
   maxEnemyHp,
@@ -65,7 +69,6 @@ describe("stage wave table", () => {
     expect(last.bursts.some((burst) => burst.units.some((spawn) => spawn.type === "cavalry"))).toBe(
       true,
     );
-    expect(first.enemyPhaseSec).toBeGreaterThan(enemySpawnDurationSec(first));
     expect(first.bursts[0]?.units.every((spawn) => spawn.type === "slime")).toBe(true);
     expect(first.bursts[1]?.units.slice(0, 4).map((spawn) => spawn.type)).toEqual([
       "slime",
@@ -73,6 +76,24 @@ describe("stage wave table", () => {
       "slime",
       "goblin",
     ]);
+  });
+
+  it("keeps only a short wait after the last enemy or ally spawns", () => {
+    for (let id = 1; id <= STAGE_COUNT; id += 1) {
+      const stage = getStageWave(id);
+      expect(stage.enemyPhaseSec).toBe(tightPhaseSec(enemySpawnDurationSec(stage)));
+      expect(stage.allyPhaseSec).toBe(tightPhaseSec(allySpawnDurationSec(stage)));
+    }
+    const first = getStageWave(1);
+    expect(first.enemyPhaseSec - enemySpawnDurationSec(first)).toBeLessThan(20);
+    expect(first.allyPhaseSec - allySpawnDurationSec(first)).toBeLessThan(12);
+  });
+
+  it("defaults a new stage to spawn duration plus a short tail", () => {
+    const row = defaultStageWave(21);
+    expect(row.enemyPhaseSec).toBe(tightPhaseSec(enemySpawnDurationSec(row)));
+    expect(row.allyPhaseSec).toBe(tightPhaseSec(allySpawnDurationSec(row)));
+    expect(row.enemyPhaseSec).toBe(PHASE_TAIL_SEC);
   });
 
   it("makes the next cycle of the same map clearly stronger", () => {
