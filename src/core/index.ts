@@ -74,6 +74,8 @@ export type { CampaignStore } from "./save";
 export {
   ALLY_GOLD_REWARD,
   START_GOLD,
+  START_GOLD_PER_STAGE,
+  startingGold,
   BASE_MAX_HP,
   BUILD_DURATION_SEC,
   canUpgrade,

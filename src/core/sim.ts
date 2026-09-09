@@ -139,6 +139,13 @@ export const PROJECTILE_SPEED_TILES_PER_SEC = 10;
 export const CATCH_RANGE_TILES = 1;
 export const ALLY_GOLD_REWARD = 10;
 export const START_GOLD = 100;
+/** Extra starting gold added for each stage after 1. */
+export const START_GOLD_PER_STAGE = 15;
+
+export function startingGold(stageId: number): number {
+  const stage = Math.max(1, Math.round(stageId));
+  return START_GOLD + (stage - 1) * START_GOLD_PER_STAGE;
+}
 export const BASE_MAX_HP = 20;
 export const ENEMY_BASE_DAMAGE = 1;
 export const TIME_SCALES = [0, 1, 2, 3] as const;
@@ -256,7 +263,7 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
     phase: "enemy",
     phaseTimeLeft: stage.enemyPhaseSec,
     timeScale: 1,
-    gold: START_GOLD,
+    gold: startingGold(requested),
     baseHp: BASE_MAX_HP,
     stageId: requested,
     waveIndex: 0,

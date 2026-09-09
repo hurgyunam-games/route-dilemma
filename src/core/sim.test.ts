@@ -6,6 +6,8 @@ import {
   ALLY_GOLD_REWARD,
   BASE_MAX_HP,
   START_GOLD,
+  START_GOLD_PER_STAGE,
+  startingGold,
   BUILD_DURATION_SEC,
   createSim,
   ENEMY_BASE_DAMAGE,
@@ -26,9 +28,11 @@ import {
   UNIT_SPEED_TILES_PER_SEC,
   unitTile,
   getStageWave,
+  towerBuildCost,
   towerDps,
   towerRange,
   towerUpgradeCost,
+  TOWER_TYPE_IDS,
   UPGRADE_DURATION_SEC,
   BATTLE_WAVE_COUNT,
 } from "./sim";
@@ -96,6 +100,40 @@ describe("createSim", () => {
     expect(stage5.bursts.reduce((sum, burst) => sum + burst.units.length, 0)).toBeGreaterThan(
       stage1.bursts.reduce((sum, burst) => sum + burst.units.length, 0),
     );
+  });
+});
+
+describe("stage starting gold", () => {
+  const cheapest = Math.min(...TOWER_TYPE_IDS.map((id) => towerBuildCost(id)));
+
+  it("gives stage 1 a different starting gold than later stages", () => {
+    expect(createSim(createGrid(), 1).gold).toBe(START_GOLD);
+    expect(createSim(createGrid(), 3).gold).not.toBe(START_GOLD);
+    expect(startingGold(3)).toBe(START_GOLD + START_GOLD_PER_STAGE * 2);
+  });
+
+  it("gives later stages more starting gold than earlier ones", () => {
+    expect(startingGold(2)).toBeGreaterThan(startingGold(1));
+    expect(startingGold(3)).toBeGreaterThan(startingGold(2));
+    expect(startingGold(5)).toBeGreaterThan(startingGold(3));
+    expect(createSim(createGrid(), 5).gold).toBeGreaterThan(createSim(createGrid(), 1).gold);
+  });
+
+  it("gives the same starting gold when re-entering a stage", () => {
+    expect(createSim(createGrid(), 4).gold).toBe(createSim(createGrid(), 4).gold);
+    expect(startingGold(6)).toBe(startingGold(6));
+  });
+
+  it("cannot fill the map with starting gold; ally rewards are still needed", () => {
+    for (const stageId of [1, 3, 5, 10, 20]) {
+      const sim = createSim(createGrid(12, 8), stageId);
+      const empty =
+        sim.grid.cols * sim.grid.rows - 2 - sim.grid.obstacles.length - sim.grid.towers.length;
+      const maxBuy = Math.floor(sim.gold / cheapest);
+      expect(maxBuy).toBeGreaterThan(0);
+      expect(maxBuy).toBeLessThan(empty);
+      expect(sim.gold - maxBuy * cheapest).toBeLessThan(cheapest);
+    }
   });
 });
 
