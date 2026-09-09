@@ -67,7 +67,7 @@ describe("createSim", () => {
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
     expect(sim.gold).toBe(START_GOLD);
     expect(sim.baseHp).toBe(BASE_MAX_HP);
-    expect(sim.units[0]!.hp).toBe(getStageWave(1).bursts[0]!.hp);
+    expect(sim.units[0]!.hp).toBe(getStageWave(1).bursts[0]!.units[0]!.hp);
     expect(sim.towerShots).toEqual([]);
     expect(sim.outcome).toBe("playing");
     expect(sim.waveIndex).toBe(0);
@@ -90,11 +90,11 @@ describe("createSim", () => {
     const stage5 = getStageWave(5);
     const sim = createSim(createMapGrid(5), 5);
     expect(sim.stageId).toBe(5);
-    expect(sim.units[0]!.hp).toBe(stage5.bursts[0]!.hp);
+    expect(sim.units[0]!.hp).toBe(stage5.bursts[0]!.units[0]!.hp);
     expect(sim.phaseTimeLeft).toBe(stage5.enemyPhaseSec);
-    expect(stage5.bursts[0]!.hp).toBeGreaterThan(stage1.bursts[0]!.hp);
-    expect(stage5.bursts.reduce((sum, burst) => sum + burst.count, 0)).toBeGreaterThan(
-      stage1.bursts.reduce((sum, burst) => sum + burst.count, 0),
+    expect(stage5.bursts[0]!.units[0]!.hp).toBeGreaterThan(stage1.bursts[0]!.units[0]!.hp);
+    expect(stage5.bursts.reduce((sum, burst) => sum + burst.units.length, 0)).toBeGreaterThan(
+      stage1.bursts.reduce((sum, burst) => sum + burst.units.length, 0),
     );
   });
 });
@@ -584,7 +584,7 @@ describe("tower attacks", () => {
     const hit = sim.units[0]!;
     expect(hit.id).toBe(enemy.id);
     expect(hit.hp).toBeCloseTo(
-      STAGE_1.bursts[0]!.hp - TOWER_ATTACK_DPS * TOWER_FIRE_INTERVAL_SEC,
+      STAGE_1.bursts[0]!.units[0]!.hp - TOWER_ATTACK_DPS * TOWER_FIRE_INTERVAL_SEC,
       5,
     );
   });
@@ -612,7 +612,7 @@ describe("tower attacks", () => {
     expect(Math.hypot(enemy.x - sim.grid.base.x, enemy.y - 0)).toBeGreaterThan(
       TOWER_RANGE_TILES,
     );
-    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.hp);
+    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.units[0]!.hp);
     expect(sim.towerShots).toHaveLength(0);
   });
 
@@ -665,7 +665,7 @@ describe("tower attacks", () => {
     sim = tick(sim, 0.25);
     const enemy = sim.units[0]!;
     expect(enemy.kind).toBe("enemy");
-    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.hp);
+    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.units[0]!.hp);
     expect(sim.towerShots).toHaveLength(0);
   });
 });
@@ -782,7 +782,7 @@ describe("build cost and construction", () => {
     sim = tick(sim, 0.25);
     const enemy = sim.units[0]!;
     expect(enemy.kind).toBe("enemy");
-    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.hp);
+    expect(enemy.hp).toBe(STAGE_1.bursts[0]!.units[0]!.hp);
     expect(sim.towerShots).toHaveLength(0);
     expect(getTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1)?.buildTimeLeft).toBeGreaterThan(
       0,
@@ -802,7 +802,7 @@ describe("build cost and construction", () => {
     expect(getTower(sim.grid, x, y)?.buildTimeLeft).toBe(0);
     expect(sim.towerShots.length).toBeGreaterThan(0);
     sim = tick(sim, 0.35);
-    expect(sim.units[0]!.hp).toBeLessThan(STAGE_1.bursts[0]!.hp);
+    expect(sim.units[0]!.hp).toBeLessThan(STAGE_1.bursts[0]!.units[0]!.hp);
   });
 
   it("cannot buy two archers with one ally delivery", () => {

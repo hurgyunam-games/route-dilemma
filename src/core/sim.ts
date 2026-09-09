@@ -43,14 +43,67 @@ import {
 } from "./waves";
 
 export {
+  ENEMY_SPRITE_LABELS,
   ENEMY_TYPE_IDS,
+  MAX_ENEMIES,
+  MIN_ENEMIES,
+  bundledEnemyTable,
+  cloneEnemyTable,
+  defaultEnemy,
+  findEnemyIdForStats,
+  getEnemy,
+  getEnemyCatalog,
+  getEnemyTable,
+  nextEnemyId,
+  parseEnemyTable,
+  parseEnemyTableJson,
+  resetEnemyTable,
+  serializeEnemyTable,
+  setEnemyTable,
+  shiftHue,
+  tryGetEnemy,
+  normalizeHue,
+} from "./enemies";
+export type { EnemyDef, EnemyTable, ParseEnemyResult } from "./enemies";
+export {
   getStageWave,
   STAGE_COUNT,
+  MIN_WAVE_STAGES,
+  MAX_WAVE_STAGES,
+  MAX_WAVE_SPAWNS_PER_BURST,
   campaignCycle,
   previousCycleStage,
   enemySpeedMultiplier,
+  bundledWaveTable,
+  cloneWaveTable,
+  defaultStageWave,
+  defaultWaveBurst,
+  defaultWaveSpawn,
+  enemyCount,
+  enemySpawnDurationSec,
+  getWaveTable,
+  insertWaveSpawn,
+  maxEnemyHp,
+  moveWaveSpawn,
+  parseWaveTable,
+  parseWaveTableJson,
+  resetWaveTable,
+  serializeWaveTable,
+  setWaveTable,
+  waveEnemyIds,
+  waveStageCount,
 } from "./waves";
-export type { EnemyTypeId, StageWave, WaveBurst } from "./waves";
+export type {
+  ParseWaveResult,
+  StageWave,
+  StageWaveRow,
+  WaveBurst,
+  WaveBurstRow,
+  WaveSpawn,
+  WaveSpawnRef,
+  WaveTable,
+} from "./waves";
+export type { EnemyTypeId } from "./enemies";
 export {
   BUILD_DURATION_SEC,
   canUpgrade,
@@ -91,7 +144,7 @@ export const ENEMY_BASE_DAMAGE = 1;
 export const TIME_SCALES = [0, 1, 2, 3] as const;
 export const PHASE_DURATION_SEC = getStageWave(1).enemyPhaseSec;
 export const SPAWN_INTERVAL_SEC = getStageWave(1).bursts[0]!.interval;
-export const WAVE_SIZE = getStageWave(1).bursts[0]!.count;
+export const WAVE_SIZE = getStageWave(1).bursts[0]!.units.length;
 export const BATTLE_WAVE_COUNT = 3;
 
 export type Phase = "enemy" | "ally";
@@ -119,6 +172,7 @@ export type Unit = {
   readonly id: number;
   readonly kind: UnitKind;
   readonly enemyType: EnemyTypeId | null;
+  readonly hue: number;
   readonly x: number;
   readonly y: number;
   readonly hp: number;
@@ -589,7 +643,7 @@ function trySpawnWave(
   if (!burst) {
     return { units, nextUnitId, burstIndex, spawnedInBurst, spawnCooldown };
   }
-  if (spawnedInBurst >= burst.count) {
+  if (spawnedInBurst >= burst.units.length) {
     const nextBurst = burstIndex + 1;
     return {
       units,
@@ -632,14 +686,16 @@ function spawnFromBurst(
   index: number,
   speedMul: number,
 ): Unit {
-  const enemyType = burst.types[index % burst.types.length] ?? burst.types[0] ?? "slime";
+  const spawn = burst.units[index] ?? burst.units[0];
+  const enemyType = spawn?.type ?? "slime";
   return spawnUnit(
     id,
     tile,
     kind,
     enemyType,
-    burst.hp,
+    spawn?.hp ?? 10,
     UNIT_SPEED_TILES_PER_SEC * speedMul,
+    spawn?.hue ?? 0,
   );
 }
 
@@ -650,11 +706,13 @@ function spawnUnit(
   enemyType: EnemyTypeId | null = null,
   hp: number = UNIT_MAX_HP,
   speed: number = UNIT_SPEED_TILES_PER_SEC,
+  hue: number = 0,
 ): Unit {
   return {
     id,
     kind,
     enemyType: kind === "enemy" ? (enemyType ?? "beast") : null,
+    hue: kind === "enemy" ? hue : 0,
     x: tile.x,
     y: tile.y,
     hp,

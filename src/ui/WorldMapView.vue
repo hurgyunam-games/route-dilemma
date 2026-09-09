@@ -18,6 +18,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [id: MapId];
   gallery: [];
+  waves: [];
+  enemies: [];
 }>();
 
 const MAP_ACCENTS: Record<MapId, string> = {
@@ -82,13 +84,29 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
       <p>
         스테이지 1–5는 맵 1–5와 하나씩 대응합니다. 스테이지 6부터는 맵 1로 돌아오며, 그 맵에 지은 타워가 남아 있습니다.
       </p>
-      <button
-        type="button"
-        class="gallery-link"
-        @click="emit('gallery')"
-      >
-        스프라이트 갤러리
-      </button>
+      <div class="tool-links">
+        <button
+          type="button"
+          class="gallery-link"
+          @click="emit('gallery')"
+        >
+          스프라이트 갤러리
+        </button>
+        <button
+          type="button"
+          class="gallery-link"
+          @click="emit('waves')"
+        >
+          웨이브 에디터
+        </button>
+        <button
+          type="button"
+          class="gallery-link"
+          @click="emit('enemies')"
+        >
+          적 에디터
+        </button>
+      </div>
       <p
         v-if="loopHint"
         class="loop-hint"
@@ -192,9 +210,17 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
   color: #e8b060;
 }
 
+.tool-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
 .gallery-link {
   display: inline-block;
-  margin: 14px 0 0;
+  margin: 0;
   padding: 8px 14px;
   border: 0;
   border-radius: 6px;

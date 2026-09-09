@@ -1,5 +1,6 @@
 import {
   AnimatedSprite,
+  ColorMatrixFilter,
   Container,
   Graphics,
   Sprite,
@@ -158,7 +159,25 @@ type UnitSprite = {
   clip: EnemyClip;
   kind: UnitKind;
   enemyType: EnemyTypeId | null;
+  hue: number;
 };
+
+const hueFilterCache = new Map<number, ColorMatrixFilter>();
+
+function applyUnitHue(sprite: AnimatedSprite, hue: number): void {
+  const deg = ((Math.round(hue) % 360) + 360) % 360;
+  if (deg === 0) {
+    sprite.filters = null;
+    return;
+  }
+  let filter = hueFilterCache.get(deg);
+  if (!filter) {
+    filter = new ColorMatrixFilter();
+    filter.hue(deg, false);
+    hueFilterCache.set(deg, filter);
+  }
+  sprite.filters = [filter];
+}
 
 function enemySheetsFor(
   enemyType: EnemyTypeId | null,
@@ -934,8 +953,13 @@ export function createGridView(
           clip: "walk",
           kind: unit.kind,
           enemyType: unit.enemyType,
+          hue: unit.hue,
         };
+        applyUnitHue(sprite, unit.hue);
         unitSprites.set(unit.id, record);
+      } else if (record.hue !== unit.hue) {
+        record.hue = unit.hue;
+        applyUnitHue(record.sprite, unit.hue);
       }
       const dx = unit.x - record.lastX;
       const moving = Math.hypot(dx, unit.y - record.lastY) > UNIT_MOVE_EPS;

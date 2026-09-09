@@ -7,8 +7,36 @@
       "allyCount": 3,
       "allyInterval": 0.9,
       "bursts": [
-        { "count": 8, "interval": 0.8, "restAfter": 3, "types": ["slime"], "hp": 10 },
-        { "count": 10, "interval": 0.8, "restAfter": 2, "types": ["slime", "goblin"], "hp": 14 }
+        {
+          "interval": 0.8,
+          "restAfter": 3,
+          "units": [
+            { "enemyId": "slime-10" },
+            { "enemyId": "slime-10" },
+            { "enemyId": "slime-10" },
+            { "enemyId": "slime-10" },
+            { "enemyId": "slime-10" },
+            { "enemyId": "slime-10" },
+            { "enemyId": "slime-10" },
+            { "enemyId": "slime-10" }
+          ]
+        },
+        {
+          "interval": 0.8,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "slime-14" },
+            { "enemyId": "goblin-14" },
+            { "enemyId": "slime-14" },
+            { "enemyId": "goblin-14" },
+            { "enemyId": "slime-14" },
+            { "enemyId": "goblin-14" },
+            { "enemyId": "slime-14" },
+            { "enemyId": "goblin-14" },
+            { "enemyId": "slime-14" },
+            { "enemyId": "goblin-14" }
+          ]
+        }
       ]
     },
     {
@@ -18,8 +46,40 @@
       "allyCount": 3,
       "allyInterval": 0.9,
       "bursts": [
-        { "count": 10, "interval": 0.8, "restAfter": 3, "types": ["slime", "goblin"], "hp": 12 },
-        { "count": 12, "interval": 0.75, "restAfter": 2, "types": ["goblin"], "hp": 16 }
+        {
+          "interval": 0.8,
+          "restAfter": 3,
+          "units": [
+            { "enemyId": "slime-12" },
+            { "enemyId": "goblin-12" },
+            { "enemyId": "slime-12" },
+            { "enemyId": "goblin-12" },
+            { "enemyId": "slime-12" },
+            { "enemyId": "goblin-12" },
+            { "enemyId": "slime-12" },
+            { "enemyId": "goblin-12" },
+            { "enemyId": "slime-12" },
+            { "enemyId": "goblin-12" }
+          ]
+        },
+        {
+          "interval": 0.75,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" }
+          ]
+        }
       ]
     },
     {
@@ -29,8 +89,42 @@
       "allyCount": 3,
       "allyInterval": 0.85,
       "bursts": [
-        { "count": 12, "interval": 0.75, "restAfter": 3, "types": ["goblin"], "hp": 16 },
-        { "count": 12, "interval": 0.75, "restAfter": 2, "types": ["goblin", "wolf"], "hp": 18 }
+        {
+          "interval": 0.75,
+          "restAfter": 3,
+          "units": [
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" },
+            { "enemyId": "goblin-16" }
+          ]
+        },
+        {
+          "interval": 0.75,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" }
+          ]
+        }
       ]
     },
     {
@@ -40,8 +134,44 @@
       "allyCount": 3,
       "allyInterval": 0.85,
       "bursts": [
-        { "count": 12, "interval": 0.75, "restAfter": 3, "types": ["goblin", "wolf"], "hp": 18 },
-        { "count": 14, "interval": 0.7, "restAfter": 2, "types": ["wolf"], "hp": 20 }
+        {
+          "interval": 0.75,
+          "restAfter": 3,
+          "units": [
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" },
+            { "enemyId": "goblin-18" },
+            { "enemyId": "wolf-18" }
+          ]
+        },
+        {
+          "interval": 0.7,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" }
+          ]
+        }
       ]
     },
     {
@@ -51,8 +181,44 @@
       "allyCount": 3,
       "allyInterval": 0.85,
       "bursts": [
-        { "count": 12, "interval": 0.7, "restAfter": 3, "types": ["wolf"], "hp": 20 },
-        { "count": 14, "interval": 0.7, "restAfter": 2, "types": ["wolf", "beast"], "hp": 22 }
+        {
+          "interval": 0.7,
+          "restAfter": 3,
+          "units": [
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "wolf-20" }
+          ]
+        },
+        {
+          "interval": 0.7,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "wolf-22" },
+            { "enemyId": "beast-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "beast-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "beast-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "beast-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "beast-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "beast-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "beast-22" }
+          ]
+        }
       ]
     },
     {
@@ -62,9 +228,58 @@
       "allyCount": 3,
       "allyInterval": 0.8,
       "bursts": [
-        { "count": 12, "interval": 0.7, "restAfter": 2.5, "types": ["goblin", "wolf"], "hp": 20 },
-        { "count": 14, "interval": 0.7, "restAfter": 2.5, "types": ["wolf", "beast"], "hp": 24 },
-        { "count": 8, "interval": 0.65, "restAfter": 2, "types": ["beast"], "hp": 26 }
+        {
+          "interval": 0.7,
+          "restAfter": 2.5,
+          "units": [
+            { "enemyId": "goblin-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "goblin-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "goblin-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "goblin-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "goblin-20" },
+            { "enemyId": "wolf-20" },
+            { "enemyId": "goblin-20" },
+            { "enemyId": "wolf-20" }
+          ]
+        },
+        {
+          "interval": 0.7,
+          "restAfter": 2.5,
+          "units": [
+            { "enemyId": "wolf-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "wolf-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "wolf-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "wolf-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "wolf-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "wolf-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "wolf-24" },
+            { "enemyId": "beast-24" }
+          ]
+        },
+        {
+          "interval": 0.65,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "beast-26" }
+          ]
+        }
       ]
     },
     {
@@ -74,8 +289,48 @@
       "allyCount": 3,
       "allyInterval": 0.8,
       "bursts": [
-        { "count": 14, "interval": 0.7, "restAfter": 2.5, "types": ["wolf"], "hp": 22 },
-        { "count": 16, "interval": 0.65, "restAfter": 2, "types": ["wolf", "beast"], "hp": 26 }
+        {
+          "interval": 0.7,
+          "restAfter": 2.5,
+          "units": [
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" },
+            { "enemyId": "wolf-22" }
+          ]
+        },
+        {
+          "interval": 0.65,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" }
+          ]
+        }
       ]
     },
     {
@@ -85,8 +340,48 @@
       "allyCount": 3,
       "allyInterval": 0.8,
       "bursts": [
-        { "count": 14, "interval": 0.65, "restAfter": 2.5, "types": ["beast"], "hp": 24 },
-        { "count": 16, "interval": 0.65, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 28 }
+        {
+          "interval": 0.65,
+          "restAfter": 2.5,
+          "units": [
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" },
+            { "enemyId": "beast-24" }
+          ]
+        },
+        {
+          "interval": 0.65,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-28" },
+            { "enemyId": "cavalry-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "cavalry-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "cavalry-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "cavalry-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "cavalry-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "cavalry-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "cavalry-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "cavalry-28" }
+          ]
+        }
       ]
     },
     {
@@ -96,8 +391,50 @@
       "allyCount": 4,
       "allyInterval": 0.8,
       "bursts": [
-        { "count": 16, "interval": 0.65, "restAfter": 2.5, "types": ["wolf", "beast"], "hp": 26 },
-        { "count": 16, "interval": 0.6, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 30 }
+        {
+          "interval": 0.65,
+          "restAfter": 2.5,
+          "units": [
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" }
+          ]
+        },
+        {
+          "interval": 0.6,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" }
+          ]
+        }
       ]
     },
     {
@@ -107,8 +444,52 @@
       "allyCount": 4,
       "allyInterval": 0.75,
       "bursts": [
-        { "count": 16, "interval": 0.6, "restAfter": 2.5, "types": ["beast"], "hp": 28 },
-        { "count": 18, "interval": 0.6, "restAfter": 2, "types": ["cavalry", "beast"], "hp": 32 }
+        {
+          "interval": 0.6,
+          "restAfter": 2.5,
+          "units": [
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" },
+            { "enemyId": "beast-28" }
+          ]
+        },
+        {
+          "interval": 0.6,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "beast-32" }
+          ]
+        }
       ]
     },
     {
@@ -118,9 +499,64 @@
       "allyCount": 4,
       "allyInterval": 0.75,
       "bursts": [
-        { "count": 14, "interval": 0.6, "restAfter": 2, "types": ["wolf", "beast"], "hp": 26 },
-        { "count": 16, "interval": 0.6, "restAfter": 2, "types": ["beast"], "hp": 30 },
-        { "count": 10, "interval": 0.55, "restAfter": 2, "types": ["cavalry"], "hp": 34 }
+        {
+          "interval": 0.6,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" },
+            { "enemyId": "wolf-26" },
+            { "enemyId": "beast-26" }
+          ]
+        },
+        {
+          "interval": 0.6,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "beast-30" }
+          ]
+        },
+        {
+          "interval": 0.55,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" }
+          ]
+        }
       ]
     },
     {
@@ -130,9 +566,66 @@
       "allyCount": 4,
       "allyInterval": 0.75,
       "bursts": [
-        { "count": 16, "interval": 0.6, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 30 },
-        { "count": 16, "interval": 0.55, "restAfter": 2, "types": ["cavalry"], "hp": 34 },
-        { "count": 10, "interval": 0.55, "restAfter": 2, "types": ["wolf", "cavalry"], "hp": 32 }
+        {
+          "interval": 0.6,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" },
+            { "enemyId": "beast-30" },
+            { "enemyId": "cavalry-30" }
+          ]
+        },
+        {
+          "interval": 0.55,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "cavalry-34" }
+          ]
+        },
+        {
+          "interval": 0.55,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "wolf-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "cavalry-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "cavalry-32" }
+          ]
+        }
       ]
     },
     {
@@ -142,8 +635,52 @@
       "allyCount": 4,
       "allyInterval": 0.7,
       "bursts": [
-        { "count": 16, "interval": 0.55, "restAfter": 2, "types": ["beast"], "hp": 32 },
-        { "count": 18, "interval": 0.55, "restAfter": 2, "types": ["cavalry", "beast"], "hp": 36 }
+        {
+          "interval": 0.55,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "beast-32" }
+          ]
+        },
+        {
+          "interval": 0.55,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" }
+          ]
+        }
       ]
     },
     {
@@ -153,8 +690,54 @@
       "allyCount": 4,
       "allyInterval": 0.7,
       "bursts": [
-        { "count": 18, "interval": 0.55, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 34 },
-        { "count": 18, "interval": 0.5, "restAfter": 2, "types": ["cavalry"], "hp": 38 }
+        {
+          "interval": 0.55,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" },
+            { "enemyId": "beast-34" },
+            { "enemyId": "cavalry-34" }
+          ]
+        },
+        {
+          "interval": 0.5,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" }
+          ]
+        }
       ]
     },
     {
@@ -164,9 +747,68 @@
       "allyCount": 4,
       "allyInterval": 0.7,
       "bursts": [
-        { "count": 16, "interval": 0.55, "restAfter": 2, "types": ["wolf", "beast"], "hp": 32 },
-        { "count": 16, "interval": 0.5, "restAfter": 2, "types": ["cavalry"], "hp": 38 },
-        { "count": 12, "interval": 0.5, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 36 }
+        {
+          "interval": 0.55,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "wolf-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "beast-32" },
+            { "enemyId": "wolf-32" },
+            { "enemyId": "beast-32" }
+          ]
+        },
+        {
+          "interval": 0.5,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "cavalry-38" }
+          ]
+        },
+        {
+          "interval": 0.5,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" }
+          ]
+        }
       ]
     },
     {
@@ -176,9 +818,70 @@
       "allyCount": 4,
       "allyInterval": 0.7,
       "bursts": [
-        { "count": 18, "interval": 0.5, "restAfter": 2, "types": ["beast", "cavalry"], "hp": 36 },
-        { "count": 18, "interval": 0.5, "restAfter": 2, "types": ["cavalry"], "hp": 40 },
-        { "count": 10, "interval": 0.5, "restAfter": 2, "types": ["cavalry", "wolf"], "hp": 38 }
+        {
+          "interval": 0.5,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" },
+            { "enemyId": "beast-36" },
+            { "enemyId": "cavalry-36" }
+          ]
+        },
+        {
+          "interval": 0.5,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "cavalry-40" }
+          ]
+        },
+        {
+          "interval": 0.5,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "wolf-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "wolf-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "wolf-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "wolf-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "wolf-38" }
+          ]
+        }
       ]
     },
     {
@@ -188,8 +891,56 @@
       "allyCount": 4,
       "allyInterval": 0.65,
       "bursts": [
-        { "count": 18, "interval": 0.5, "restAfter": 2, "types": ["cavalry", "beast"], "hp": 38 },
-        { "count": 20, "interval": 0.48, "restAfter": 2, "types": ["cavalry"], "hp": 42 }
+        {
+          "interval": 0.5,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "cavalry-38" },
+            { "enemyId": "beast-38" }
+          ]
+        },
+        {
+          "interval": 0.48,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" }
+          ]
+        }
       ]
     },
     {
@@ -199,9 +950,72 @@
       "allyCount": 4,
       "allyInterval": 0.65,
       "bursts": [
-        { "count": 16, "interval": 0.48, "restAfter": 1.8, "types": ["beast"], "hp": 38 },
-        { "count": 18, "interval": 0.48, "restAfter": 1.8, "types": ["cavalry"], "hp": 42 },
-        { "count": 14, "interval": 0.45, "restAfter": 2, "types": ["cavalry", "beast"], "hp": 40 }
+        {
+          "interval": 0.48,
+          "restAfter": 1.8,
+          "units": [
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" },
+            { "enemyId": "beast-38" }
+          ]
+        },
+        {
+          "interval": 0.48,
+          "restAfter": 1.8,
+          "units": [
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "cavalry-42" }
+          ]
+        },
+        {
+          "interval": 0.45,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" }
+          ]
+        }
       ]
     },
     {
@@ -211,9 +1025,74 @@
       "allyCount": 4,
       "allyInterval": 0.65,
       "bursts": [
-        { "count": 18, "interval": 0.45, "restAfter": 1.8, "types": ["cavalry", "beast"], "hp": 40 },
-        { "count": 20, "interval": 0.45, "restAfter": 1.8, "types": ["cavalry"], "hp": 44 },
-        { "count": 12, "interval": 0.45, "restAfter": 2, "types": ["wolf", "cavalry"], "hp": 42 }
+        {
+          "interval": 0.45,
+          "restAfter": 1.8,
+          "units": [
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" },
+            { "enemyId": "cavalry-40" },
+            { "enemyId": "beast-40" }
+          ]
+        },
+        {
+          "interval": 0.45,
+          "restAfter": 1.8,
+          "units": [
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "cavalry-44" }
+          ]
+        },
+        {
+          "interval": 0.45,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "wolf-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "wolf-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "wolf-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "wolf-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "wolf-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "wolf-42" },
+            { "enemyId": "cavalry-42" }
+          ]
+        }
       ]
     },
     {
@@ -223,9 +1102,80 @@
       "allyCount": 4,
       "allyInterval": 0.6,
       "bursts": [
-        { "count": 20, "interval": 0.45, "restAfter": 1.6, "types": ["beast", "cavalry"], "hp": 42 },
-        { "count": 22, "interval": 0.42, "restAfter": 1.6, "types": ["cavalry"], "hp": 46 },
-        { "count": 14, "interval": 0.42, "restAfter": 2, "types": ["cavalry", "wolf", "beast"], "hp": 44 }
+        {
+          "interval": 0.45,
+          "restAfter": 1.6,
+          "units": [
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" },
+            { "enemyId": "beast-42" },
+            { "enemyId": "cavalry-42" }
+          ]
+        },
+        {
+          "interval": 0.42,
+          "restAfter": 1.6,
+          "units": [
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" },
+            { "enemyId": "cavalry-46" }
+          ]
+        },
+        {
+          "interval": 0.42,
+          "restAfter": 2,
+          "units": [
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "wolf-44" },
+            { "enemyId": "beast-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "wolf-44" },
+            { "enemyId": "beast-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "wolf-44" },
+            { "enemyId": "beast-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "wolf-44" },
+            { "enemyId": "beast-44" },
+            { "enemyId": "cavalry-44" },
+            { "enemyId": "wolf-44" }
+          ]
+        }
       ]
     }
   ]

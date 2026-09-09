@@ -1,17 +1,43 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { ENEMY_TYPE_IDS } from "./sim";
 import { WORLD_MAP_COUNT } from "./maps";
+import { cloneEnemyTable, getEnemyCatalog, resetEnemyTable, setEnemyTable } from "./enemies";
 import {
   STAGE_COUNT,
+  bundledWaveTable,
   campaignCycle,
+  cloneWaveTable,
   enemyCount,
+  enemySpawnDurationSec,
   enemySpeedMultiplier,
   getStageWave,
+  getWaveTable,
+  insertWaveSpawn,
   maxEnemyHp,
+  moveWaveSpawn,
+  parseWaveTableJson,
   previousCycleStage,
+  resetWaveTable,
+  serializeWaveTable,
+  setWaveTable,
 } from "./waves";
 
 describe("stage wave table", () => {
+  afterEach(() => {
+    resetWaveTable();
+    resetEnemyTable();
+  });
+
+  it("resolves spawn hue from the enemy catalog", () => {
+    const catalog = getEnemyCatalog();
+    setEnemyTable({
+      enemies: catalog.map((enemy) =>
+        enemy.id === "slime-10" ? { ...enemy, hue: 77 } : enemy,
+      ),
+    });
+    expect(getStageWave(1).bursts[0]?.units[0]?.hue).toBe(77);
+  });
+
   it("defines 20 fixed stages in order", () => {
     expect(STAGE_COUNT).toBe(20);
     for (let id = 1; id <= 20; id += 1) {
@@ -36,7 +62,17 @@ describe("stage wave table", () => {
     expect(enemyCount(last)).toBeGreaterThan(enemyCount(first));
     expect(maxEnemyHp(fifth)).toBeGreaterThan(maxEnemyHp(first));
     expect(maxEnemyHp(last)).toBeGreaterThan(maxEnemyHp(first));
-    expect(last.bursts.some((burst) => burst.types.includes("cavalry"))).toBe(true);
+    expect(last.bursts.some((burst) => burst.units.some((spawn) => spawn.type === "cavalry"))).toBe(
+      true,
+    );
+    expect(first.enemyPhaseSec).toBeGreaterThan(enemySpawnDurationSec(first));
+    expect(first.bursts[0]?.units.every((spawn) => spawn.type === "slime")).toBe(true);
+    expect(first.bursts[1]?.units.slice(0, 4).map((spawn) => spawn.type)).toEqual([
+      "slime",
+      "goblin",
+      "slime",
+      "goblin",
+    ]);
   });
 
   it("makes the next cycle of the same map clearly stronger", () => {
@@ -60,12 +96,152 @@ describe("stage wave table", () => {
       expect(stage.allyCount).toBeLessThan(enemyCount(stage));
       expect(stage.speed).toBeGreaterThan(0);
       for (const burst of stage.bursts) {
-        expect(burst.count).toBeGreaterThan(0);
-        expect(burst.types.length).toBeGreaterThan(0);
-        expect(burst.types.every((type) => allowed.has(type))).toBe(true);
-        expect(burst.hp).toBeGreaterThan(0);
+        expect(burst.units.length).toBeGreaterThan(0);
+        expect(burst.units.every((spawn) => allowed.has(spawn.type))).toBe(true);
+        expect(burst.units.every((spawn) => spawn.hp > 0)).toBe(true);
       }
     }
+  });
+});
+
+describe("wave table edit", () => {
+  afterEach(() => {
+    resetWaveTable();
+    resetEnemyTable();
+  });
+
+  it("round-trips the bundled table through serialize and parse", () => {
+    const parsed = parseWaveTableJson(serializeWaveTable(bundledWaveTable()));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) {
+      return;
+    }
+    expect(parsed.table.stages).toHaveLength(STAGE_COUNT);
+    expect(parsed.table.stages[0]?.id).toBe(1);
+    expect(parsed.table.stages[0]?.bursts[0]?.units[0]).toEqual({ enemyId: "slime-10" });
+  });
+
+  it("expands legacy count/types bursts into catalog enemy ids", () => {
+    const parsed = parseWaveTableJson(
+      JSON.stringify({
+        stages: Array.from({ length: 5 }, (_, index) => ({
+          id: index + 1,
+          enemyPhaseSec: 30,
+          allyPhaseSec: 10,
+          allyCount: 2,
+          allyInterval: 1,
+          bursts: [
+            {
+              count: 4,
+              interval: 0.8,
+              restAfter: 2,
+              types: ["slime", "goblin"],
+              hp: 12,
+            },
+          ],
+        })),
+      }),
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) {
+      return;
+    }
+    expect(parsed.table.stages[0]?.bursts[0]?.units).toEqual([
+      { enemyId: "slime-12" },
+      { enemyId: "goblin-12" },
+      { enemyId: "slime-12" },
+      { enemyId: "goblin-12" },
+    ]);
+  });
+
+  it("reorders an explicit spawn list", () => {
+    const moved = moveWaveSpawn(
+      [
+        {
+          interval: 0.8,
+          restAfter: 1,
+          units: [
+            { enemyId: "slime-10" },
+            { enemyId: "wolf-20" },
+            { enemyId: "goblin-14" },
+          ],
+        },
+      ],
+      0,
+      2,
+      0,
+      0,
+    );
+    expect(moved[0]?.units.map((spawn) => spawn.enemyId)).toEqual([
+      "goblin-14",
+      "slime-10",
+      "wolf-20",
+    ]);
+  });
+
+  it("inserts a palette enemy into a burst", () => {
+    const inserted = insertWaveSpawn(
+      [{ interval: 0.8, restAfter: 1, units: [{ enemyId: "slime-10" }] }],
+      0,
+      0,
+      { enemyId: "goblin-14" },
+    );
+    expect(inserted[0]?.units.map((spawn) => spawn.enemyId)).toEqual(["goblin-14", "slime-10"]);
+  });
+
+  it("rejects invalid json and empty bursts", () => {
+    expect(parseWaveTableJson("{").ok).toBe(false);
+    expect(parseWaveTableJson('{"stages":[]}').ok).toBe(false);
+    const clone = cloneWaveTable(bundledWaveTable());
+    const broken = {
+      stages: clone.stages.map((row, index) =>
+        index === 0 ? { ...row, bursts: [] } : row,
+      ),
+    };
+    expect(parseWaveTableJson(JSON.stringify(broken)).ok).toBe(false);
+  });
+
+  it("applies an override so later getStageWave reads the edited row", () => {
+    const next = cloneWaveTable(getWaveTable());
+    const first = next.stages[0];
+    if (!first) {
+      throw new Error("missing stage 1");
+    }
+    setEnemyTable({
+      enemies: [
+        ...cloneEnemyTable({ enemies: [...getEnemyCatalog()] }).enemies,
+        { id: "cavalry-99", name: "기병 99", sprite: "cavalry", hp: 99, hue: 0 },
+      ],
+    });
+    setWaveTable({
+      stages: [
+        {
+          ...first,
+          allyCount: 9,
+          bursts: [
+            {
+              interval: first.bursts[0]!.interval,
+              restAfter: first.bursts[0]!.restAfter,
+              units: [
+                { enemyId: "cavalry-99" },
+                { enemyId: "cavalry-99" },
+                { enemyId: "cavalry-99" },
+              ],
+            },
+          ],
+        },
+        ...next.stages.slice(1),
+      ],
+    });
+    const stage = getStageWave(1);
+    expect(stage.allyCount).toBe(9);
+    expect(enemyCount(stage)).toBe(3);
+    expect(maxEnemyHp(stage)).toBe(99);
+    expect(stage.bursts[0]?.units.map((spawn) => spawn.type)).toEqual([
+      "cavalry",
+      "cavalry",
+      "cavalry",
+    ]);
   });
 });
 

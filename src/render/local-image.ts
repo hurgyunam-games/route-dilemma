@@ -6,7 +6,7 @@ const localImageUrls = import.meta.glob("./assets/*.{png,jpg,jpeg,webp,gif}", {
   import: "default",
 }) as Record<string, string>;
 
-function localImageUrl(fileName: string): string | undefined {
+export function localAssetUrl(fileName: string): string | undefined {
   return localImageUrls[`./assets/${fileName}`];
 }
 
@@ -62,7 +62,7 @@ export async function loadLocalTexture(
   width: number,
   height: number,
 ): Promise<Texture> {
-  const url = localImageUrl(fileName);
+  const url = localAssetUrl(fileName);
   if (!url) {
     return placeholderTexture(fallbackColor, width, height);
   }
@@ -77,7 +77,7 @@ export async function loadLocalSheet(
   frameWidth: number,
   frameHeight: number,
 ): Promise<Texture[]> {
-  const url = localImageUrl(fileName);
+  const url = localAssetUrl(fileName);
   if (!url) {
     const count = cols * rows;
     return Array.from({ length: count }, () =>

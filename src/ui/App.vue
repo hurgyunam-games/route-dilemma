@@ -2,6 +2,8 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import BattleView from "@/ui/BattleView.vue";
 import SpriteGalleryView from "@/ui/SpriteGalleryView.vue";
+import WaveEditorView from "@/ui/WaveEditorView.vue";
+import EnemyEditorView from "@/ui/EnemyEditorView.vue";
 import WorldMapView from "@/ui/WorldMapView.vue";
 import {
   createCampaign,
@@ -28,21 +30,29 @@ const campaign = ref(loadSavedCampaign());
 const selectedMapId = ref<MapId | null>(null);
 const selectedStageId = ref<number | null>(null);
 const lastMapId = ref<MapId | null>(null);
-const showGallery = ref(window.location.hash === "#gallery");
+type ToolPage = "gallery" | "waves" | "enemies";
+
+const pageFromHash = (): ToolPage | null => {
+  const hash = window.location.hash.replace(/^#/, "");
+  return hash === "gallery" || hash === "waves" || hash === "enemies" ? hash : null;
+};
+
+const toolPage = ref<ToolPage | null>(pageFromHash());
 
 const syncHash = (): void => {
-  showGallery.value = window.location.hash === "#gallery";
+  toolPage.value = pageFromHash();
 };
 
-const openGallery = (): void => {
-  window.location.hash = "gallery";
+const openTool = (page: ToolPage): void => {
+  toolPage.value = page;
+  window.location.hash = page;
 };
 
-const leaveGallery = (): void => {
+const leaveTool = (): void => {
   const url = new URL(window.location.href);
   url.hash = "";
   window.history.replaceState(null, "", url);
-  showGallery.value = false;
+  toolPage.value = null;
 };
 
 const commit = (next: typeof campaign.value): void => {
@@ -90,8 +100,16 @@ onUnmounted(() => {
 
 <template>
   <SpriteGalleryView
-    v-if="showGallery"
-    @leave="leaveGallery"
+    v-if="toolPage === 'gallery'"
+    @leave="leaveTool"
+  />
+  <WaveEditorView
+    v-else-if="toolPage === 'waves'"
+    @leave="leaveTool"
+  />
+  <EnemyEditorView
+    v-else-if="toolPage === 'enemies'"
+    @leave="leaveTool"
   />
   <BattleView
     v-else-if="selectedMapId !== null && selectedStageId !== null"
@@ -108,6 +126,8 @@ onUnmounted(() => {
     :last-map-id="lastMapId"
     :progress="campaign"
     @select="enterMap"
-    @gallery="openGallery"
+    @gallery="openTool('gallery')"
+    @waves="openTool('waves')"
+    @enemies="openTool('enemies')"
   />
 </template>

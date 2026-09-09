@@ -1,6 +1,6 @@
 import type { Texture } from "pixi.js";
 import { ENEMY_TYPE_IDS, type EnemyTypeId } from "@/core";
-import { loadLocalSheet } from "@/render/local-image";
+import { loadLocalSheet, localAssetUrl } from "@/render/local-image";
 
 /** 1×6 sheets facing left. */
 export const ENEMY_SHEET_COLS = 6;
@@ -50,6 +50,19 @@ const ENEMY_FILES: Record<
     fallback: ["#3a8b3a", "#b4453a", "#2a4a28"],
   },
 };
+
+export function enemyWalkPreview(type: EnemyTypeId): {
+  readonly url: string | undefined;
+  readonly fallback: string;
+  readonly cols: number;
+} {
+  const files = ENEMY_FILES[type];
+  return {
+    url: localAssetUrl(files.walk),
+    fallback: files.fallback[0],
+    cols: ENEMY_SHEET_COLS,
+  };
+}
 
 async function loadEnemyType(type: EnemyTypeId): Promise<EnemySheets> {
   const files = ENEMY_FILES[type];
