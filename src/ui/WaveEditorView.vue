@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, type CSSProperties } from "vue";
 import {
+  ENEMY_BEHAVIOR_LABELS,
   ENEMY_SPRITE_LABELS,
   MAX_WAVE_SPAWNS_PER_BURST,
   MAX_WAVE_STAGES,
@@ -107,7 +108,8 @@ const spawnLine = (unit: WaveSpawnRef): string => {
     return `${unit.enemyId} (없는 적)`;
   }
   const hue = def.hue ? ` · 색조 ${def.hue}` : "";
-  return `${def.name} · ${ENEMY_SPRITE_LABELS[def.sprite]} · HP ${def.hp}${hue}`;
+  const behavior = def.behavior === "breaker" ? ` · ${ENEMY_BEHAVIOR_LABELS.breaker}` : "";
+  return `${def.name} · ${ENEMY_SPRITE_LABELS[def.sprite]} · HP ${def.hp}${behavior}${hue}`;
 };
 
 const rowMaxHp = (row: StageWaveRow): number =>
@@ -769,6 +771,7 @@ const onJsonInput = (event: Event): void => {
                 <strong>{{ item.name }}</strong>
                 <span>
                   {{ ENEMY_SPRITE_LABELS[item.sprite] }} · HP {{ item.hp }}
+                  <template v-if="item.behavior === 'breaker'"> · {{ ENEMY_BEHAVIOR_LABELS.breaker }}</template>
                   <template v-if="item.hue"> · 색조 {{ item.hue }}</template>
                 </span>
               </span>

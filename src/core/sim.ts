@@ -41,10 +41,15 @@ import {
   type StageWave,
   type WaveBurst,
 } from "./waves";
+import { DEFAULT_ENEMY_BEHAVIOR, type EnemyBehaviorId } from "./enemies";
 
 export {
+  ENEMY_BEHAVIOR_IDS,
+  ENEMY_BEHAVIOR_LABELS,
   ENEMY_SPRITE_LABELS,
   ENEMY_TYPE_IDS,
+  DEFAULT_ENEMY_BEHAVIOR,
+  BREAKER_HUE,
   MAX_ENEMIES,
   MIN_ENEMIES,
   bundledEnemyTable,
@@ -64,7 +69,7 @@ export {
   tryGetEnemy,
   normalizeHue,
 } from "./enemies";
-export type { EnemyDef, EnemyTable, ParseEnemyResult } from "./enemies";
+export type { EnemyBehaviorId, EnemyDef, EnemyTable, EnemyTypeId, ParseEnemyResult } from "./enemies";
 export {
   getStageWave,
   STAGE_COUNT,
@@ -106,7 +111,6 @@ export type {
   WaveSpawnRef,
   WaveTable,
 } from "./waves";
-export type { EnemyTypeId } from "./enemies";
 export {
   BUILD_DURATION_SEC,
   canUpgrade,
@@ -183,6 +187,7 @@ export type Unit = {
   readonly kind: UnitKind;
   readonly enemyType: EnemyTypeId | null;
   readonly hue: number;
+  readonly behavior: EnemyBehaviorId;
   readonly x: number;
   readonly y: number;
   readonly hp: number;
@@ -706,6 +711,7 @@ function spawnFromBurst(
     spawn?.hp ?? 10,
     UNIT_SPEED_TILES_PER_SEC * speedMul,
     spawn?.hue ?? 0,
+    spawn?.behavior ?? DEFAULT_ENEMY_BEHAVIOR,
   );
 }
 
@@ -717,12 +723,14 @@ function spawnUnit(
   hp: number = UNIT_MAX_HP,
   speed: number = UNIT_SPEED_TILES_PER_SEC,
   hue: number = 0,
+  behavior: EnemyBehaviorId = DEFAULT_ENEMY_BEHAVIOR,
 ): Unit {
   return {
     id,
     kind,
     enemyType: kind === "enemy" ? (enemyType ?? "beast") : null,
     hue: kind === "enemy" ? hue : 0,
+    behavior: kind === "enemy" ? behavior : DEFAULT_ENEMY_BEHAVIOR,
     x: tile.x,
     y: tile.y,
     hp,
@@ -752,7 +760,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
 
   const tile = unitTile({ x, y });
   if (unit.kind !== "ally") {
-    const target = attackTarget(grid, tile);
+    const target = attackTarget(grid, tile, unit);
     if (target && isOrthAdjacent(tile, target)) {
       return {
         unit: {
@@ -778,8 +786,11 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
       continue;
     }
 
-    const waypoint = nextWaypoint(grid, x, y, here, unit.kind);
-    if (!waypoint || !isWalkable(grid, waypoint.x, waypoint.y)) {
+    const waypoint = nextWaypoint(grid, x, y, here, unit);
+    if (!waypoint) {
+      break;
+    }
+    if (!isWalkable(grid, waypoint.x, waypoint.y)) {
       break;
     }
 
@@ -975,9 +986,9 @@ function nextWaypoint(
   x: number,
   y: number,
   tile: TileCoord,
-  kind: UnitKind,
+  unit: Unit,
 ): TileCoord | null {
-  const route = routeForTile(grid, tile, kind);
+  const route = routeForTile(grid, tile, unit);
   if (!route || route.length === 0) {
     return null;
   }
@@ -1006,8 +1017,16 @@ function nextWaypoint(
 function routeForTile(
   grid: Grid,
   from: TileCoord,
-  kind: UnitKind,
+  unit: Unit,
 ): readonly TileCoord[] | null {
+  if (unit.kind === "enemy" && unit.behavior === "breaker") {
+    const punch = findPath(grid, from, grid.base, { throughTowers: true });
+    if (punch) {
+      return punch;
+    }
+    return approachTowerRoute(grid, from);
+  }
+
   const shared = findPath(grid);
   if (shared) {
     const joined = joinSharedPath(grid, from, shared);
@@ -1021,7 +1040,7 @@ function routeForTile(
     return local;
   }
 
-  if (kind === "ally") {
+  if (unit.kind === "ally") {
     return null;
   }
   return approachTowerRoute(grid, from);
@@ -1052,7 +1071,21 @@ function joinSharedPath(
   return best;
 }
 
-function attackTarget(grid: Grid, from: TileCoord): TileCoord | null {
+function attackTarget(grid: Grid, from: TileCoord, unit: Unit): TileCoord | null {
+  if (unit.behavior === "breaker") {
+    const punch = findPath(grid, from, grid.base, { throughTowers: true });
+    if (punch && punch.length >= 2) {
+      const next = punch[1]!;
+      if (isBlocked(grid, next.x, next.y)) {
+        return next;
+      }
+    }
+    if (findPath(grid, from, grid.base)) {
+      return null;
+    }
+    return nearestChokepointBlocker(grid, from);
+  }
+
   if (findPath(grid, from, grid.base)) {
     return null;
   }

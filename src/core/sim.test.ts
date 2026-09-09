@@ -1195,3 +1195,101 @@ describe("loop difficulty", () => {
     expect(held.baseHp).toBeGreaterThan(0);
   });
 });
+
+function archerSMaze(grid: ReturnType<typeof createGrid>) {
+  const walk = new Set<string>();
+  const mark = (x: number, y: number) => {
+    walk.add(`${x},${y}`);
+  };
+  const sy = grid.start.y;
+  const bottom = grid.rows - 2;
+  for (let x = 0; x <= 2; x += 1) {
+    mark(x, sy);
+  }
+  for (let y = sy; y <= bottom; y += 1) {
+    mark(2, y);
+  }
+  for (let x = 2; x <= 5; x += 1) {
+    mark(x, bottom);
+  }
+  for (let y = bottom; y >= 1; y -= 1) {
+    mark(5, y);
+  }
+  for (let x = 5; x <= 8; x += 1) {
+    mark(x, 1);
+  }
+  for (let y = 1; y <= sy; y += 1) {
+    mark(8, y);
+  }
+  for (let x = 8; x < grid.cols; x += 1) {
+    mark(x, sy);
+  }
+  mark(grid.start.x, grid.start.y);
+  mark(grid.base.x, grid.base.y);
+
+  let next = grid;
+  for (let y = 0; y < grid.rows; y += 1) {
+    for (let x = 0; x < grid.cols; x += 1) {
+      if (walk.has(`${x},${y}`)) {
+        continue;
+      }
+      next = placeTower(next, x, y, "archer", 999);
+    }
+  }
+  return next;
+}
+
+function asBreaker(sim: ReturnType<typeof createSim>): ReturnType<typeof createSim> {
+  const unit = sim.units[0];
+  if (!unit) {
+    return sim;
+  }
+  return {
+    ...sim,
+    units: [{ ...unit, behavior: "breaker", enemyType: "cavalry", hue: 200 }],
+  };
+}
+
+describe("breaker enemies", () => {
+  it("mixes breaker units into the stage wave alongside normal enemies", () => {
+    const stage = getStageWave(1);
+    expect(stage.bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "breaker"))).toBe(
+      true,
+    );
+    expect(stage.bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "normal"))).toBe(
+      true,
+    );
+  });
+
+  it("walks the short line and hits towers even when an S maze is open", () => {
+    const maze = archerSMaze(createGrid(12, 8));
+    expect(findPath(maze)).not.toBeNull();
+    expect(findPath(maze)!.length).toBeGreaterThan(14);
+
+    let sim = asBreaker(createSim(maze));
+    sim = tick(sim, 1.4);
+    const unit = sim.units[0]!;
+    const target = { x: 3, y: maze.start.y };
+    expect(Math.abs(unit.y - maze.start.y)).toBeLessThan(0.25);
+    expect(unit.attackTile).toEqual(target);
+    expect(getTower(sim.grid, target.x, target.y)?.hp).toBeLessThan(TOWER_MAX_HP);
+  });
+
+  it("does not follow the S maze the way a normal enemy does", () => {
+    const maze = archerSMaze(createGrid(12, 8));
+    let regular = tick(createSim(maze), 2.6);
+    let breaker = tick(asBreaker(createSim(maze)), 2.6);
+    expect(Math.abs(regular.units[0]!.y - maze.start.y)).toBeGreaterThan(1.2);
+    expect(regular.units[0]!.attackTile).toBeNull();
+    expect(Math.abs(breaker.units[0]!.y - maze.start.y)).toBeLessThan(0.3);
+  });
+
+  it("removes a tower on the straight line at 0 HP", () => {
+    const maze = archerSMaze(createGrid(12, 8));
+    const target = { x: 3, y: maze.start.y };
+    let sim = asBreaker(createSim(maze));
+    sim = advance(sim, TOWER_MAX_HP / UNIT_ATTACK_DPS + 1.5);
+    expect(hasTower(sim.grid, target.x, target.y)).toBe(false);
+  });
+});
+

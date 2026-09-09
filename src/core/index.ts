@@ -40,7 +40,7 @@ export type {
   Tower,
 } from "./grid";
 export { findPath, isWalkable } from "./path";
-export type { Path } from "./path";
+export type { Path, PathOptions } from "./path";
 export {
   createBattleGrid,
   createMapGrid,
@@ -119,8 +119,12 @@ export {
   unitTile,
   WAVE_SIZE,
   BATTLE_WAVE_COUNT,
+  ENEMY_BEHAVIOR_IDS,
+  ENEMY_BEHAVIOR_LABELS,
   ENEMY_SPRITE_LABELS,
   ENEMY_TYPE_IDS,
+  DEFAULT_ENEMY_BEHAVIOR,
+  BREAKER_HUE,
   MAX_ENEMIES,
   MIN_ENEMIES,
   bundledEnemyTable,
@@ -172,6 +176,7 @@ export {
 export type {
   BattleOutcome,
   CommandResult,
+  EnemyBehaviorId,
   EnemyDef,
   EnemyTable,
   EnemyTypeId,

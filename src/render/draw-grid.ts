@@ -354,6 +354,14 @@ function drawUnitHp(
   const left = layout.originX + (unit.x + 0.5) * layout.tileSize - width / 2;
   const headY = sprite.y - sprite.anchor.y * Math.abs(sprite.height);
   const top = headY - height - gap;
+  if (unit.kind === "enemy" && unit.behavior === "breaker") {
+    const mark = Math.max(4, Math.round(layout.tileSize * 0.12));
+    const cx = left + width / 2;
+    const cy = top - mark * 0.35;
+    graphics
+      .poly([cx, cy - mark * 0.55, cx + mark * 0.55, cy + mark * 0.35, cx - mark * 0.55, cy + mark * 0.35])
+      .fill({ color: 0xff6b3d, alpha: 0.95 });
+  }
   drawHpBar(graphics, left, top, width, height, unit.hp, UNIT_MAX_HP);
 }
 

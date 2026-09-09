@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch, type CSSProperties } from "vue";
 import {
+  ENEMY_BEHAVIOR_IDS,
+  ENEMY_BEHAVIOR_LABELS,
   ENEMY_SPRITE_LABELS,
   ENEMY_TYPE_IDS,
   MAX_ENEMIES,
@@ -20,6 +22,7 @@ import {
   type EnemyDef,
   type EnemyTable,
   type EnemyTypeId,
+  type EnemyBehaviorId,
 } from "@/core";
 import { enemyWalkPreview } from "@/render/enemy-sprites";
 
@@ -134,6 +137,17 @@ const setSprite = (event: Event): void => {
     return;
   }
   updateEnemy({ sprite: target.value as EnemyTypeId });
+};
+
+const setBehavior = (event: Event): void => {
+  const target = event.target;
+  if (!(target instanceof HTMLSelectElement)) {
+    return;
+  }
+  if (!(ENEMY_BEHAVIOR_IDS as readonly string[]).includes(target.value)) {
+    return;
+  }
+  updateEnemy({ behavior: target.value as EnemyBehaviorId });
 };
 
 const setHue = (event: Event): void => {
@@ -380,6 +394,7 @@ const openWaves = (): void => {
                 <span>{{ row.name }}</span>
                 <span class="meta">
                   {{ ENEMY_SPRITE_LABELS[row.sprite] }} · HP {{ row.hp }}
+                  <template v-if="row.behavior === 'breaker'"> · {{ ENEMY_BEHAVIOR_LABELS.breaker }}</template>
                   <template v-if="row.hue"> · 색조 {{ row.hue }}</template>
                   <template v-if="usedIds.has(row.id)"> · 사용중</template>
                 </span>
@@ -402,6 +417,7 @@ const openWaves = (): void => {
           />
           <p class="hint">
             {{ ENEMY_SPRITE_LABELS[enemy.sprite] }}
+            <template v-if="enemy.behavior === 'breaker'"> · {{ ENEMY_BEHAVIOR_LABELS.breaker }}</template>
             <template v-if="enemy.hue"> · 색조 {{ enemy.hue }}°</template>
             <template v-if="!hasWalkSheet(enemy.sprite)">
               · 시트 없음, 색 칸
@@ -442,6 +458,21 @@ const openWaves = (): void => {
                 :value="sprite"
               >
                 {{ ENEMY_SPRITE_LABELS[sprite] }}
+              </option>
+            </select>
+          </label>
+          <label>
+            행동
+            <select
+              :value="enemy.behavior"
+              @change="setBehavior"
+            >
+              <option
+                v-for="behavior in ENEMY_BEHAVIOR_IDS"
+                :key="behavior"
+                :value="behavior"
+              >
+                {{ ENEMY_BEHAVIOR_LABELS[behavior] }}
               </option>
             </select>
           </label>

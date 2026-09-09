@@ -81,4 +81,38 @@ describe("enemy catalog", () => {
     }
     expect(wrapped.table.enemies[0]?.hue).toBe(40);
   });
+
+  it("defaults missing behavior to normal and keeps breaker", () => {
+    const parsed = parseEnemyTableJson(
+      JSON.stringify({
+        enemies: [{ id: "slime-10", name: "슬라임", sprite: "slime", hp: 10 }],
+      }),
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) {
+      return;
+    }
+    expect(parsed.table.enemies[0]?.behavior).toBe("normal");
+
+    const breaker = parseEnemyTableJson(
+      JSON.stringify({
+        enemies: [
+          {
+            id: "cavalry-16",
+            name: "돌파 기병",
+            sprite: "cavalry",
+            hp: 16,
+            hue: 200,
+            behavior: "breaker",
+          },
+        ],
+      }),
+    );
+    expect(breaker.ok).toBe(true);
+    if (!breaker.ok) {
+      return;
+    }
+    expect(breaker.table.enemies[0]?.behavior).toBe("breaker");
+    expect(getEnemy("cavalry-16").behavior).toBe("breaker");
+  });
 });

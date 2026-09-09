@@ -5,11 +5,12 @@ import {
   findEnemyIdForStats,
   getEnemy,
   getEnemyCatalog,
+  type EnemyBehaviorId,
   type EnemyTypeId,
 } from "./enemies";
 
 export { ENEMY_TYPE_IDS } from "./enemies";
-export type { EnemyTypeId } from "./enemies";
+export type { EnemyBehaviorId, EnemyTypeId } from "./enemies";
 
 export const LOOP_SPEED_PER_CYCLE = 0.2;
 export const LOOP_HP_PER_CYCLE = 0.22;
@@ -28,6 +29,7 @@ export type WaveSpawn = WaveSpawnRef & {
   readonly type: EnemyTypeId;
   readonly hp: number;
   readonly hue: number;
+  readonly behavior: EnemyBehaviorId;
 };
 
 export type WaveBurstRow = {
@@ -319,6 +321,7 @@ function resolveAndScale(ref: WaveSpawnRef, hpMul: number): WaveSpawn {
     type: def.sprite,
     hp: Math.max(1, Math.round(def.hp * hpMul)),
     hue: def.hue,
+    behavior: def.behavior,
   };
 }
 

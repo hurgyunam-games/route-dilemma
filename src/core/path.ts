@@ -1,8 +1,13 @@
 /** A* from Start to Base. Towers and obstacles are blocked; empty / Start / Base are walkable. */
 
-import { inBounds, isBlocked, sameTile, type Grid, type TileCoord } from "./grid";
+import { hasObstacle, hasTower, inBounds, sameTile, type Grid, type TileCoord } from "./grid";
 
 export type Path = readonly TileCoord[];
+
+export type PathOptions = {
+  /** Treat player towers as walkable so a punch-through route can go through them. */
+  readonly throughTowers?: boolean;
+};
 
 const ORTHOGONAL: readonly TileCoord[] = [
   { x: 1, y: 0 },
@@ -16,7 +21,20 @@ function tileKey(x: number, y: number): string {
 }
 
 export function isWalkable(grid: Grid, x: number, y: number): boolean {
-  return inBounds(grid, x, y) && !isBlocked(grid, x, y);
+  return tilePassable(grid, x, y, false);
+}
+
+function tilePassable(grid: Grid, x: number, y: number, throughTowers: boolean): boolean {
+  if (!inBounds(grid, x, y)) {
+    return false;
+  }
+  if (hasObstacle(grid, x, y)) {
+    return false;
+  }
+  if (hasTower(grid, x, y) && !throughTowers) {
+    return false;
+  }
+  return true;
 }
 
 function manhattan(a: TileCoord, b: TileCoord): number {
@@ -51,16 +69,18 @@ function lowestFKey(
   return bestKey;
 }
 
-/** Shortest orthogonal path between two walkable tiles, or null if none. */
+/** Shortest orthogonal path between two passable tiles, or null if none. */
 export function findPath(
   grid: Grid,
   from: TileCoord = grid.start,
   to: TileCoord = grid.base,
+  options: PathOptions = {},
 ): Path | null {
-  if (!isWalkable(grid, from.x, from.y)) {
+  const throughTowers = Boolean(options.throughTowers);
+  if (!tilePassable(grid, from.x, from.y, throughTowers)) {
     return null;
   }
-  if (!isWalkable(grid, to.x, to.y)) {
+  if (!tilePassable(grid, to.x, to.y, throughTowers)) {
     return null;
   }
   if (sameTile(from, to)) {
@@ -88,7 +108,7 @@ export function findPath(
     for (const step of ORTHOGONAL) {
       const x = current.x + step.x;
       const y = current.y + step.y;
-      if (!isWalkable(grid, x, y)) {
+      if (!tilePassable(grid, x, y, throughTowers)) {
         continue;
       }
       const nextKey = tileKey(x, y);

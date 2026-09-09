@@ -70,12 +70,20 @@ describe("stage wave table", () => {
       true,
     );
     expect(first.bursts[0]?.units.every((spawn) => spawn.type === "slime")).toBe(true);
+    expect(first.bursts[0]?.units.every((spawn) => spawn.behavior === "normal")).toBe(true);
     expect(first.bursts[1]?.units.slice(0, 4).map((spawn) => spawn.type)).toEqual([
       "slime",
       "goblin",
       "slime",
-      "goblin",
+      "cavalry",
     ]);
+    expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "breaker")).toBe(true);
+    expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "normal")).toBe(true);
+    for (let id = 1; id <= STAGE_COUNT; id += 1) {
+      expect(
+        getStageWave(id).bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "breaker")),
+      ).toBe(true);
+    }
   });
 
   it("keeps only a short wait after the last enemy or ally spawns", () => {
@@ -231,7 +239,7 @@ describe("wave table edit", () => {
     setEnemyTable({
       enemies: [
         ...cloneEnemyTable({ enemies: [...getEnemyCatalog()] }).enemies,
-        { id: "cavalry-99", name: "기병 99", sprite: "cavalry", hp: 99, hue: 0 },
+        { id: "cavalry-99", name: "기병 99", sprite: "cavalry", hp: 99, hue: 0, behavior: "normal" },
       ],
     });
     setWaveTable({

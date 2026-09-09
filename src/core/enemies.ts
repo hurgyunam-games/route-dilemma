@@ -11,6 +11,17 @@ export const ENEMY_SPRITE_LABELS: Record<EnemyTypeId, string> = {
   goblin: "고블린",
 };
 
+export const ENEMY_BEHAVIOR_IDS = ["normal", "breaker"] as const;
+export type EnemyBehaviorId = (typeof ENEMY_BEHAVIOR_IDS)[number];
+
+export const ENEMY_BEHAVIOR_LABELS: Record<EnemyBehaviorId, string> = {
+  normal: "일반",
+  breaker: "돌파",
+};
+
+export const DEFAULT_ENEMY_BEHAVIOR: EnemyBehaviorId = "normal";
+export const BREAKER_HUE = 200;
+
 export const MIN_ENEMIES = 1;
 export const MAX_ENEMIES = 80;
 
@@ -21,6 +32,7 @@ export type EnemyDef = {
   readonly hp: number;
   /** Degrees 0–359. Same sprite, different tint. */
   readonly hue: number;
+  readonly behavior: EnemyBehaviorId;
 };
 
 export function normalizeHue(value: number): number {
@@ -93,7 +105,14 @@ export function defaultEnemy(id: string, from?: EnemyDef): EnemyDef {
   if (from) {
     return { ...from, id };
   }
-  return { id, name: "슬라임 10", sprite: "slime", hp: 10, hue: 0 };
+  return {
+    id,
+    name: "슬라임 10",
+    sprite: "slime",
+    hp: 10,
+    hue: 0,
+    behavior: DEFAULT_ENEMY_BEHAVIOR,
+  };
 }
 
 export function nextEnemyId(sprite: EnemyTypeId, hp: number, used: readonly string[]): string {
@@ -146,10 +165,11 @@ export function parseEnemyTable(input: unknown): EnemyTable {
 
 export function serializeEnemyTable(table: EnemyTable = liveTable): string {
   const rows = table.enemies
-    .map(
-      (enemy) =>
-        `    { "id": "${enemy.id}", "name": ${JSON.stringify(enemy.name)}, "sprite": "${enemy.sprite}", "hp": ${enemy.hp}, "hue": ${enemy.hue} }`,
-    )
+    .map((enemy) => {
+      const behavior =
+        enemy.behavior === DEFAULT_ENEMY_BEHAVIOR ? "" : `, "behavior": "${enemy.behavior}"`;
+      return `    { "id": "${enemy.id}", "name": ${JSON.stringify(enemy.name)}, "sprite": "${enemy.sprite}", "hp": ${enemy.hp}, "hue": ${enemy.hue}${behavior} }`;
+    })
     .join(",\n");
   return `{\n  "enemies": [\n${rows}\n  ]\n}\n`;
 }
@@ -170,6 +190,7 @@ function parseEnemyDef(input: unknown, index: number): EnemyDef {
     sprite: parseSprite(row.sprite, id),
     hp: asPositiveInt(row.hp, `Enemy ${id} hp`),
     hue: asHue(row.hue, id),
+    behavior: parseBehavior(row.behavior, id),
   };
 }
 
@@ -205,4 +226,14 @@ function asHue(value: unknown, id: string): number {
     throw new Error(`Enemy ${id} hue must be a number`);
   }
   return normalizeHue(value);
+}
+
+function parseBehavior(value: unknown, id: string): EnemyBehaviorId {
+  if (value === undefined) {
+    return DEFAULT_ENEMY_BEHAVIOR;
+  }
+  if (typeof value === "string" && (ENEMY_BEHAVIOR_IDS as readonly string[]).includes(value)) {
+    return value as EnemyBehaviorId;
+  }
+  throw new Error(`Enemy ${id} has unknown behavior ${String(value)}`);
 }

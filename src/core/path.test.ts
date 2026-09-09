@@ -87,4 +87,18 @@ describe("findPath", () => {
     expect(sameTile(rerouted[rerouted.length - 1]!, empty.base)).toBe(true);
     expect(rerouted.length).toBeGreaterThan(original.length);
   });
+
+  it("punches through towers when throughTowers is set", () => {
+    const empty = createGrid(12, 8);
+    let walled = empty;
+    for (let y = 0; y < empty.rows; y += 1) {
+      walled = toggleTower(walled, 1, y);
+    }
+    expect(findPath(walled)).toBeNull();
+    const punch = findPath(walled, walled.start, walled.base, { throughTowers: true });
+    expect(punch).not.toBeNull();
+    expect(sameTile(punch![0]!, empty.start)).toBe(true);
+    expect(sameTile(punch![punch!.length - 1]!, empty.base)).toBe(true);
+    expect(punch!.some((tile) => tile.x === 1 && hasTower(walled, tile.x, tile.y))).toBe(true);
+  });
 });
