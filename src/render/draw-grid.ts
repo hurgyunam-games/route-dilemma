@@ -776,6 +776,7 @@ export function createGridView(
             y,
             obstacle.hp,
             obstacleMaxHp(obstacle.kind),
+            true,
           );
         }
         graphics
