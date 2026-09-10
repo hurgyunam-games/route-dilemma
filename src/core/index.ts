@@ -64,13 +64,17 @@ export {
 } from "./campaign";
 export type { CampaignMapStatus, CampaignProgress } from "./campaign";
 export {
+  APP_VERSION,
+  CAMPAIGN_SAVE_VERSION,
   CAMPAIGN_STORAGE_KEY,
+  LEGACY_CAMPAIGN_STORAGE_KEYS,
   loadCampaign,
   parseCampaign,
+  parseCampaignSave,
   persistCampaign,
   serializeCampaign,
 } from "./save";
-export type { CampaignStore } from "./save";
+export type { CampaignLoad, CampaignLoadStatus, CampaignStore } from "./save";
 export {
   ALLY_GOLD_REWARD,
   ALLY_GOLD,

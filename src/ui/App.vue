@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { defineAsyncComponent, onMounted, onUnmounted, ref } from "vue";
 import BattleView from "@/ui/BattleView.vue";
-import SpriteGalleryView from "@/ui/SpriteGalleryView.vue";
-import WaveEditorView from "@/ui/WaveEditorView.vue";
-import EnemyEditorView from "@/ui/EnemyEditorView.vue";
 import WorldMapView from "@/ui/WorldMapView.vue";
 import {
   createCampaign,
@@ -14,25 +11,41 @@ import {
   recordVictory,
   saveMapTowers,
   towersForMap,
+  type CampaignLoad,
   type MapId,
   type Tower,
 } from "@/core";
 
-const loadSavedCampaign = () => {
+const loadSavedCampaign = (): CampaignLoad => {
   try {
     return loadCampaign(window.localStorage);
   } catch {
-    return createCampaign();
+    return { status: "invalid", progress: createCampaign(), saveVersion: null };
   }
 };
 
-const campaign = ref(loadSavedCampaign());
+const saved = loadSavedCampaign();
+const campaign = ref(saved.progress);
+const saveStatus = ref(saved.status);
 const selectedMapId = ref<MapId | null>(null);
 const selectedStageId = ref<number | null>(null);
 const lastMapId = ref<MapId | null>(null);
 type ToolPage = "gallery" | "waves" | "enemies";
 
+const SpriteGalleryView = import.meta.env.DEV
+  ? defineAsyncComponent(() => import("@/ui/SpriteGalleryView.vue"))
+  : undefined;
+const WaveEditorView = import.meta.env.DEV
+  ? defineAsyncComponent(() => import("@/ui/WaveEditorView.vue"))
+  : undefined;
+const EnemyEditorView = import.meta.env.DEV
+  ? defineAsyncComponent(() => import("@/ui/EnemyEditorView.vue"))
+  : undefined;
+
 const pageFromHash = (): ToolPage | null => {
+  if (!import.meta.env.DEV) {
+    return null;
+  }
   const hash = window.location.hash.replace(/^#/, "");
   return hash === "gallery" || hash === "waves" || hash === "enemies" ? hash : null;
 };
@@ -44,6 +57,9 @@ const syncHash = (): void => {
 };
 
 const openTool = (page: ToolPage): void => {
+  if (!import.meta.env.DEV) {
+    return;
+  }
   toolPage.value = page;
   window.location.hash = page;
 };
@@ -57,8 +73,13 @@ const leaveTool = (): void => {
 
 const commit = (next: typeof campaign.value): void => {
   campaign.value = next;
+  if (saveStatus.value === "newer") {
+    return;
+  }
   try {
-    persistCampaign(window.localStorage, next);
+    if (persistCampaign(window.localStorage, next) && saveStatus.value !== "ok") {
+      saveStatus.value = "ok";
+    }
   } catch {
     /* storage may be blocked */
   }
@@ -90,6 +111,9 @@ const onSaveTowers = (towers: readonly Tower[]): void => {
 };
 
 onMounted(() => {
+  if (!import.meta.env.DEV) {
+    return;
+  }
   window.addEventListener("hashchange", syncHash);
 });
 
@@ -99,15 +123,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <SpriteGalleryView
+  <component
+    :is="SpriteGalleryView"
     v-if="toolPage === 'gallery'"
     @leave="leaveTool"
   />
-  <WaveEditorView
+  <component
+    :is="WaveEditorView"
     v-else-if="toolPage === 'waves'"
     @leave="leaveTool"
   />
-  <EnemyEditorView
+  <component
+    :is="EnemyEditorView"
     v-else-if="toolPage === 'enemies'"
     @leave="leaveTool"
   />
@@ -125,6 +152,7 @@ onUnmounted(() => {
     v-else
     :last-map-id="lastMapId"
     :progress="campaign"
+    :save-status="saveStatus"
     @select="enterMap"
     @gallery="openTool('gallery')"
     @waves="openTool('waves')"

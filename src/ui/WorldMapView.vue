@@ -3,6 +3,7 @@ import {
   campaignCycle,
   campaignMapStatuses,
   currentStage,
+  type CampaignLoadStatus,
   type CampaignProgress,
   type GameMapDef,
   type MapId,
@@ -13,6 +14,7 @@ import { computed } from "vue";
 const props = defineProps<{
   lastMapId: MapId | null;
   progress: CampaignProgress;
+  saveStatus?: CampaignLoadStatus;
 }>();
 
 const emit = defineEmits<{
@@ -21,6 +23,8 @@ const emit = defineEmits<{
   waves: [];
   enemies: [];
 }>();
+
+const showDevTools = import.meta.env.DEV;
 
 const MAP_ACCENTS: Record<MapId, string> = {
   1: "#7cb87c",
@@ -35,6 +39,11 @@ const stageNow = computed(() => currentStage(props.progress));
 const loopHint = computed(() =>
   campaignCycle(stageNow.value) > 0
     ? "돌아온 판은 적이 더 셉니다. 기존 타워만으로는 버티기 어려우니 보강하세요."
+    : "",
+);
+const saveNotice = computed(() =>
+  props.saveStatus === "newer"
+    ? "이 세이브는 더 새 게임 버전에서 만들어졌습니다. 진행을 덮어쓰지 않습니다."
     : "",
 );
 
@@ -84,7 +93,10 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
       <p>
         스테이지 1–5는 맵 1–5와 하나씩 대응합니다. 스테이지 6부터는 맵 1로 돌아오며, 그 맵에 지은 타워가 남아 있습니다.
       </p>
-      <div class="tool-links">
+      <div
+        v-if="showDevTools"
+        class="tool-links"
+      >
         <button
           type="button"
           class="gallery-link"
@@ -107,6 +119,12 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
           적 에디터
         </button>
       </div>
+      <p
+        v-if="saveNotice"
+        class="save-notice"
+      >
+        {{ saveNotice }}
+      </p>
       <p
         v-if="loopHint"
         class="loop-hint"
@@ -208,6 +226,11 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
 .world-head .loop-hint {
   margin: 8px 0 0;
   color: #e8b060;
+}
+
+.world-head .save-notice {
+  margin: 8px 0 0;
+  color: #e08070;
 }
 
 .tool-links {
