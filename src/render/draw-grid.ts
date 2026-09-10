@@ -82,6 +82,11 @@ const ENEMY_ATTACK_ANIMATION_SPEED = 0.18;
 const ENEMY_DEATH_ANIMATION_SPEED = 0.16;
 const UNIT_MOVE_EPS = 0.002;
 const BASE_ARRIVE_EPS = 0.2;
+const CANNON_BOOM_SIZE_IN_TILE = 1.15;
+const CANNON_BOOM_SPEED = 0.32;
+const CANNON_ARC_PEAK_MIN = 0.5;
+const CANNON_ARC_PEAK_PER_TILE = 0.2;
+const CANNON_ARC_PEAK_MAX = 1.35;
 
 function tileKey(x: number, y: number): string {
   return `${x},${y}`;
@@ -400,6 +405,8 @@ function layoutOrbSprite(
   frames: Texture[],
   sizeInTile: number,
   level: number,
+  lift = 0,
+  airScale = 1,
 ): void {
   const pos = shotPixel(layout, shot.x, shot.y);
   const frame =
@@ -407,8 +414,40 @@ function layoutOrbSprite(
   sprite.texture = frame;
   sprite.anchor.set(0.5);
   const long = Math.max(frame.width, frame.height);
-  const scale = (layout.tileSize * sizeInTile) / Math.max(1, long);
+  const scale = ((layout.tileSize * sizeInTile) / Math.max(1, long)) * airScale;
   sprite.scale.set(scale);
+  sprite.position.set(pos.x, pos.y - lift);
+  sprite.visible = true;
+}
+
+function shotFlightT(shot: TowerShot): number {
+  const total = Math.hypot(shot.toX - shot.fromX, shot.toY - shot.fromY);
+  if (!(total > 1e-6)) {
+    return 1;
+  }
+  const traveled = Math.hypot(shot.x - shot.fromX, shot.y - shot.fromY);
+  return Math.max(0, Math.min(1, traveled / total));
+}
+
+function cannonArcLift(t: number, distTiles: number, tileSize: number): number {
+  const peakTiles = Math.min(
+    CANNON_ARC_PEAK_MAX,
+    CANNON_ARC_PEAK_MIN + distTiles * CANNON_ARC_PEAK_PER_TILE,
+  );
+  return 4 * t * (1 - t) * peakTiles * tileSize;
+}
+
+function layoutBoomSprite(
+  sprite: AnimatedSprite,
+  layout: GridLayout,
+  x: number,
+  y: number,
+): void {
+  const pos = shotPixel(layout, x, y);
+  const frame = sprite.texture;
+  const long = Math.max(frame.width, frame.height, 1);
+  sprite.anchor.set(0.5);
+  sprite.scale.set((layout.tileSize * CANNON_BOOM_SIZE_IN_TILE) / long);
   sprite.position.set(pos.x, pos.y);
   sprite.visible = true;
 }
@@ -625,6 +664,7 @@ export function createGridView(
   arrowFrames: Texture[],
   cannonProjFrames: Texture[],
   mageProjFrames: Texture[],
+  cannonBoomFrames: Texture[],
   obstacleAtlas: ObstacleAtlas,
   startFrames: Texture[],
   baseFrames: Texture[],
@@ -669,6 +709,9 @@ export function createGridView(
   const arrowSprites: Sprite[] = [];
   const cannonSprites: Sprite[] = [];
   const mageSprites: Sprite[] = [];
+  const booms: { sprite: AnimatedSprite; x: number; y: number; done: boolean }[] =
+    [];
+  let prevCannonShots = new Map<number, TowerShot>();
   let lastLayout: GridLayout | null = null;
   const startSprite = new AnimatedSprite({
     textures: startFrames,
@@ -724,6 +767,33 @@ export function createGridView(
     for (const sprite of mageSprites) {
       sprite.visible = false;
     }
+  };
+
+  const spawnCannonBoom = (x: number, y: number, layout: GridLayout): void => {
+    if (cannonBoomFrames.length === 0) {
+      return;
+    }
+    const boom = {
+      sprite: new AnimatedSprite({
+        textures: cannonBoomFrames,
+        animationSpeed: CANNON_BOOM_SPEED,
+        loop: false,
+        autoPlay: false,
+      }),
+      x,
+      y,
+      done: false,
+    };
+    boom.sprite.eventMode = "none";
+    boom.sprite.anchor.set(0.5);
+    boom.sprite.onComplete = () => {
+      boom.done = true;
+      boom.sprite.destroy();
+    };
+    arrowLayer.addChild(boom.sprite);
+    booms.push(boom);
+    layoutBoomSprite(boom.sprite, layout, x, y);
+    boom.sprite.gotoAndPlay(0);
   };
 
   const sync = (
@@ -1102,13 +1172,16 @@ export function createGridView(
       (sprite, shot) =>
         layoutArrowSprite(sprite, layout, shot, arrowFrames, arrowScale),
     );
+    const cannonShots = towerShots.filter((shot) => shot.typeId === "cannon");
     syncShotSprites(
       cannonSprites,
       arrowLayer,
-      towerShots.filter((shot) => shot.typeId === "cannon"),
+      cannonShots,
       cannonProjFrames,
       (sprite, shot) => {
         const tower = getTower(grid, shot.fromX, shot.fromY);
+        const t = shotFlightT(shot);
+        const dist = Math.hypot(shot.toX - shot.fromX, shot.toY - shot.fromY);
         layoutOrbSprite(
           sprite,
           layout,
@@ -1116,9 +1189,26 @@ export function createGridView(
           cannonProjFrames,
           spriteLayout.cannonProjSizeInTile,
           tower?.level ?? 1,
+          cannonArcLift(t, dist, layout.tileSize),
+          1 + 0.2 * 4 * t * (1 - t),
         );
       },
     );
+    const liveCannonIds = new Set(cannonShots.map((shot) => shot.id));
+    for (const shot of prevCannonShots.values()) {
+      if (!liveCannonIds.has(shot.id)) {
+        spawnCannonBoom(shot.x, shot.y, layout);
+      }
+    }
+    prevCannonShots = new Map(cannonShots.map((shot) => [shot.id, shot]));
+    for (let i = booms.length - 1; i >= 0; i -= 1) {
+      const boom = booms[i]!;
+      if (boom.done || !boom.sprite.parent) {
+        booms.splice(i, 1);
+        continue;
+      }
+      layoutBoomSprite(boom.sprite, layout, boom.x, boom.y);
+    }
     syncShotSprites(
       mageSprites,
       arrowLayer,

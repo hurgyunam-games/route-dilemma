@@ -24,6 +24,7 @@ Place the following files here on your machine if you have the rights to use the
 - `occupant-mage-3-idle.png` / `occupant-mage-3-attack.png` (lv3+)
 - `arrow-01.png` … `arrow-27.png` (archer projectile directions)
 - `cannon-proj-01.png` … `cannon-proj-03.png` (cannon projectile by tower level)
+- `cannon-boom.png` (1×8 impact burst)
 - `mage-proj-01.png` … `mage-proj-03.png` (mage projectile by tower level)
 - `ally-walk.png` (짐꾼 1×6 walk)
 - `ally-courier-walk.png` (전령 1×6 walk)

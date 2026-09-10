@@ -4,6 +4,7 @@ import { loadAllyFrames } from "@/render/ally-sprites";
 import { loadArrowFrames } from "@/render/arrow-sprites";
 import { createGridView, type RangePreview } from "@/render/draw-grid";
 import {
+  loadCannonBoomFrames,
   loadCannonProjectileFrames,
   loadMageProjectileFrames,
 } from "@/render/projectile-sprites";
@@ -52,6 +53,7 @@ export async function createGameApp(
     arrowFrames,
     cannonProjFrames,
     mageProjFrames,
+    cannonBoomFrames,
     obstacleAtlas,
     startFrames,
     baseFrames,
@@ -64,6 +66,7 @@ export async function createGameApp(
     loadArrowFrames(),
     loadCannonProjectileFrames(),
     loadMageProjectileFrames(),
+    loadCannonBoomFrames(),
     loadObstacleFrames(),
     loadStartFrames(),
     loadBaseFrames(),
@@ -77,6 +80,7 @@ export async function createGameApp(
     arrowFrames,
     cannonProjFrames,
     mageProjFrames,
+    cannonBoomFrames,
     obstacleAtlas,
     startFrames,
     baseFrames,

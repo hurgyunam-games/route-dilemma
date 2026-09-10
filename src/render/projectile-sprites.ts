@@ -1,7 +1,10 @@
 import type { Texture } from "pixi.js";
-import { loadLocalTexture } from "@/render/local-image";
+import { loadLocalSheet, loadLocalTexture } from "@/render/local-image";
 
 export const PROJECTILE_VARIANT_COUNT = 3;
+export const CANNON_BOOM_COLS = 8;
+export const CANNON_BOOM_ROWS = 1;
+const CANNON_BOOM_FRAME = 48;
 
 export async function loadCannonProjectileFrames(): Promise<Texture[]> {
   return Promise.all(
@@ -9,6 +12,17 @@ export async function loadCannonProjectileFrames(): Promise<Texture[]> {
       const n = String(index + 1).padStart(2, "0");
       return loadLocalTexture(`cannon-proj-${n}.png`, "#6c81a1", 8, 8);
     }),
+  );
+}
+
+export async function loadCannonBoomFrames(): Promise<Texture[]> {
+  return loadLocalSheet(
+    "cannon-boom.png",
+    CANNON_BOOM_COLS,
+    CANNON_BOOM_ROWS,
+    "#d4782a",
+    CANNON_BOOM_FRAME,
+    CANNON_BOOM_FRAME,
   );
 }
 
