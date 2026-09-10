@@ -11,16 +11,18 @@ export const ENEMY_SPRITE_LABELS: Record<EnemyTypeId, string> = {
   goblin: "고블린",
 };
 
-export const ENEMY_BEHAVIOR_IDS = ["normal", "breaker"] as const;
+export const ENEMY_BEHAVIOR_IDS = ["normal", "breaker", "ambush"] as const;
 export type EnemyBehaviorId = (typeof ENEMY_BEHAVIOR_IDS)[number];
 
 export const ENEMY_BEHAVIOR_LABELS: Record<EnemyBehaviorId, string> = {
   normal: "일반",
   breaker: "돌파",
+  ambush: "매복",
 };
 
 export const DEFAULT_ENEMY_BEHAVIOR: EnemyBehaviorId = "normal";
 export const BREAKER_HUE = 200;
+export const AMBUSH_HUE = 280;
 
 export const MIN_ENEMIES = 1;
 export const MAX_ENEMIES = 80;

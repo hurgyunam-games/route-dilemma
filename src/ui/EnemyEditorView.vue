@@ -394,7 +394,7 @@ const openWaves = (): void => {
                 <span>{{ row.name }}</span>
                 <span class="meta">
                   {{ ENEMY_SPRITE_LABELS[row.sprite] }} · HP {{ row.hp }}
-                  <template v-if="row.behavior === 'breaker'"> · {{ ENEMY_BEHAVIOR_LABELS.breaker }}</template>
+                  <template v-if="row.behavior !== 'normal'"> · {{ ENEMY_BEHAVIOR_LABELS[row.behavior] }}</template>
                   <template v-if="row.hue"> · 색조 {{ row.hue }}</template>
                   <template v-if="usedIds.has(row.id)"> · 사용중</template>
                 </span>
@@ -417,7 +417,7 @@ const openWaves = (): void => {
           />
           <p class="hint">
             {{ ENEMY_SPRITE_LABELS[enemy.sprite] }}
-            <template v-if="enemy.behavior === 'breaker'"> · {{ ENEMY_BEHAVIOR_LABELS.breaker }}</template>
+            <template v-if="enemy.behavior !== 'normal'"> · {{ ENEMY_BEHAVIOR_LABELS[enemy.behavior] }}</template>
             <template v-if="enemy.hue"> · 색조 {{ enemy.hue }}°</template>
             <template v-if="!hasWalkSheet(enemy.sprite)">
               · 시트 없음, 색 칸

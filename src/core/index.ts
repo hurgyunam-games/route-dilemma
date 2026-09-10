@@ -73,6 +73,12 @@ export {
 export type { CampaignStore } from "./save";
 export {
   ALLY_GOLD_REWARD,
+  ALLY_GOLD,
+  ALLY_SPRITE_LABELS,
+  ALLY_TYPE_IDS,
+  DEFAULT_ALLY_TYPE,
+  allyGoldReward,
+  allyTypeAt,
   START_GOLD,
   START_GOLD_PER_STAGE,
   startingGold,
@@ -125,6 +131,7 @@ export {
   ENEMY_TYPE_IDS,
   DEFAULT_ENEMY_BEHAVIOR,
   BREAKER_HUE,
+  AMBUSH_HUE,
   MAX_ENEMIES,
   MIN_ENEMIES,
   bundledEnemyTable,
@@ -200,4 +207,5 @@ export type {
   WaveSpawn,
   WaveSpawnRef,
   WaveTable,
+  AllyTypeId,
 } from "./sim";

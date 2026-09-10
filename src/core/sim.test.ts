@@ -4,6 +4,9 @@ import { createMapGrid } from "./maps";
 import { findPath } from "./path";
 import {
   ALLY_GOLD_REWARD,
+  ALLY_GOLD,
+  allyGoldReward,
+  allyTypeAt,
   BASE_MAX_HP,
   START_GOLD,
   START_GOLD_PER_STAGE,
@@ -317,6 +320,10 @@ function advance(sim: ReturnType<typeof createSim>, seconds: number) {
   return next;
 }
 
+function withoutAmbush(sim: ReturnType<typeof createSim>): ReturnType<typeof createSim> {
+  return { ...sim, units: sim.units.filter((unit) => unit.behavior !== "ambush") };
+}
+
 describe("phase clock", () => {
   it("starts on Enemy Phase with a full timer", () => {
     const sim = createSim();
@@ -418,17 +425,18 @@ describe("time scale", () => {
 
 describe("ally phase gold", () => {
   it("spawns an ally at Start when Ally Phase begins", () => {
-    const sim = advance(createSim(), PHASE_DURATION_SEC);
+    const sim = withoutAmbush(advance(createSim(), PHASE_DURATION_SEC));
     expect(sim.phase).toBe("ally");
     expect(sim.units).toHaveLength(1);
     expect(sim.units[0]!.kind).toBe("ally");
+    expect(sim.units[0]!.allyType).toBe("porter");
     expect(unitTile(sim.units[0]!)).toEqual(sim.grid.start);
     expect(sim.gold).toBe(START_GOLD);
     expect(hudSnapshot(sim).gold).toBe(START_GOLD);
   });
 
   it("does not increase gold while the ally is still walking", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     sim = tick(sim, 1.2);
     expect(sim.units[0]!.kind).toBe("ally");
     expect(sim.units[0]!.x).toBeGreaterThan(sim.grid.start.x + 2);
@@ -437,7 +445,7 @@ describe("ally phase gold", () => {
   });
 
   it("increases gold only after the ally reaches Base", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     sim = advance(sim, 4.2);
     expect(sim.gold).toBe(START_GOLD + ALLY_GOLD_REWARD);
     expect(hudSnapshot(sim).gold).toBe(START_GOLD + ALLY_GOLD_REWARD);
@@ -446,7 +454,7 @@ describe("ally phase gold", () => {
   });
 
   it("waits at the entrance without breaking towers when the path is blocked", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     sim = { ...sim, grid: wallColumn(sim.grid, 1) };
     const target = { x: 1, y: sim.grid.start.y };
     const hp = getTower(sim.grid, target.x, target.y)!.hp;
@@ -462,9 +470,36 @@ describe("ally phase gold", () => {
   });
 });
 
+describe("ally type rewards", () => {
+  it("spawns mixed ally types in order", () => {
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
+    sim = tick(sim, STAGE_1.allyInterval * 2 + 0.2);
+    const allies = sim.units.filter((unit) => unit.kind === "ally");
+    expect(allies.map((unit) => unit.allyType)).toEqual(["porter", "courier", "runner"]);
+  });
+
+  it("pays more gold for a merchant than a porter", () => {
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
+    const ally = sim.units[0]!;
+    const atBase = { x: sim.grid.base.x - 0.2, y: sim.grid.base.y };
+    sim = {
+      ...sim,
+      units: [
+        { ...ally, id: 101, allyType: "porter", ...atBase },
+        { ...ally, id: 102, allyType: "merchant", ...atBase },
+      ],
+      burstIndex: 99,
+      spawnedInBurst: 99,
+    };
+    sim = tick(sim, 0.3);
+    expect(ALLY_GOLD.merchant).toBeGreaterThan(ALLY_GOLD.porter);
+    expect(sim.gold).toBe(START_GOLD + ALLY_GOLD.porter + ALLY_GOLD.merchant);
+  });
+});
+
 describe("phase overlap leftover allies", () => {
   it("starts Enemy Phase while a leftover ally is still on the map", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     const ally = sim.units[0]!;
     expect(ally.kind).toBe("ally");
     sim = {
@@ -484,7 +519,7 @@ describe("phase overlap leftover allies", () => {
   });
 
   it("pays gold when a leftover ally reaches Base during Enemy Phase", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     const ally = sim.units[0]!;
     sim = {
       ...sim,
@@ -499,7 +534,7 @@ describe("phase overlap leftover allies", () => {
   });
 
   it("pays no gold when a leftover ally is caught by an enemy", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     expect(sim.phase).toBe("ally");
     sim = { ...sim, grid: wallColumn(sim.grid, 1) };
     const allyId = sim.units[0]!.id;
@@ -513,7 +548,7 @@ describe("phase overlap leftover allies", () => {
   });
 
   it("pays no gold when a leftover ally times out still on the map", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     const ally = sim.units[0]!;
     sim = simToggleTower(sim, 1, 0);
     sim = simToggleTower(sim, 0, 1);
@@ -542,7 +577,7 @@ describe("phase overlap leftover allies", () => {
     expect(path.length - 1).toBeGreaterThan(UNIT_SPEED_TILES_PER_SEC * STAGE_1.allyPhaseSec);
 
     let sim = createSim(simGrid);
-    sim = advance(sim, STAGE_1.enemyPhaseSec);
+    sim = withoutAmbush(advance(sim, STAGE_1.enemyPhaseSec));
     expect(sim.phase).toBe("ally");
     sim = advance(sim, STAGE_1.allyPhaseSec);
     expect(sim.phase).toBe("enemy");
@@ -673,7 +708,7 @@ describe("tower attacks", () => {
   });
 
   it("does not attack allies", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     sim = simToggleTower(sim, sim.grid.start.x, sim.grid.start.y + 1);
     sim = tick(sim, 0.25);
     const ally = sim.units[0]!;
@@ -772,19 +807,19 @@ describe("wave spawn", () => {
   });
 
   it("spawns several allies in Ally Phase and pays gold per arrival", () => {
-    let sim = advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC);
+    let sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
     expect(sim.phase).toBe("ally");
 
     sim = tick(sim, SPAWN_INTERVAL_SEC * 2 + 0.2);
     expect(sim.units.filter((unit) => unit.kind === "ally").length).toBeGreaterThan(1);
     expect(sim.gold).toBe(START_GOLD);
 
-    sim = advance(
-      createSim(createGrid(12, 8)),
-      PHASE_DURATION_SEC + 11 / UNIT_SPEED_TILES_PER_SEC + SPAWN_INTERVAL_SEC + 0.3,
-    );
+    sim = withoutAmbush(advance(createSim(createGrid(12, 8)), PHASE_DURATION_SEC));
+    sim = advance(sim, 11 / UNIT_SPEED_TILES_PER_SEC + SPAWN_INTERVAL_SEC + 0.3);
     expect(sim.phase).toBe("ally");
-    expect(sim.gold).toBe(START_GOLD + ALLY_GOLD_REWARD * 2);
+    expect(sim.gold).toBe(
+      START_GOLD + allyGoldReward(allyTypeAt(0)) + allyGoldReward(allyTypeAt(1)),
+    );
   });
 
   it("does not stack a new spawn on a unit still at Start", () => {
@@ -1290,6 +1325,122 @@ describe("breaker enemies", () => {
     let sim = asBreaker(createSim(maze));
     sim = advance(sim, TOWER_MAX_HP / UNIT_ATTACK_DPS + 1.5);
     expect(hasTower(sim.grid, target.x, target.y)).toBe(false);
+  });
+});
+
+function asAmbush(sim: ReturnType<typeof createSim>): ReturnType<typeof createSim> {
+  const unit = sim.units[0];
+  if (!unit) {
+    return sim;
+  }
+  return {
+    ...sim,
+    burstIndex: 99,
+    spawnedInBurst: 99,
+    units: [{ ...unit, behavior: "ambush", enemyType: "goblin", hue: 280 }],
+  };
+}
+
+function uncoveredCorridor(grid: ReturnType<typeof createGrid>) {
+  let next = grid;
+  const sy = grid.start.y;
+  next = placeTower(next, 2, sy - 2, "archer", 0);
+  next = placeTower(next, 3, sy - 2, "archer", 0);
+  return next;
+}
+
+function fullFireGrid(grid: ReturnType<typeof createGrid>) {
+  let next = grid;
+  for (const [x, y] of [
+    [2, 2],
+    [2, 5],
+    [5, 2],
+    [5, 5],
+    [8, 2],
+    [8, 5],
+    [11, 2],
+    [11, 5],
+  ] as const) {
+    next = placeTower(next, x, y, "mage", 0);
+  }
+  return next;
+}
+
+function tileInTowerRange(grid: ReturnType<typeof createGrid>, x: number, y: number): boolean {
+  return grid.towers.some((tower) => {
+    if (tower.buildTimeLeft > 0) {
+      return false;
+    }
+    const range = towerRange(tower);
+    return range > 0 && Math.hypot(x - tower.x, y - tower.y) <= range;
+  });
+}
+
+describe("ambush enemies", () => {
+  it("mixes ambush units into the stage wave with normal and breaker enemies", () => {
+    const stage = getStageWave(1);
+    expect(stage.bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "ambush"))).toBe(
+      true,
+    );
+    expect(stage.bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "breaker"))).toBe(
+      true,
+    );
+    expect(stage.bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "normal"))).toBe(
+      true,
+    );
+  });
+
+  it("waits on a tile outside tower range instead of rushing the base during Enemy Phase", () => {
+    let sim = asAmbush(createSim(uncoveredCorridor(createGrid(12, 8))));
+    sim = advance(sim, 5);
+    const unit = sim.units.find((row) => row.behavior === "ambush");
+    expect(unit).toBeDefined();
+    expect(sim.phase).toBe("enemy");
+    expect(unitTile(unit!)).not.toEqual(sim.grid.base);
+    expect(Math.hypot(unit!.x - sim.grid.base.x, unit!.y - sim.grid.base.y)).toBeGreaterThan(0.6);
+    expect(tileInTowerRange(sim.grid, unit!.x, unit!.y)).toBe(false);
+
+    sim = advance(sim, 6);
+    const still = sim.units.find((row) => row.behavior === "ambush");
+    expect(sim.phase).toBe("enemy");
+    expect(still).toBeDefined();
+    expect(unitTile(still!)).not.toEqual(sim.grid.base);
+    expect(sim.baseHp).toBe(BASE_MAX_HP);
+  });
+
+  it("attacks a passing ally in Ally Phase so that unit pays no gold", () => {
+    let sim = asAmbush(createSim(uncoveredCorridor(createGrid(12, 8))));
+    sim = advance(sim, 5);
+    expect(sim.units.some((unit) => unit.behavior === "ambush")).toBe(true);
+
+    sim = {
+      ...sim,
+      phase: "ally",
+      phaseTimeLeft: 8,
+      burstIndex: 0,
+      spawnedInBurst: 0,
+      spawnCooldown: 0,
+    };
+    sim = tick(sim, 0.05);
+    expect(sim.units.some((unit) => unit.kind === "ally")).toBe(true);
+    const gold = sim.gold;
+
+    sim = advance(sim, 5);
+    expect(sim.gold).toBe(gold);
+    expect(sim.units.some((unit) => unit.kind === "ally")).toBe(false);
+    expect(sim.units.some((unit) => unit.behavior === "ambush")).toBe(true);
+  });
+
+  it("cannot hide or survive when fire covers the blind spots", () => {
+    let sim = asAmbush(createSim(fullFireGrid(createGrid(12, 8))));
+    sim = advance(sim, 6);
+    const unit = sim.units.find((row) => row.behavior === "ambush");
+    if (unit) {
+      expect(tileInTowerRange(sim.grid, unit.x, unit.y)).toBe(true);
+      expect(unit.hp).toBeLessThan(10);
+    } else {
+      expect(sim.units.some((row) => row.behavior === "ambush")).toBe(false);
+    }
   });
 });
 

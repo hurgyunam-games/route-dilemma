@@ -32,6 +32,7 @@
     { "id": "goblin-16", "name": "고블린 16", "sprite": "goblin", "hp": 16 },
     { "id": "goblin-18", "name": "고블린 18", "sprite": "goblin", "hp": 18 },
     { "id": "goblin-20", "name": "고블린 20", "sprite": "goblin", "hp": 20 },
+    { "id": "goblin-14-ambush", "name": "매복 고블린 14", "sprite": "goblin", "hp": 14, "hue": 280, "behavior": "ambush" },
     { "id": "slime-10", "name": "슬라임 10", "sprite": "slime", "hp": 10 },
     { "id": "slime-12", "name": "슬라임 12", "sprite": "slime", "hp": 12 },
     { "id": "slime-14", "name": "슬라임 14", "sprite": "slime", "hp": 14 },
@@ -43,6 +44,10 @@
     { "id": "wolf-32", "name": "늑대 32", "sprite": "wolf", "hp": 32 },
     { "id": "wolf-38", "name": "늑대 38", "sprite": "wolf", "hp": 38 },
     { "id": "wolf-42", "name": "늑대 42", "sprite": "wolf", "hp": 42 },
-    { "id": "wolf-44", "name": "늑대 44", "sprite": "wolf", "hp": 44 }
+    { "id": "wolf-44", "name": "늑대 44", "sprite": "wolf", "hp": 44 },
+    { "id": "wolf-20-ambush", "name": "매복 늑대 20", "sprite": "wolf", "hp": 20, "hue": 280, "behavior": "ambush" },
+    { "id": "wolf-26-ambush", "name": "매복 늑대 26", "sprite": "wolf", "hp": 26, "hue": 280, "behavior": "ambush" },
+    { "id": "wolf-32-ambush", "name": "매복 늑대 32", "sprite": "wolf", "hp": 32, "hue": 280, "behavior": "ambush" },
+    { "id": "wolf-42-ambush", "name": "매복 늑대 42", "sprite": "wolf", "hp": 42, "hue": 280, "behavior": "ambush" }
   ]
 }

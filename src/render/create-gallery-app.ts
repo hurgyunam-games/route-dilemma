@@ -18,7 +18,7 @@ import {
   type Obstacle,
   type Tower,
 } from "@/core";
-import { loadAllyFrames } from "@/render/ally-sprites";
+import { loadAllyFrames, type AllyAtlas } from "@/render/ally-sprites";
 import { arrowUniformScale, loadArrowFrames } from "@/render/arrow-sprites";
 import { loadEnemyFrames, type EnemyAtlas } from "@/render/enemy-sprites";
 import { loadFloorTexture } from "@/render/floor-tile";
@@ -87,7 +87,7 @@ type GalleryAssets = {
   readonly occupantAtlas: Awaited<ReturnType<typeof loadOccupantFrames>>;
   readonly floorTexture: Texture;
   readonly enemyAtlas: EnemyAtlas;
-  readonly allyWalk: Texture[];
+  readonly allyAtlas: AllyAtlas;
   readonly arrowFrames: Texture[];
   readonly cannonProjFrames: Texture[];
   readonly mageProjFrames: Texture[];
@@ -320,7 +320,9 @@ function createSlot(
     }
   } else if (item.group === "enemy" || item.group === "ally") {
     const textures =
-      item.group === "ally" ? assets.allyWalk : assets.enemyAtlas[item.enemyType].walk;
+      item.group === "ally"
+        ? assets.allyAtlas[item.allyType]
+        : assets.enemyAtlas[item.enemyType].walk;
     const sprite = new AnimatedSprite({
       textures,
       animationSpeed: ENEMY_ANIMATION_SPEED,
@@ -448,7 +450,7 @@ export async function createGalleryApp(
     occupantAtlas,
     floorTexture,
     enemyAtlas,
-    allyWalk,
+    allyAtlas,
     arrowFrames,
     cannonProjFrames,
     mageProjFrames,
@@ -473,7 +475,7 @@ export async function createGalleryApp(
     occupantAtlas,
     floorTexture,
     enemyAtlas,
-    allyWalk,
+    allyAtlas,
     arrowFrames,
     cannonProjFrames,
     mageProjFrames,

@@ -42,6 +42,23 @@ import {
   type WaveBurst,
 } from "./waves";
 import { DEFAULT_ENEMY_BEHAVIOR, type EnemyBehaviorId } from "./enemies";
+import {
+  DEFAULT_ALLY_TYPE,
+  allyGoldReward,
+  allyTypeAt,
+  type AllyTypeId,
+} from "./allies";
+
+export {
+  ALLY_GOLD,
+  ALLY_GOLD_REWARD,
+  ALLY_SPRITE_LABELS,
+  ALLY_TYPE_IDS,
+  DEFAULT_ALLY_TYPE,
+  allyGoldReward,
+  allyTypeAt,
+} from "./allies";
+export type { AllyTypeId } from "./allies";
 
 export {
   ENEMY_BEHAVIOR_IDS,
@@ -50,6 +67,7 @@ export {
   ENEMY_TYPE_IDS,
   DEFAULT_ENEMY_BEHAVIOR,
   BREAKER_HUE,
+  AMBUSH_HUE,
   MAX_ENEMIES,
   MIN_ENEMIES,
   bundledEnemyTable,
@@ -144,7 +162,6 @@ export const TOWER_ATTACK_DPS = towerDps({ typeId: "archer", level: 1 });
 export const TOWER_FIRE_INTERVAL_SEC = 0.4;
 export const PROJECTILE_SPEED_TILES_PER_SEC = 10;
 export const CATCH_RANGE_TILES = 1;
-export const ALLY_GOLD_REWARD = 10;
 export const START_GOLD = 100;
 /** Extra starting gold added for each stage after 1. */
 export const START_GOLD_PER_STAGE = 15;
@@ -186,6 +203,7 @@ export type Unit = {
   readonly id: number;
   readonly kind: UnitKind;
   readonly enemyType: EnemyTypeId | null;
+  readonly allyType: AllyTypeId | null;
   readonly hue: number;
   readonly behavior: EnemyBehaviorId;
   readonly x: number;
@@ -250,6 +268,11 @@ export type HudSnapshot = {
 type StepResult = {
   readonly unit: Unit;
   readonly grid: Grid;
+};
+
+type AmbushContext = {
+  readonly allies: readonly Unit[];
+  readonly hideTaken: Set<string>;
 };
 
 export function unitTile(unit: Pick<Unit, "x" | "y">): TileCoord {
@@ -434,13 +457,22 @@ function tickOnce(state: SimState, dt: number): SimState {
   let burstIndex = phaseChanged ? 0 : state.burstIndex;
   let spawnedInBurst = phaseChanged ? 0 : state.spawnedInBurst;
   let spawnCooldown = phaseChanged ? 0 : state.spawnCooldown - dt;
+  const retained = retainUnits(state.units, state.phase, clock.phase);
+  const ambushCtx: AmbushContext = {
+    allies: retained.filter((unit) => unit.kind === "ally"),
+    hideTaken: new Set(),
+  };
 
-  for (const unit of retainUnits(state.units, state.phase, clock.phase)) {
-    const moved = stepUnit(unit, grid, dt);
+  for (const unit of retained) {
+    const moved = stepUnit(unit, grid, dt, ambushCtx);
     grid = moved.grid;
     if (reachedBase(moved.unit, grid)) {
+      if (isAmbush(moved.unit)) {
+        units.push(moved.unit);
+        continue;
+      }
       if (moved.unit.kind === "ally") {
-        gold += ALLY_GOLD_REWARD;
+        gold += allyGoldReward(moved.unit.allyType);
       } else {
         baseHp = Math.max(0, baseHp - ENEMY_BASE_DAMAGE);
       }
@@ -558,7 +590,7 @@ function resolveOutcome(state: SimState, stage: StageWave): BattleOutcome {
   if (
     state.waveIndex >= state.waveCount - 1 &&
     state.burstIndex >= stage.bursts.length &&
-    !state.units.some((unit) => unit.kind === "enemy")
+    !state.units.some((unit) => unit.kind === "enemy" && !isAmbush(unit))
   ) {
     return "victory";
   }
@@ -573,10 +605,15 @@ function retainUnits(
   if (prevPhase === nextPhase) {
     return [...units];
   }
+  const ambush = units.filter(isAmbush);
   if (nextPhase === "enemy") {
-    return units.filter((unit) => unit.kind === "ally");
+    return [...units.filter((unit) => unit.kind === "ally"), ...ambush];
   }
-  return [];
+  return ambush;
+}
+
+function isAmbush(unit: Unit): boolean {
+  return unit.kind === "enemy" && unit.behavior === "ambush";
 }
 
 function enemiesCatchAllies(units: readonly Unit[]): Unit[] {
@@ -645,7 +682,17 @@ function trySpawnWave(
     return {
       units: enemiesCatchAllies([
         ...units,
-        spawnUnit(nextUnitId, start, "ally", null, UNIT_MAX_HP),
+        spawnUnit(
+          nextUnitId,
+          start,
+          "ally",
+          null,
+          UNIT_MAX_HP,
+          UNIT_SPEED_TILES_PER_SEC,
+          0,
+          DEFAULT_ENEMY_BEHAVIOR,
+          allyTypeAt(spawnedInBurst),
+        ),
       ]),
       nextUnitId: nextUnitId + 1,
       burstIndex,
@@ -724,11 +771,13 @@ function spawnUnit(
   speed: number = UNIT_SPEED_TILES_PER_SEC,
   hue: number = 0,
   behavior: EnemyBehaviorId = DEFAULT_ENEMY_BEHAVIOR,
+  allyType: AllyTypeId | null = null,
 ): Unit {
   return {
     id,
     kind,
     enemyType: kind === "enemy" ? (enemyType ?? "beast") : null,
+    allyType: kind === "ally" ? (allyType ?? DEFAULT_ALLY_TYPE) : null,
     hue: kind === "enemy" ? hue : 0,
     behavior: kind === "enemy" ? behavior : DEFAULT_ENEMY_BEHAVIOR,
     x: tile.x,
@@ -745,7 +794,7 @@ function reachedBase(unit: Unit, grid: Grid): boolean {
   return Math.hypot(unit.x - grid.base.x, unit.y - grid.base.y) <= ARRIVE_EPS;
 }
 
-function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
+function stepUnit(unit: Unit, grid: Grid, dt: number, ambush?: AmbushContext): StepResult {
   let x = unit.x;
   let y = unit.y;
   const slowLeft = Math.max(0, unit.slowLeft - dt);
@@ -759,7 +808,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
   }
 
   const tile = unitTile({ x, y });
-  if (unit.kind !== "ally") {
+  if (unit.kind !== "ally" && !isAmbush(unit)) {
     const target = attackTarget(grid, tile, unit);
     if (target && isOrthAdjacent(tile, target)) {
       return {
@@ -786,7 +835,7 @@ function stepUnit(unit: Unit, grid: Grid, dt: number): StepResult {
       continue;
     }
 
-    const waypoint = nextWaypoint(grid, x, y, here, unit);
+    const waypoint = nextWaypoint(grid, x, y, here, unit, ambush);
     if (!waypoint) {
       break;
     }
@@ -987,8 +1036,9 @@ function nextWaypoint(
   y: number,
   tile: TileCoord,
   unit: Unit,
+  ambush?: AmbushContext,
 ): TileCoord | null {
-  const route = routeForTile(grid, tile, unit);
+  const route = routeForTile(grid, tile, unit, ambush);
   if (!route || route.length === 0) {
     return null;
   }
@@ -1018,7 +1068,11 @@ function routeForTile(
   grid: Grid,
   from: TileCoord,
   unit: Unit,
+  ambush?: AmbushContext,
 ): readonly TileCoord[] | null {
+  if (isAmbush(unit)) {
+    return ambushRoute(grid, unit, from, ambush);
+  }
   if (unit.kind === "enemy" && unit.behavior === "breaker") {
     const punch = findPath(grid, from, grid.base, { throughTowers: true });
     if (punch) {
@@ -1071,7 +1125,160 @@ function joinSharedPath(
   return best;
 }
 
+function ambushRoute(
+  grid: Grid,
+  unit: Unit,
+  from: TileCoord,
+  ambush?: AmbushContext,
+): readonly TileCoord[] | null {
+  const goal = ambushGoal(grid, unit, from, ambush);
+  if (ambush && ambush.allies.length === 0) {
+    ambush.hideTaken.add(`${goal.x},${goal.y}`);
+  }
+  if (sameTile(from, goal)) {
+    return [from];
+  }
+  return findPath(grid, from, goal);
+}
+
+function ambushGoal(
+  grid: Grid,
+  unit: Unit,
+  from: TileCoord,
+  ambush?: AmbushContext,
+): TileCoord {
+  const allies = ambush?.allies ?? [];
+  if (allies.length > 0) {
+    const prey = nearestAlly(unit, allies);
+    if (prey) {
+      const tile = unitTile(prey);
+      if (isWalkable(grid, tile.x, tile.y)) {
+        return tile;
+      }
+    }
+    return from;
+  }
+  return pickHideTile(grid, from, ambush?.hideTaken) ?? pickFallbackAmbushTile(grid, from);
+}
+
+function nearestAlly(unit: Unit, allies: readonly Unit[]): Unit | null {
+  let best: Unit | null = null;
+  let bestDist = Infinity;
+  for (const ally of allies) {
+    const dist = Math.hypot(unit.x - ally.x, unit.y - ally.y);
+    if (dist < bestDist) {
+      best = ally;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
+function pickHideTile(
+  grid: Grid,
+  from: TileCoord,
+  taken?: ReadonlySet<string>,
+): TileCoord | null {
+  const region = walkableRegion(grid, from);
+  const uncovered = region.filter((tile) => isHideCandidate(grid, tile));
+  if (uncovered.length === 0) {
+    return null;
+  }
+  const path = findPath(grid) ?? findPath(grid, from, grid.base) ?? [];
+  const pathKeys = new Set(path.map((tile) => `${tile.x},${tile.y}`));
+  const onPath = uncovered.filter((tile) => pathKeys.has(`${tile.x},${tile.y}`));
+  const nearPath = uncovered.filter(
+    (tile) =>
+      pathKeys.has(`${tile.x},${tile.y}`) ||
+      ORTHOGONAL.some((step) => pathKeys.has(`${tile.x + step.x},${tile.y + step.y}`)),
+  );
+  let pool = onPath.length > 0 ? onPath : nearPath.length > 0 ? nearPath : uncovered;
+  if (taken && taken.size > 0) {
+    const free = pool.filter((tile) => !taken.has(`${tile.x},${tile.y}`));
+    if (free.length > 0) {
+      pool = free;
+    }
+  }
+  return pool.reduce((best, tile) =>
+    betterHideTile(tile, best, from, grid.start) ? tile : best,
+  );
+}
+
+function pickFallbackAmbushTile(grid: Grid, from: TileCoord): TileCoord {
+  const region = walkableRegion(grid, from).filter(
+    (tile) => !sameTile(tile, grid.start) && !sameTile(tile, grid.base),
+  );
+  if (region.length === 0) {
+    return from;
+  }
+  return region.reduce((best, tile) => {
+    const cover = fireCoverage(grid, tile);
+    const bestCover = fireCoverage(grid, best);
+    if (cover !== bestCover) {
+      return cover < bestCover ? tile : best;
+    }
+    return manhattan(tile, from) < manhattan(best, from) ? tile : best;
+  });
+}
+
+function isHideCandidate(grid: Grid, tile: TileCoord): boolean {
+  if (sameTile(tile, grid.start) || sameTile(tile, grid.base)) {
+    return false;
+  }
+  return !tileInFire(grid, tile.x, tile.y);
+}
+
+function tileInFire(grid: Grid, x: number, y: number): boolean {
+  for (const tower of grid.towers) {
+    if (!isTowerComplete(tower) || !towerFires(tower)) {
+      continue;
+    }
+    if (Math.hypot(x - tower.x, y - tower.y) <= towerRange(tower)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function fireCoverage(grid: Grid, tile: TileCoord): number {
+  let n = 0;
+  for (const tower of grid.towers) {
+    if (!isTowerComplete(tower) || !towerFires(tower)) {
+      continue;
+    }
+    if (Math.hypot(tile.x - tower.x, tile.y - tower.y) <= towerRange(tower)) {
+      n += 1;
+    }
+  }
+  return n;
+}
+
+function betterHideTile(
+  candidate: TileCoord,
+  current: TileCoord,
+  from: TileCoord,
+  start: TileCoord,
+): boolean {
+  const candidateFromStart = manhattan(candidate, start);
+  const currentFromStart = manhattan(current, start);
+  if (candidateFromStart !== currentFromStart) {
+    return candidateFromStart > currentFromStart;
+  }
+  const candidateFrom = manhattan(candidate, from);
+  const currentFrom = manhattan(current, from);
+  if (candidateFrom !== currentFrom) {
+    return candidateFrom < currentFrom;
+  }
+  if (candidate.y !== current.y) {
+    return candidate.y < current.y;
+  }
+  return candidate.x < current.x;
+}
+
 function attackTarget(grid: Grid, from: TileCoord, unit: Unit): TileCoord | null {
+  if (isAmbush(unit)) {
+    return null;
+  }
   if (unit.behavior === "breaker") {
     const punch = findPath(grid, from, grid.base, { throughTowers: true });
     if (punch && punch.length >= 2) {

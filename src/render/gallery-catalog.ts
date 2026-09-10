@@ -1,8 +1,12 @@
 import {
+  ALLY_GOLD,
+  ALLY_SPRITE_LABELS,
+  ALLY_TYPE_IDS,
   ENEMY_TYPE_IDS,
   TOWER_DEFS,
   TOWER_MAX_LEVEL,
   TOWER_TYPE_IDS,
+  type AllyTypeId,
   type EnemyTypeId,
   type ObstacleKind,
   type TowerTypeId,
@@ -61,6 +65,7 @@ export type GalleryItem =
       readonly id: string;
       readonly group: "ally";
       readonly label: string;
+      readonly allyType: AllyTypeId;
     }
   | {
       readonly id: string;
@@ -512,7 +517,12 @@ export const GALLERY_ITEMS: readonly GalleryItem[] = [
     label: ENEMY_LABELS[enemyType],
     enemyType,
   })),
-  { id: "ally", group: "ally", label: "아군" },
+  ...ALLY_TYPE_IDS.map((allyType) => ({
+    id: `ally-${allyType}`,
+    group: "ally" as const,
+    label: `${ALLY_SPRITE_LABELS[allyType]} · ${ALLY_GOLD[allyType]}G`,
+    allyType,
+  })),
   ...obstacleItems(),
   ...projectileItems(),
   { id: "start", group: "marker", label: "Start", marker: "start" },

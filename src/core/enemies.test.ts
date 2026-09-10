@@ -115,4 +115,27 @@ describe("enemy catalog", () => {
     expect(breaker.table.enemies[0]?.behavior).toBe("breaker");
     expect(getEnemy("cavalry-16").behavior).toBe("breaker");
   });
+
+  it("keeps ambush behavior", () => {
+    const ambush = parseEnemyTableJson(
+      JSON.stringify({
+        enemies: [
+          {
+            id: "goblin-14-ambush",
+            name: "매복 고블린",
+            sprite: "goblin",
+            hp: 14,
+            hue: 280,
+            behavior: "ambush",
+          },
+        ],
+      }),
+    );
+    expect(ambush.ok).toBe(true);
+    if (!ambush.ok) {
+      return;
+    }
+    expect(ambush.table.enemies[0]?.behavior).toBe("ambush");
+    expect(getEnemy("goblin-14-ambush").behavior).toBe("ambush");
+  });
 });

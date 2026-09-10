@@ -78,10 +78,14 @@ describe("stage wave table", () => {
       "cavalry",
     ]);
     expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "breaker")).toBe(true);
+    expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "ambush")).toBe(true);
     expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "normal")).toBe(true);
     for (let id = 1; id <= STAGE_COUNT; id += 1) {
       expect(
         getStageWave(id).bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "breaker")),
+      ).toBe(true);
+      expect(
+        getStageWave(id).bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "ambush")),
       ).toBe(true);
     }
   });

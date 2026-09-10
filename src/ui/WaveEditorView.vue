@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch, type CSSProperties } from "vue";
 import {
+  ALLY_GOLD,
+  ALLY_SPRITE_LABELS,
+  ALLY_TYPE_IDS,
   ENEMY_BEHAVIOR_LABELS,
   ENEMY_SPRITE_LABELS,
   MAX_WAVE_SPAWNS_PER_BURST,
@@ -108,7 +111,7 @@ const spawnLine = (unit: WaveSpawnRef): string => {
     return `${unit.enemyId} (없는 적)`;
   }
   const hue = def.hue ? ` · 색조 ${def.hue}` : "";
-  const behavior = def.behavior === "breaker" ? ` · ${ENEMY_BEHAVIOR_LABELS.breaker}` : "";
+  const behavior = def.behavior !== "normal" ? ` · ${ENEMY_BEHAVIOR_LABELS[def.behavior]}` : "";
   return `${def.name} · ${ENEMY_SPRITE_LABELS[def.sprite]} · HP ${def.hp}${behavior}${hue}`;
 };
 
@@ -119,6 +122,9 @@ const rowMaxHp = (row: StageWaveRow): number =>
   );
 
 const spawnSec = computed(() => (stage.value ? enemySpawnDurationSec(stage.value) : 0));
+const allyMixLine = ALLY_TYPE_IDS.map(
+  (id) => `${ALLY_SPRITE_LABELS[id]} ${ALLY_GOLD[id]}G`,
+).join(" → ");
 
 const loopHint = computed(() => {
   const row = stage.value;
@@ -560,6 +566,7 @@ const onJsonInput = (event: Event): void => {
         <p class="hint">
           적 {{ enemyCount(stage) }}마리 · 스폰 약 {{ spawnSec.toFixed(1) }}s /
           적 페이즈 {{ stage.enemyPhaseSec }}s · 아군 {{ stage.allyCount }}명
+          ({{ allyMixLine }})
         </p>
         <div class="fields">
           <label>
@@ -603,6 +610,9 @@ const onJsonInput = (event: Event): void => {
             >
           </label>
         </div>
+        <p class="hint">
+          아군은 {{ allyMixLine }} 순으로 반복해서 나옵니다.
+        </p>
         <div class="burst-head">
           <h3>적 스폰 순서</h3>
           <button
@@ -771,7 +781,7 @@ const onJsonInput = (event: Event): void => {
                 <strong>{{ item.name }}</strong>
                 <span>
                   {{ ENEMY_SPRITE_LABELS[item.sprite] }} · HP {{ item.hp }}
-                  <template v-if="item.behavior === 'breaker'"> · {{ ENEMY_BEHAVIOR_LABELS.breaker }}</template>
+                  <template v-if="item.behavior !== 'normal'"> · {{ ENEMY_BEHAVIOR_LABELS[item.behavior] }}</template>
                   <template v-if="item.hue"> · 색조 {{ item.hue }}</template>
                 </span>
               </span>

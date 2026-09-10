@@ -21,6 +21,7 @@ import {
   towerWorkDuration,
   UNIT_MAX_HP,
   viewportToTile,
+  type AllyTypeId,
   type EnemyTypeId,
   type Grid,
   type GridLayout,
@@ -32,6 +33,7 @@ import {
   type UnitKind,
 } from "@/core";
 import type { EnemyAtlas, EnemySheets } from "@/render/enemy-sprites";
+import { allyWalkTextures, type AllyAtlas } from "@/render/ally-sprites";
 import {
   occupantClipFrames,
   occupantVariantIndex,
@@ -133,6 +135,7 @@ type UnitSprite = {
   clip: EnemyClip;
   kind: UnitKind;
   enemyType: EnemyTypeId | null;
+  allyType: AllyTypeId | null;
   hue: number;
 };
 
@@ -163,21 +166,25 @@ function enemySheetsFor(
 function unitWalkTextures(
   kind: UnitKind,
   enemyType: EnemyTypeId | null,
+  allyType: AllyTypeId | null,
   atlas: EnemyAtlas,
-  allyWalk: Texture[],
+  allyAtlas: AllyAtlas,
 ): Texture[] {
-  return kind === "ally" ? allyWalk : enemySheetsFor(enemyType, atlas).walk;
+  return kind === "ally"
+    ? allyWalkTextures(allyAtlas, allyType)
+    : enemySheetsFor(enemyType, atlas).walk;
 }
 
 function unitClipTextures(
   kind: UnitKind,
   enemyType: EnemyTypeId | null,
+  allyType: AllyTypeId | null,
   clip: EnemyClip,
   atlas: EnemyAtlas,
-  allyWalk: Texture[],
+  allyAtlas: AllyAtlas,
 ): Texture[] {
   if (kind === "ally" || clip === "walk") {
-    return unitWalkTextures(kind, enemyType, atlas, allyWalk);
+    return unitWalkTextures(kind, enemyType, allyType, atlas, allyAtlas);
   }
   const sheets = enemySheetsFor(enemyType, atlas);
   if (clip === "death") {
@@ -335,6 +342,23 @@ function drawUnitHp(
     graphics
       .poly([cx, cy - mark * 0.55, cx + mark * 0.55, cy + mark * 0.35, cx - mark * 0.55, cy + mark * 0.35])
       .fill({ color: 0xff6b3d, alpha: 0.95 });
+  }
+  if (unit.kind === "enemy" && unit.behavior === "ambush") {
+    const mark = Math.max(4, Math.round(layout.tileSize * 0.12));
+    const cx = left + width / 2;
+    const cy = top - mark * 0.3;
+    graphics
+      .poly([
+        cx,
+        cy - mark * 0.55,
+        cx + mark * 0.5,
+        cy,
+        cx,
+        cy + mark * 0.55,
+        cx - mark * 0.5,
+        cy,
+      ])
+      .fill({ color: 0xb07cff, alpha: 0.95 });
   }
   drawHpBar(graphics, left, top, width, height, unit.hp, UNIT_MAX_HP);
 }
@@ -597,7 +621,7 @@ export function createGridView(
   occupantAtlas: OccupantAtlas,
   floorTexture: Texture,
   enemyAtlas: EnemyAtlas,
-  allyWalk: Texture[],
+  allyAtlas: AllyAtlas,
   arrowFrames: Texture[],
   cannonProjFrames: Texture[],
   mageProjFrames: Texture[],
@@ -920,7 +944,13 @@ export function createGridView(
       let record = unitSprites.get(unit.id);
       if (!record) {
         const sprite = new AnimatedSprite({
-          textures: unitWalkTextures(unit.kind, unit.enemyType, enemyAtlas, allyWalk),
+          textures: unitWalkTextures(
+            unit.kind,
+            unit.enemyType,
+            unit.allyType,
+            enemyAtlas,
+            allyAtlas,
+          ),
           animationSpeed: ENEMY_ANIMATION_SPEED,
           loop: true,
           autoPlay: false,
@@ -936,6 +966,7 @@ export function createGridView(
           clip: "walk",
           kind: unit.kind,
           enemyType: unit.enemyType,
+          allyType: unit.allyType,
           hue: unit.hue,
         };
         applyUnitHue(sprite, unit.hue);
@@ -955,18 +986,21 @@ export function createGridView(
       if (
         record.kind !== unit.kind ||
         record.enemyType !== unit.enemyType ||
+        record.allyType !== unit.allyType ||
         record.clip !== clip
       ) {
         record.kind = unit.kind;
         record.enemyType = unit.enemyType;
+        record.allyType = unit.allyType;
         record.clip = clip;
         record.sprite.loop = true;
         record.sprite.textures = unitClipTextures(
           unit.kind,
           unit.enemyType,
+          unit.allyType,
           clip,
           enemyAtlas,
-          allyWalk,
+          allyAtlas,
         );
         record.sprite.animationSpeed =
           clip === "attack" && unit.kind !== "ally"
@@ -1031,9 +1065,10 @@ export function createGridView(
         record.sprite.textures = unitClipTextures(
           record.kind,
           record.enemyType,
+          record.allyType,
           "death",
           enemyAtlas,
-          allyWalk,
+          allyAtlas,
         );
         record.sprite.animationSpeed = ENEMY_DEATH_ANIMATION_SPEED;
         record.sprite.onComplete = () => {
