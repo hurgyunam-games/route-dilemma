@@ -7,7 +7,7 @@ coverage
 .vscode/*
 !.vscode/extensions.json
 
-# Licensed (and any) raster images must stay off git.
+# Licensed (and any) raster images / SFX must stay off git.
 *.png
 *.jpg
 *.jpeg
@@ -18,4 +18,7 @@ coverage
 *.tiff
 *.ico
 *.psd
+*.wav
+*.ogg
+*.mp3
 *.zip

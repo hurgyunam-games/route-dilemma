@@ -30,6 +30,15 @@ const OCCUPANT_FILES: Record<TowerTypeId, readonly OccupantFiles[]> = {
       fallback: ["#3a8b3a", "#2a6b2a"],
     },
   ],
+  melee: [
+    {
+      idle: "occupant-melee-idle.png",
+      attack: "occupant-melee-attack.png",
+      idleCols: 4,
+      attackCols: 6,
+      fallback: ["#8a6a38", "#c45a38"],
+    },
+  ],
   cannon: [
     {
       idle: "occupant-cannon-idle.png",
@@ -93,12 +102,13 @@ async function loadOccupantVariant(files: OccupantFiles): Promise<OccupantSheets
 }
 
 export async function loadOccupantFrames(): Promise<OccupantAtlas> {
-  const [archer, cannon, mage] = await Promise.all([
+  const [archer, melee, cannon, mage] = await Promise.all([
     Promise.all(OCCUPANT_FILES.archer.map(loadOccupantVariant)),
+    Promise.all(OCCUPANT_FILES.melee.map(loadOccupantVariant)),
     Promise.all(OCCUPANT_FILES.cannon.map(loadOccupantVariant)),
     Promise.all(OCCUPANT_FILES.mage.map(loadOccupantVariant)),
   ]);
-  return { archer, cannon, mage, wall: [blankOccupant()] };
+  return { archer, melee, cannon, mage, wall: [blankOccupant()] };
 }
 
 export function occupantVariantIndex(level: number, count: number): number {

@@ -4,6 +4,7 @@ import type { Application } from "pixi.js";
 import {
   canUpgrade,
   campaignCycle,
+  combatCues,
   createBattleGrid,
   createSim,
   getGameMap,
@@ -36,6 +37,7 @@ import {
   destroyGameApp,
   setGameView,
 } from "@/render/create-game-app";
+import { playCombatSfx, unlockCombatSfx } from "@/render/sfx";
 
 const TIME_CONTROLS: readonly { scale: TimeScale; label: string }[] = [
   { scale: 0, label: "일시정지" },
@@ -70,9 +72,15 @@ let lastTowerSave = JSON.stringify(sim.grid.towers);
 const hud = ref<HudSnapshot>(hudSnapshot(sim));
 const shop = ref<Shop | null>(null);
 const shopError = ref("");
+const leakPulse = ref(0);
+const goldGain = ref(0);
+const goldAnimating = ref(false);
+const hpHit = ref(false);
 let app: Application | null = null;
 let raf = 0;
 let lastTs = 0;
+let goldGainTimer = 0;
+let hpHitTimer = 0;
 
 const phaseLabel = computed(() =>
   hud.value.phase === "enemy" ? "Enemy Phase" : "Ally Phase",
@@ -187,7 +195,14 @@ const pushHud = (): void => {
 
 const pushView = (): void => {
   if (app) {
-    setGameView(app, sim.grid, sim.units, sim.towerShots, rangePreview.value);
+    setGameView(
+      app,
+      sim.grid,
+      sim.units,
+      sim.towerShots,
+      rangePreview.value,
+      leakPulse.value,
+    );
   }
 };
 
@@ -207,6 +222,10 @@ const onRestart = (): void => {
   sim = makeBattle();
   reportedVictory = false;
   lastTowerSave = JSON.stringify(sim.grid.towers);
+  leakPulse.value = 0;
+  goldGain.value = 0;
+  goldAnimating.value = false;
+  hpHit.value = false;
   closeShop();
   pushHud();
   pushView();
@@ -287,13 +306,45 @@ onMounted(async () => {
     return;
   }
   app = await createGameApp(hostRef.value, sim.grid, sim.units, onTileClick);
+  unlockCombatSfx();
+  hostRef.value.addEventListener("pointerdown", unlockCombatSfx, { once: true });
 
   const loop = (ts: number): void => {
     raf = requestAnimationFrame(loop);
     const dt = lastTs === 0 ? 0 : Math.min(0.05, (ts - lastTs) / 1000);
     lastTs = ts;
     if (dt > 0) {
+      const prev = sim;
       sim = tick(sim, dt);
+      const cues = combatCues(prev, sim);
+      if (cues.leak) {
+        leakPulse.value += 1;
+        hpHit.value = true;
+        window.clearTimeout(hpHitTimer);
+        hpHitTimer = window.setTimeout(() => {
+          hpHit.value = false;
+        }, 280);
+        playCombatSfx("leak");
+      }
+      if (cues.reward) {
+        goldGain.value = cues.goldDelta;
+        goldAnimating.value = false;
+        requestAnimationFrame(() => {
+          goldAnimating.value = true;
+        });
+        window.clearTimeout(goldGainTimer);
+        goldGainTimer = window.setTimeout(() => {
+          goldGain.value = 0;
+          goldAnimating.value = false;
+        }, 700);
+        playCombatSfx("reward");
+      }
+      if (cues.collapse) {
+        playCombatSfx("collapse");
+      }
+      if (cues.allyLost) {
+        playCombatSfx("allyLost");
+      }
       pushHud();
       pushView();
     }
@@ -303,6 +354,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   cancelAnimationFrame(raf);
+  window.clearTimeout(goldGainTimer);
+  window.clearTimeout(hpHitTimer);
   if (app) {
     destroyGameApp(app);
     app = null;
@@ -333,10 +386,20 @@ onUnmounted(() => {
             <span class="phase-name">{{ phaseLabel }}</span>
             <span class="phase-timer">{{ phaseTimeLabel }}</span>
           </div>
-          <p class="gold">
+          <p
+            class="gold"
+            :class="{ pulse: goldAnimating }"
+          >
             {{ goldLabel }}
+            <span
+              v-if="goldGain > 0"
+              class="gold-gain"
+            >+{{ goldGain }}</span>
           </p>
-          <p class="base-hp">
+          <p
+            class="base-hp"
+            :class="{ hit: hpHit }"
+          >
             {{ baseHpLabel }}
           </p>
         </div>
@@ -658,8 +721,43 @@ onUnmounted(() => {
   color: #e8d48a;
 }
 
+.gold.pulse {
+  animation: gold-in 0.45s ease-out;
+}
+
+.gold-gain {
+  margin-left: 6px;
+  color: #ffe9a8;
+  font-weight: 800;
+}
+
 .base-hp {
   color: #f0b4a8;
+}
+
+.base-hp.hit {
+  animation: hp-hit 0.28s ease-out;
+  box-shadow: inset 0 0 0 1px rgba(232, 96, 72, 0.8);
+}
+
+@keyframes gold-in {
+  from {
+    box-shadow: inset 0 0 0 1px rgba(232, 212, 138, 0.9);
+    transform: scale(1.06);
+  }
+  to {
+    box-shadow: inset 0 0 0 1px transparent;
+    transform: scale(1);
+  }
+}
+
+@keyframes hp-hit {
+  from {
+    background: rgba(120, 24, 18, 0.92);
+  }
+  to {
+    background: rgba(20, 12, 10, 0.82);
+  }
 }
 
 .blocked {
@@ -793,6 +891,10 @@ onUnmounted(() => {
 
 .type-card.archer {
   box-shadow: inset 0 0 0 2px #e8c090;
+}
+
+.type-card.melee {
+  box-shadow: inset 0 0 0 2px #d09070;
 }
 
 .type-card.cannon {

@@ -19,6 +19,21 @@
       ]
     },
     {
+      "id": "melee",
+      "name": "기사",
+      "attack": "melee",
+      "splashRadius": 0,
+      "slowFactor": 1,
+      "slowSec": 0,
+      "levels": [
+        { "cost": 12, "hp": 12, "range": 1, "dps": 7 },
+        { "cost": 12, "hp": 16, "range": 1, "dps": 10 },
+        { "cost": 24, "hp": 20, "range": 1, "dps": 13 },
+        { "cost": 36, "hp": 26, "range": 1, "dps": 16 },
+        { "cost": 48, "hp": 32, "range": 1, "dps": 20 }
+      ]
+    },
+    {
       "id": "cannon",
       "name": "대포",
       "attack": "splash",

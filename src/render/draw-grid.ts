@@ -84,6 +84,10 @@ const UNIT_MOVE_EPS = 0.002;
 const BASE_ARRIVE_EPS = 0.2;
 const CANNON_BOOM_SIZE_IN_TILE = 1.15;
 const CANNON_BOOM_SPEED = 0.32;
+const CANNON_BOOM_ANCHOR_Y = 0.5;
+const MAGE_BOOM_SIZE_IN_TILE = 1.7;
+const MAGE_BOOM_SPEED = 0.42;
+const MAGE_BOOM_ANCHOR_Y = 0.92;
 const CANNON_ARC_PEAK_MIN = 0.5;
 const CANNON_ARC_PEAK_PER_TILE = 0.2;
 const CANNON_ARC_PEAK_MAX = 1.35;
@@ -442,12 +446,14 @@ function layoutBoomSprite(
   layout: GridLayout,
   x: number,
   y: number,
+  sizeInTile: number,
+  anchorY: number,
 ): void {
   const pos = shotPixel(layout, x, y);
   const frame = sprite.texture;
   const long = Math.max(frame.width, frame.height, 1);
-  sprite.anchor.set(0.5);
-  sprite.scale.set((layout.tileSize * CANNON_BOOM_SIZE_IN_TILE) / long);
+  sprite.anchor.set(0.5, anchorY);
+  sprite.scale.set((layout.tileSize * sizeInTile) / long);
   sprite.position.set(pos.x, pos.y);
   sprite.visible = true;
 }
@@ -665,6 +671,7 @@ export function createGridView(
   cannonProjFrames: Texture[],
   mageProjFrames: Texture[],
   cannonBoomFrames: Texture[],
+  mageBoomFrames: Texture[],
   obstacleAtlas: ObstacleAtlas,
   startFrames: Texture[],
   baseFrames: Texture[],
@@ -677,6 +684,7 @@ export function createGridView(
     units?: readonly Unit[],
     towerShots?: readonly TowerShot[],
     rangePreview?: RangePreview | null,
+    baseHitPulse?: number,
   ): void;
   tileAt(px: number, py: number): TileCoord | null;
 } {
@@ -709,10 +717,19 @@ export function createGridView(
   const arrowSprites: Sprite[] = [];
   const cannonSprites: Sprite[] = [];
   const mageSprites: Sprite[] = [];
-  const booms: { sprite: AnimatedSprite; x: number; y: number; done: boolean }[] =
-    [];
+  const booms: {
+    sprite: AnimatedSprite;
+    x: number;
+    y: number;
+    done: boolean;
+    sizeInTile: number;
+    anchorY: number;
+  }[] = [];
   let prevCannonShots = new Map<number, TowerShot>();
+  let prevMageShots = new Map<number, TowerShot>();
   let lastLayout: GridLayout | null = null;
+  let lastHitPulse = 0;
+  let hitUntil = 0;
   const startSprite = new AnimatedSprite({
     textures: startFrames,
     animationSpeed: START_ANIMATION_SPEED,
@@ -769,30 +786,40 @@ export function createGridView(
     }
   };
 
-  const spawnCannonBoom = (x: number, y: number, layout: GridLayout): void => {
-    if (cannonBoomFrames.length === 0) {
+  const spawnBoom = (
+    frames: Texture[],
+    x: number,
+    y: number,
+    layout: GridLayout,
+    speed: number,
+    sizeInTile: number,
+    anchorY: number,
+  ): void => {
+    if (frames.length === 0) {
       return;
     }
     const boom = {
       sprite: new AnimatedSprite({
-        textures: cannonBoomFrames,
-        animationSpeed: CANNON_BOOM_SPEED,
+        textures: frames,
+        animationSpeed: speed,
         loop: false,
         autoPlay: false,
       }),
       x,
       y,
       done: false,
+      sizeInTile,
+      anchorY,
     };
     boom.sprite.eventMode = "none";
-    boom.sprite.anchor.set(0.5);
+    boom.sprite.anchor.set(0.5, anchorY);
     boom.sprite.onComplete = () => {
       boom.done = true;
       boom.sprite.destroy();
     };
     arrowLayer.addChild(boom.sprite);
     booms.push(boom);
-    layoutBoomSprite(boom.sprite, layout, x, y);
+    layoutBoomSprite(boom.sprite, layout, x, y, sizeInTile, anchorY);
     boom.sprite.gotoAndPlay(0);
   };
 
@@ -803,6 +830,7 @@ export function createGridView(
     units: readonly Unit[] = [],
     towerShots: readonly TowerShot[] = [],
     rangePreview: RangePreview | null = null,
+    baseHitPulse = 0,
   ): void => {
     graphics.clear();
     pathGraphics.clear();
@@ -826,6 +854,16 @@ export function createGridView(
       startSprite.play();
     }
     layoutBaseSprite(baseSprite, layout, grid.base.x, grid.base.y);
+    if (baseHitPulse > lastHitPulse) {
+      lastHitPulse = baseHitPulse;
+      hitUntil = performance.now() + 280;
+    }
+    if (performance.now() < hitUntil) {
+      baseSprite.x += Math.sin(performance.now() / 28) * Math.min(4, layout.tileSize * 0.08);
+      baseSprite.tint = 0xff6a4a;
+    } else {
+      baseSprite.tint = 0xffffff;
+    }
     if (!baseSprite.playing) {
       baseSprite.play();
     }
@@ -1197,22 +1235,23 @@ export function createGridView(
     const liveCannonIds = new Set(cannonShots.map((shot) => shot.id));
     for (const shot of prevCannonShots.values()) {
       if (!liveCannonIds.has(shot.id)) {
-        spawnCannonBoom(shot.x, shot.y, layout);
+        spawnBoom(
+          cannonBoomFrames,
+          shot.x,
+          shot.y,
+          layout,
+          CANNON_BOOM_SPEED,
+          CANNON_BOOM_SIZE_IN_TILE,
+          CANNON_BOOM_ANCHOR_Y,
+        );
       }
     }
     prevCannonShots = new Map(cannonShots.map((shot) => [shot.id, shot]));
-    for (let i = booms.length - 1; i >= 0; i -= 1) {
-      const boom = booms[i]!;
-      if (boom.done || !boom.sprite.parent) {
-        booms.splice(i, 1);
-        continue;
-      }
-      layoutBoomSprite(boom.sprite, layout, boom.x, boom.y);
-    }
+    const mageShots = towerShots.filter((shot) => shot.typeId === "mage");
     syncShotSprites(
       mageSprites,
       arrowLayer,
-      towerShots.filter((shot) => shot.typeId === "mage"),
+      mageShots,
       mageProjFrames,
       (sprite, shot) => {
         const tower = getTower(grid, shot.fromX, shot.fromY);
@@ -1226,6 +1265,36 @@ export function createGridView(
         );
       },
     );
+    const liveMageIds = new Set(mageShots.map((shot) => shot.id));
+    for (const shot of prevMageShots.values()) {
+      if (!liveMageIds.has(shot.id)) {
+        spawnBoom(
+          mageBoomFrames,
+          shot.x,
+          shot.y,
+          layout,
+          MAGE_BOOM_SPEED,
+          MAGE_BOOM_SIZE_IN_TILE,
+          MAGE_BOOM_ANCHOR_Y,
+        );
+      }
+    }
+    prevMageShots = new Map(mageShots.map((shot) => [shot.id, shot]));
+    for (let i = booms.length - 1; i >= 0; i -= 1) {
+      const boom = booms[i]!;
+      if (boom.done || !boom.sprite.parent) {
+        booms.splice(i, 1);
+        continue;
+      }
+      layoutBoomSprite(
+        boom.sprite,
+        layout,
+        boom.x,
+        boom.y,
+        boom.sizeInTile,
+        boom.anchorY,
+      );
+    }
 
   };
 

@@ -16,6 +16,8 @@ Place the following files here on your machine if you have the rights to use the
 - `occupant-archer-idle.png` (1×4)
 - `occupant-archer-attack.png` (1×6)
 - `occupant-archer-preattack.png` (1×1)
+- `occupant-melee-idle.png` (1×4 기사 idle)
+- `occupant-melee-attack.png` (1×6 기사 attack)
 - `occupant-cannon-idle.png` (1×6)
 - `occupant-cannon-attack.png` (1×6)
 - `occupant-cannon-preattack.png` (1×6)
@@ -26,6 +28,7 @@ Place the following files here on your machine if you have the rights to use the
 - `cannon-proj-01.png` … `cannon-proj-03.png` (cannon projectile by tower level)
 - `cannon-boom.png` (1×8 impact burst)
 - `mage-proj-01.png` … `mage-proj-03.png` (mage projectile by tower level)
+- `mage-boom.png` (1×10 lightning impact; 3rd cell is a solid flash and is skipped)
 - `ally-walk.png` (짐꾼 1×6 walk)
 - `ally-courier-walk.png` (전령 1×6 walk)
 - `ally-runner-walk.png` (행상 1×6 walk)
@@ -37,5 +40,9 @@ Place the following files here on your machine if you have the rights to use the
 - `obstacle-bush-1.png` … `obstacle-bush-6.png` (tree-tile bushes)
 - `start-banner.png` (1×6 waving flag on Start)
 - `base-campfire.png` (1×6 campfire on Base)
+- `sfx-leak.wav` (적이 Base에 들어갔을 때 한 번)
+- `sfx-reward.wav` (아군이 Base에 골드를 넣었을 때 한 번)
+- `sfx-collapse.wav` (타워가 적에게 부서질 때 한 번)
+- `sfx-ally-lost.wav` (아군이 잡히거나 시간 안에 못 들어왔을 때 한 번)
 
-Without these files the app still runs, using solid-color placeholders.
+Without these files the app still runs, using solid-color placeholders. Missing SFX files stay silent.

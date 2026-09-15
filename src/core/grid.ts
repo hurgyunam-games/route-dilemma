@@ -19,7 +19,7 @@ export { TOWER_MAX_HP };
 export const OBSTACLE_KINDS = ["rock", "tree"] as const;
 export type ObstacleKind = (typeof OBSTACLE_KINDS)[number];
 
-/** Both kinds sit above every level-1 tower HP (archer/wall 8, cannon 10). */
+/** Both kinds sit above every level-1 combat tower HP (archer 8, melee 12, cannon 10). */
 export const OBSTACLE_MAX_HP: Record<ObstacleKind, number> = {
   tree: 16,
   rock: 20,

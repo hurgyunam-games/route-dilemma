@@ -13,6 +13,7 @@ import {
   startingGold,
   BUILD_DURATION_SEC,
   createSim,
+  combatCues,
   ENEMY_BASE_DAMAGE,
   hudSnapshot,
   PHASE_DURATION_SEC,
@@ -601,6 +602,97 @@ describe("phase overlap leftover allies", () => {
   });
 });
 
+describe("combatCues", () => {
+  it("stays quiet when nothing leaked, paid, or fell", () => {
+    const sim = createSim();
+    expect(combatCues(sim, sim)).toEqual({
+      leak: false,
+      reward: false,
+      collapse: false,
+      allyLost: false,
+      goldDelta: 0,
+    });
+  });
+
+  it("flags a leak once even if several HP dropped", () => {
+    const sim = createSim();
+    const next = { ...sim, baseHp: sim.baseHp - 3 };
+    expect(combatCues(sim, next)).toMatchObject({
+      leak: true,
+      reward: false,
+      collapse: false,
+    });
+  });
+
+  it("flags a reward from gold gained this tick", () => {
+    const sim = createSim();
+    const next = { ...sim, gold: sim.gold + 15 };
+    expect(combatCues(sim, next)).toEqual({
+      leak: false,
+      reward: true,
+      collapse: false,
+      allyLost: false,
+      goldDelta: 15,
+    });
+  });
+
+  it("flags collapse when a tower disappears", () => {
+    const sim = createSim();
+    const withTower = {
+      ...sim,
+      grid: placeTower(sim.grid, 3, 2, "archer", 0),
+    };
+    const gone = { ...withTower, grid: { ...withTower.grid, towers: [] } };
+    expect(combatCues(withTower, gone).collapse).toBe(true);
+    expect(combatCues(withTower, withTower).collapse).toBe(false);
+  });
+
+  it("flags ally lost when an ally disappears away from Base", () => {
+    const sim = createSim();
+    const withAlly = {
+      ...sim,
+      units: [
+        ...sim.units,
+        {
+          ...sim.units[0]!,
+          id: 99,
+          kind: "ally" as const,
+          enemyType: null,
+          allyType: "porter" as const,
+          x: sim.grid.start.x,
+          y: sim.grid.start.y,
+          attackTile: null,
+        },
+      ],
+    };
+    expect(combatCues(withAlly, sim).allyLost).toBe(true);
+  });
+
+  it("does not flag ally lost when an ally arrives at Base", () => {
+    const sim = createSim();
+    const delivering = {
+      ...sim,
+      units: [
+        {
+          ...sim.units[0]!,
+          id: 99,
+          kind: "ally" as const,
+          enemyType: null,
+          allyType: "porter" as const,
+          x: sim.grid.base.x,
+          y: sim.grid.base.y,
+          attackTile: null,
+        },
+      ],
+    };
+    const arrived = { ...sim, gold: sim.gold + 10 };
+    expect(combatCues(delivering, arrived)).toMatchObject({
+      allyLost: false,
+      reward: true,
+    });
+  });
+});
+
 describe("enemy phase base damage", () => {
   it("spawns an enemy at Start during Enemy Phase", () => {
     const sim = createSim();
@@ -715,6 +807,36 @@ describe("tower attacks", () => {
     expect(ally.kind).toBe("ally");
     expect(ally.hp).toBe(UNIT_MAX_HP);
     expect(sim.towerShots).toHaveLength(0);
+  });
+
+  it("lets a melee tower hit an adjacent enemy but not a farther one", () => {
+    let sim = createSim(createGrid(12, 8));
+    const adjacent = sim.units[0]!;
+    sim = {
+      ...sim,
+      grid: placeTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1, "melee", 0),
+      burstIndex: 99,
+      spawnedInBurst: 99,
+    };
+    sim = tick(sim, 0.25);
+    const near = sim.units.find((unit) => unit.id === adjacent.id);
+    expect(near).toBeDefined();
+    expect(near!.hp).toBeLessThan(adjacent.hp);
+
+    let far = createSim(createGrid(12, 8));
+    const enemy = far.units[0]!;
+    far = {
+      ...far,
+      grid: placeTower(far.grid, far.grid.start.x, far.grid.start.y + 1, "melee", 0),
+      units: [{ ...enemy, x: enemy.x + 3, y: enemy.y }],
+      burstIndex: 99,
+      spawnedInBurst: 99,
+    };
+    far = tick(far, 0.25);
+    const still = far.units.find((unit) => unit.id === enemy.id);
+    expect(still).toBeDefined();
+    expect(still!.hp).toBe(enemy.hp);
+    expect(far.towerShots).toHaveLength(0);
   });
 
   it("lets a cannon splash hit a second nearby enemy", () => {

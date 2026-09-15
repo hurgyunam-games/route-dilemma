@@ -148,7 +148,7 @@ export function knobsForItem(item: GalleryItem): LayoutKnob[] {
         },
       }),
     ];
-    if (item.typeId === "archer") {
+    if (item.typeId === "archer" || item.typeId === "melee") {
       return [
         knob({
           id: "archerDeck",

@@ -2,14 +2,15 @@
 
 import towerTable from "./towers.json";
 
-export const TOWER_TYPE_IDS = ["archer", "cannon", "mage", "wall"] as const;
+export const TOWER_TYPE_IDS = ["archer", "melee", "cannon", "mage", "wall"] as const;
 export type TowerTypeId = (typeof TOWER_TYPE_IDS)[number];
 
-export const TOWER_ATTACK_IDS = ["single", "splash", "slow", "none"] as const;
+export const TOWER_ATTACK_IDS = ["single", "melee", "splash", "slow", "none"] as const;
 export type TowerAttackId = (typeof TOWER_ATTACK_IDS)[number];
 
 export const TOWER_ATTACK_LABELS: Record<TowerAttackId, string> = {
   single: "단발",
+  melee: "근접",
   splash: "범위",
   slow: "감속",
   none: "없음",
@@ -63,6 +64,7 @@ export const TOWER_MAX_LEVEL = table.maxLevel;
 
 export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
   archer: toDef("archer"),
+  melee: toDef("melee"),
   cannon: toDef("cannon"),
   mage: toDef("mage"),
   wall: toDef("wall"),

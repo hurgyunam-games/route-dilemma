@@ -325,6 +325,43 @@ export function hudSnapshot(state: SimState): HudSnapshot {
   };
 }
 
+export type CombatCues = {
+  readonly leak: boolean;
+  readonly reward: boolean;
+  readonly collapse: boolean;
+  readonly allyLost: boolean;
+  readonly goldDelta: number;
+};
+
+const ALLY_LOST_BASE_TILES = 1;
+
+function allyDisappearedAwayFromBase(prev: SimState, next: SimState): boolean {
+  const live = new Set(
+    next.units.filter((unit) => unit.kind === "ally").map((unit) => unit.id),
+  );
+  return prev.units.some((unit) => {
+    if (unit.kind !== "ally" || live.has(unit.id)) {
+      return false;
+    }
+    return (
+      Math.hypot(unit.x - prev.grid.base.x, unit.y - prev.grid.base.y) >
+      ALLY_LOST_BASE_TILES
+    );
+  });
+}
+
+/** Sparse battle cues from one tick. Multiple leaks/kills in the same tick still yield one flag each. */
+export function combatCues(prev: SimState, next: SimState): CombatCues {
+  const goldDelta = Math.max(0, next.gold - prev.gold);
+  return {
+    leak: next.baseHp < prev.baseHp,
+    reward: goldDelta > 0,
+    collapse: next.grid.towers.length < prev.grid.towers.length,
+    allyLost: allyDisappearedAwayFromBase(prev, next),
+    goldDelta,
+  };
+}
+
 export function setTimeScale(state: SimState, timeScale: TimeScale): SimState {
   if (state.timeScale === timeScale) {
     return state;
@@ -1003,6 +1040,21 @@ function applyDamage(
   hpById.set(id, (hpById.get(id) ?? fallbackHp) - amount);
 }
 
+function inAttackRange(
+  tower: Tower,
+  x: number,
+  y: number,
+): boolean {
+  const range = towerRange(tower);
+  if (!(range > 0)) {
+    return false;
+  }
+  if (towerAttack(tower) === "melee") {
+    return Math.max(Math.abs(x - tower.x), Math.abs(y - tower.y)) <= range;
+  }
+  return Math.hypot(x - tower.x, y - tower.y) <= range;
+}
+
 function nearestEnemyInRange(
   tower: Tower,
   units: readonly Unit[],
@@ -1018,10 +1070,10 @@ function nearestEnemyInRange(
     if (!(hp > 0)) {
       continue;
     }
-    const dist = Math.hypot(unit.x - tower.x, unit.y - tower.y);
-    if (dist > towerRange(tower)) {
+    if (!inAttackRange(tower, unit.x, unit.y)) {
       continue;
     }
+    const dist = Math.hypot(unit.x - tower.x, unit.y - tower.y);
     if (dist < bestDist) {
       best = unit;
       bestDist = dist;
@@ -1233,7 +1285,7 @@ function tileInFire(grid: Grid, x: number, y: number): boolean {
     if (!isTowerComplete(tower) || !towerFires(tower)) {
       continue;
     }
-    if (Math.hypot(x - tower.x, y - tower.y) <= towerRange(tower)) {
+    if (inAttackRange(tower, x, y)) {
       return true;
     }
   }
@@ -1246,7 +1298,7 @@ function fireCoverage(grid: Grid, tile: TileCoord): number {
     if (!isTowerComplete(tower) || !towerFires(tower)) {
       continue;
     }
-    if (Math.hypot(tile.x - tower.x, tile.y - tower.y) <= towerRange(tower)) {
+    if (inAttackRange(tower, tile.x, tile.y)) {
       n += 1;
     }
   }

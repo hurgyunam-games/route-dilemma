@@ -6,6 +6,7 @@ import { createGridView, type RangePreview } from "@/render/draw-grid";
 import {
   loadCannonBoomFrames,
   loadCannonProjectileFrames,
+  loadMageBoomFrames,
   loadMageProjectileFrames,
 } from "@/render/projectile-sprites";
 import { loadEnemyFrames } from "@/render/enemy-sprites";
@@ -23,6 +24,7 @@ type GameSession = {
     units: readonly Unit[],
     towerShots?: readonly TowerShot[],
     rangePreview?: RangePreview | null,
+    baseHitPulse?: number,
   ) => void;
 };
 
@@ -54,6 +56,7 @@ export async function createGameApp(
     cannonProjFrames,
     mageProjFrames,
     cannonBoomFrames,
+    mageBoomFrames,
     obstacleAtlas,
     startFrames,
     baseFrames,
@@ -67,6 +70,7 @@ export async function createGameApp(
     loadCannonProjectileFrames(),
     loadMageProjectileFrames(),
     loadCannonBoomFrames(),
+    loadMageBoomFrames(),
     loadObstacleFrames(),
     loadStartFrames(),
     loadBaseFrames(),
@@ -81,6 +85,7 @@ export async function createGameApp(
     cannonProjFrames,
     mageProjFrames,
     cannonBoomFrames,
+    mageBoomFrames,
     obstacleAtlas,
     startFrames,
     baseFrames,
@@ -93,6 +98,7 @@ export async function createGameApp(
   let currentUnits = units;
   let currentShots: readonly TowerShot[] = [];
   let currentPreview: RangePreview | null = null;
+  let currentHitPulse = 0;
 
   const syncHitArea = (): void => {
     app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
@@ -106,6 +112,7 @@ export async function createGameApp(
       currentUnits,
       currentShots,
       currentPreview,
+      currentHitPulse,
     );
     syncHitArea();
   };
@@ -129,11 +136,18 @@ export async function createGameApp(
       app.stage.off("pointertap", onPointerTap);
       app.renderer.off("resize", onResize);
     },
-    setView: (nextGrid, nextUnits, nextShots = [], nextPreview = null) => {
+    setView: (
+      nextGrid,
+      nextUnits,
+      nextShots = [],
+      nextPreview = null,
+      nextHitPulse = 0,
+    ) => {
       currentGrid = nextGrid;
       currentUnits = nextUnits;
       currentShots = nextShots;
       currentPreview = nextPreview;
+      currentHitPulse = nextHitPulse;
       sync();
     },
   });
@@ -147,8 +161,9 @@ export function setGameView(
   units: readonly Unit[],
   towerShots: readonly TowerShot[] = [],
   rangePreview: RangePreview | null = null,
+  baseHitPulse = 0,
 ): void {
-  sessions.get(app)?.setView(grid, units, towerShots, rangePreview);
+  sessions.get(app)?.setView(grid, units, towerShots, rangePreview, baseHitPulse);
 }
 
 export function destroyGameApp(app: Application): void {

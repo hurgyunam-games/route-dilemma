@@ -35,6 +35,25 @@ export async function loadMageProjectileFrames(): Promise<Texture[]> {
   );
 }
 
+export const MAGE_BOOM_COLS = 10;
+export const MAGE_BOOM_ROWS = 1;
+const MAGE_BOOM_FRAME_W = 64;
+const MAGE_BOOM_FRAME_H = 160;
+/** 소스 시트의 3번째 칸은 단색 플래시라 재생에서 뺀다. */
+const MAGE_BOOM_SKIP = new Set([2]);
+
+export async function loadMageBoomFrames(): Promise<Texture[]> {
+  const frames = await loadLocalSheet(
+    "mage-boom.png",
+    MAGE_BOOM_COLS,
+    MAGE_BOOM_ROWS,
+    "#c9e8ff",
+    MAGE_BOOM_FRAME_W,
+    MAGE_BOOM_FRAME_H,
+  );
+  return frames.filter((_, index) => !MAGE_BOOM_SKIP.has(index));
+}
+
 /** lv1 → first frame, lv2 → second, lv3+ → last. */
 export function projectileVariantIndex(level: number, count: number): number {
   if (count <= 1) {

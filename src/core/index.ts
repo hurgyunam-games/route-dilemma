@@ -93,6 +93,7 @@ export {
   createSim,
   DEFAULT_TOWER_TYPE,
   ENEMY_BASE_DAMAGE,
+  combatCues,
   hudSnapshot,
   isTowerComplete,
   PHASE_DURATION_SEC,
@@ -186,6 +187,7 @@ export {
 } from "./sim";
 export type {
   BattleOutcome,
+  CombatCues,
   CommandResult,
   EnemyBehaviorId,
   EnemyDef,

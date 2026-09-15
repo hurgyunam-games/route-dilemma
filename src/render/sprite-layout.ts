@@ -262,8 +262,12 @@ export function mageWallTopInSprite(level: number): number {
   return spriteLayout.mageWallTopInSprite[index] ?? 0;
 }
 
+export function usesArcherKeep(typeId: TowerTypeId): boolean {
+  return typeId === "archer" || typeId === "melee";
+}
+
 export function towerRoofFromTop(typeId: TowerTypeId, level: number): number {
-  if (typeId === "archer") {
+  if (usesArcherKeep(typeId)) {
     return archerRoofInSprite(level);
   }
   if (typeId === "mage") {
@@ -273,7 +277,7 @@ export function towerRoofFromTop(typeId: TowerTypeId, level: number): number {
 }
 
 export function towerWallFromTop(typeId: TowerTypeId, level: number): number {
-  if (typeId === "archer") {
+  if (usesArcherKeep(typeId)) {
     return archerWallTopInSprite(level);
   }
   if (typeId === "mage") {

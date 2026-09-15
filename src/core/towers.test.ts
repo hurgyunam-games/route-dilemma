@@ -31,9 +31,11 @@ describe("tower catalog", () => {
     expect(TOWER_DEFS.archer.range).not.toBe(TOWER_DEFS.cannon.range);
     expect(TOWER_DEFS.archer.dps).not.toBe(TOWER_DEFS.mage.dps);
     expect(towerAttack({ typeId: "archer", level: 1 })).toBe("single");
+    expect(towerAttack({ typeId: "melee", level: 1 })).toBe("melee");
     expect(towerAttack({ typeId: "cannon", level: 1 })).toBe("splash");
     expect(towerAttack({ typeId: "mage", level: 1 })).toBe("slow");
     expect(towerAttack({ typeId: "wall", level: 1 })).toBe("none");
+    expect(TOWER_ATTACK_LABELS.melee).toBe("근접");
     expect(TOWER_ATTACK_LABELS.splash).toBe("범위");
     expect(TOWER_ATTACK_LABELS.none).toBe("없음");
   });
@@ -55,6 +57,12 @@ describe("tower catalog", () => {
         expect(towerRange(lv5)).toBe(0);
         expect(towerDps(lv1)).toBe(0);
         expect(towerDps(lv5)).toBe(0);
+        continue;
+      }
+      if (id === "melee") {
+        expect(towerRange(lv1)).toBe(1);
+        expect(towerRange(lv5)).toBe(1);
+        expect(towerDps(lv5)).toBeGreaterThan(towerDps(lv1));
         continue;
       }
       expect(towerRange(lv5)).toBeGreaterThan(towerRange(lv1));
