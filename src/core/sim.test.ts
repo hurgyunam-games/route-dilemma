@@ -865,7 +865,7 @@ describe("tower attacks", () => {
     expect(sim.towerShots).toHaveLength(0);
   });
 
-  it("lets a melee tower hit an adjacent enemy but not a farther one", () => {
+  it("lets a melee tower hit an adjacent tile but not a farther tile", () => {
     let sim = createSim(createGrid(12, 8));
     const adjacent = sim.units[0]!;
     sim = {
@@ -879,15 +879,33 @@ describe("tower attacks", () => {
     expect(near).toBeDefined();
     expect(near!.hp).toBeLessThan(adjacent.hp);
 
+    let edge = createSim(createGrid(12, 8));
+    const edgeEnemy = edge.units[0]!;
+    const meleeY = edge.grid.start.y + 1;
+    edge = {
+      ...edge,
+      grid: placeTower(edge.grid, edge.grid.start.x, meleeY, "melee", 0),
+      units: [{ ...edgeEnemy, x: edge.grid.start.x + 1.4, y: meleeY }],
+      burstIndex: 99,
+      spawnedInBurst: 99,
+    };
+    expect(unitTile(edge.units[0]!)).toEqual({ x: edge.grid.start.x + 1, y: meleeY });
+    edge = tick(edge, 0.25);
+    expect(edge.units.find((unit) => unit.id === edgeEnemy.id)!.hp).toBeLessThan(edgeEnemy.hp);
+
     let far = createSim(createGrid(12, 8));
     const enemy = far.units[0]!;
     far = {
       ...far,
       grid: placeTower(far.grid, far.grid.start.x, far.grid.start.y + 1, "melee", 0),
-      units: [{ ...enemy, x: enemy.x + 3, y: enemy.y }],
+      units: [{ ...enemy, x: enemy.x + 2.4, y: far.grid.start.y + 1 }],
       burstIndex: 99,
       spawnedInBurst: 99,
     };
+    expect(unitTile(far.units[0]!)).toEqual({
+      x: far.grid.start.x + 2,
+      y: far.grid.start.y + 1,
+    });
     far = tick(far, 0.25);
     const still = far.units.find((unit) => unit.id === enemy.id);
     expect(still).toBeDefined();
@@ -901,16 +919,57 @@ describe("tower attacks", () => {
     sim = {
       ...sim,
       grid: placeTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1, "cannon", 0),
+      units: [first, { ...first, id: 99, x: first.x + 2, y: first.y }],
+      burstIndex: 99,
+      spawnedInBurst: 99,
+      nextUnitId: 100,
+    };
+    sim = tick(sim, 0.35);
+    const enemies = sim.units.filter((unit) => unit.kind === "enemy");
+    expect(enemies).toHaveLength(2);
+    expect(enemies[0]!.hp).toBeLessThan(first.hp);
+    expect(enemies[1]!.hp).toBeLessThan(first.hp);
+  });
+
+  it("lets an archer hit only one enemy even when two are close", () => {
+    let sim = createSim(createGrid(12, 8));
+    const first = sim.units[0]!;
+    sim = {
+      ...sim,
+      grid: placeTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1, "archer", 0),
       units: [first, { ...first, id: 99, x: first.x + 0.6, y: first.y }],
       burstIndex: 99,
       spawnedInBurst: 99,
       nextUnitId: 100,
     };
-    sim = tick(sim, 0.25);
+    sim = tick(sim, 0.35);
     const enemies = sim.units.filter((unit) => unit.kind === "enemy");
     expect(enemies).toHaveLength(2);
-    expect(enemies[0]!.hp).toBeLessThan(first.hp);
-    expect(enemies[1]!.hp).toBeLessThan(first.hp);
+    const damaged = enemies.filter((unit) => unit.hp < first.hp);
+    const untouched = enemies.filter((unit) => unit.hp === first.hp);
+    expect(damaged).toHaveLength(1);
+    expect(untouched).toHaveLength(1);
+  });
+
+  it("lets an archer hit an enemy farther than melee range", () => {
+    let sim = createSim(createGrid(12, 8));
+    const enemy = sim.units[0]!;
+    const x = sim.grid.start.x + 2;
+    const y = sim.grid.start.y;
+    sim = {
+      ...sim,
+      grid: placeTower(sim.grid, x, y, "archer", 0),
+      burstIndex: 99,
+      spawnedInBurst: 99,
+    };
+    expect(Math.hypot(enemy.x - x, enemy.y - y)).toBeGreaterThan(
+      towerRange({ typeId: "melee", level: 1 }),
+    );
+    expect(Math.hypot(enemy.x - x, enemy.y - y)).toBeLessThanOrEqual(
+      towerRange({ typeId: "archer", level: 1 }),
+    );
+    sim = tick(sim, 0.35);
+    expect(sim.units.find((unit) => unit.id === enemy.id)!.hp).toBeLessThan(enemy.hp);
   });
 
   it("lets a mage slow the enemy it hits", () => {
@@ -1021,6 +1080,20 @@ describe("build cost and construction", () => {
       expect(result.reason).toContain("필요 10");
     }
     expect(hasTower(sim.grid, 3, 2)).toBe(false);
+  });
+
+  it("does not place melee or cannon when gold is short", () => {
+    for (const typeId of ["melee", "cannon"] as const) {
+      const cost = towerBuildCost(typeId);
+      const sim = { ...createSim(createGrid(12, 8)), gold: cost - 1 };
+      const result = simBeginBuild(sim, 3, 2, typeId);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toContain("골드가 부족합니다");
+        expect(result.reason).toContain(`필요 ${cost}`);
+      }
+      expect(hasTower(sim.grid, 3, 2)).toBe(false);
+    }
   });
 
   it("spends gold and starts construction when a type is chosen", () => {

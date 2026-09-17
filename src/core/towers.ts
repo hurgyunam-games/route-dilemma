@@ -16,6 +16,14 @@ export const TOWER_ATTACK_LABELS: Record<TowerAttackId, string> = {
   none: "없음",
 };
 
+export const TOWER_ROLE_LABELS: Record<TowerAttackId, string> = {
+  single: "단발 공격",
+  melee: "근접 공격",
+  splash: "범위 공격",
+  slow: "감속 공격",
+  none: "길 차단",
+};
+
 export type TowerLevelStats = {
   readonly cost: number;
   readonly hp: number;
@@ -153,10 +161,13 @@ export function towerFires(tower: TowerStatsKey): boolean {
   return towerAttack(tower) !== "none" && towerDps(tower) > 0;
 }
 
+export type TowerRangeShape = "circle" | "square";
+
 export type TowerRangePreview = {
   readonly x: number;
   readonly y: number;
   readonly range: number;
+  readonly shape: TowerRangeShape;
 };
 
 export function towerRangePreview(tower: {
@@ -173,7 +184,12 @@ export function towerRangePreview(tower: {
   if (!(range > 0)) {
     return null;
   }
-  return { x: tower.x, y: tower.y, range };
+  return {
+    x: tower.x,
+    y: tower.y,
+    range,
+    shape: towerAttack(tower) === "melee" ? "square" : "circle",
+  };
 }
 
 export function towerSplashRadius(tower: TowerStatsKey): number {

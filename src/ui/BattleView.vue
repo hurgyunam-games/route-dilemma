@@ -21,6 +21,7 @@ import {
   TOWER_CATALOG,
   TOWER_DEFS,
   TOWER_MAX_LEVEL,
+  TOWER_ROLE_LABELS,
   towerAttack,
   towerDps,
   towerMaxHp,
@@ -538,6 +539,7 @@ onUnmounted(() => {
             @click="onPickType(def.id)"
           >
             <span class="type-name">{{ def.name }}</span>
+            <span class="type-role">{{ TOWER_ROLE_LABELS[def.attack] }}</span>
             <span class="type-stat">비용 {{ def.cost }}</span>
             <span class="type-stat">체력 {{ def.hp }}</span>
             <template v-if="def.attack !== 'none'">
@@ -990,6 +992,13 @@ onUnmounted(() => {
 .type-name {
   margin: 0;
   font-size: 15px;
+}
+
+.type-role {
+  margin: 0 0 2px;
+  color: #f0d090;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .type-stat {

@@ -321,12 +321,26 @@ function drawConstruction(
 function drawRangePreview(
   graphics: Graphics,
   layout: GridLayout,
-  x: number,
-  y: number,
-  range: number,
+  preview: RangePreview,
 ): void {
-  const center = tileCenter(layout, x, y);
-  const radius = range * layout.tileSize;
+  if (preview.shape === "square") {
+    const size = (preview.range * 2 + 1) * layout.tileSize;
+    const left = layout.originX + (preview.x - preview.range) * layout.tileSize;
+    const top = layout.originY + (preview.y - preview.range) * layout.tileSize;
+    const radius = Math.max(4, layout.tileSize * 0.12);
+    graphics.roundRect(left, top, size, size, radius).fill({
+      color: 0x7ec8ff,
+      alpha: 0.16,
+    });
+    graphics.roundRect(left, top, size, size, radius).stroke({
+      width: Math.max(2, layout.tileSize * 0.05),
+      color: 0x7ec8ff,
+      alpha: 0.9,
+    });
+    return;
+  }
+  const center = tileCenter(layout, preview.x, preview.y);
+  const radius = preview.range * layout.tileSize;
   graphics.circle(center.x, center.y, radius).fill({
     color: 0x7ec8ff,
     alpha: 0.16,
@@ -508,6 +522,7 @@ export type RangePreview = {
   readonly x: number;
   readonly y: number;
   readonly range: number;
+  readonly shape?: "circle" | "square";
 };
 
 export type SelectedTile = {
@@ -1080,13 +1095,7 @@ export function createGridView(
       drawPath(pathGraphics, layout, path);
     }
     if (rangePreview) {
-      drawRangePreview(
-        rangeGraphics,
-        layout,
-        rangePreview.x,
-        rangePreview.y,
-        rangePreview.range,
-      );
+      drawRangePreview(rangeGraphics, layout, rangePreview);
     }
     if (selectedTile) {
       strokeTile(rangeGraphics, layout, selectedTile.x, selectedTile.y, true);

@@ -37,7 +37,7 @@
       "id": "cannon",
       "name": "대포",
       "attack": "splash",
-      "splashRadius": 1.1,
+      "splashRadius": 2.4,
       "slowFactor": 1,
       "slowSec": 0,
       "levels": [

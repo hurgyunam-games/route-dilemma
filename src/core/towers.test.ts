@@ -8,6 +8,7 @@ import {
   TOWER_DEFS,
   TOWER_MAX_HP,
   TOWER_MAX_LEVEL,
+  TOWER_ROLE_LABELS,
   TOWER_TYPE_IDS,
   towerAttack,
   towerBuildCost,
@@ -16,6 +17,7 @@ import {
   towerMaxHp,
   towerRange,
   towerRangePreview,
+  towerSplashRadius,
   towerUpgradeCost,
   UPGRADE_DURATION_SEC,
 } from "./towers";
@@ -39,6 +41,16 @@ describe("tower catalog", () => {
     expect(TOWER_ATTACK_LABELS.melee).toBe("근접");
     expect(TOWER_ATTACK_LABELS.splash).toBe("범위");
     expect(TOWER_ATTACK_LABELS.none).toBe("없음");
+    expect(TOWER_ROLE_LABELS.melee).toBe("근접 공격");
+    expect(TOWER_ROLE_LABELS.splash).toBe("범위 공격");
+    expect(TOWER_ROLE_LABELS.single).toBe("단발 공격");
+    expect(TOWER_ROLE_LABELS.none).toBe("길 차단");
+    expect(towerSplashRadius({ typeId: "cannon", level: 1 })).toBeGreaterThan(2);
+    expect(towerSplashRadius({ typeId: "archer", level: 1 })).toBe(0);
+    expect(towerRange({ typeId: "melee", level: 1 })).toBe(1);
+    expect(towerRange({ typeId: "archer", level: 1 })).toBeGreaterThan(
+      towerRange({ typeId: "melee", level: 1 }),
+    );
   });
 
   it("keeps default archer HP as TOWER_MAX_HP", () => {
@@ -112,6 +124,7 @@ describe("tower catalog", () => {
       x: 3,
       y: 2,
       range: towerRange(archer),
+      shape: "circle",
     });
     expect(towerRangePreview({ ...archer, buildTimeLeft: BUILD_DURATION_SEC })).toBeNull();
     expect(
@@ -123,5 +136,19 @@ describe("tower catalog", () => {
         buildTimeLeft: 0,
       }),
     ).toBeNull();
+    expect(
+      towerRangePreview({
+        typeId: "melee",
+        level: 1,
+        x: 2,
+        y: 3,
+        buildTimeLeft: 0,
+      }),
+    ).toEqual({
+      x: 2,
+      y: 3,
+      range: 1,
+      shape: "square",
+    });
   });
 });

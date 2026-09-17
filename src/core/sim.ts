@@ -135,6 +135,7 @@ export {
   DEFAULT_TOWER_TYPE,
   isTowerComplete,
   TOWER_ATTACK_LABELS,
+  TOWER_ROLE_LABELS,
   TOWER_CATALOG,
   TOWER_DEFS,
   TOWER_MAX_LEVEL,
@@ -153,7 +154,14 @@ export {
   towerWorkDuration,
   UPGRADE_DURATION_SEC,
 } from "./towers";
-export type { TowerAttackId, TowerDef, TowerLevelStats, TowerRangePreview, TowerTypeId } from "./towers";
+export type {
+  TowerAttackId,
+  TowerDef,
+  TowerLevelStats,
+  TowerRangePreview,
+  TowerRangeShape,
+  TowerTypeId,
+} from "./towers";
 
 export const UNIT_SPEED_TILES_PER_SEC = 2.75;
 export const UNIT_ATTACK_DPS = 4;
@@ -1051,7 +1059,8 @@ function inAttackRange(
     return false;
   }
   if (towerAttack(tower) === "melee") {
-    return Math.max(Math.abs(x - tower.x), Math.abs(y - tower.y)) <= range;
+    const tile = unitTile({ x, y });
+    return Math.max(Math.abs(tile.x - tower.x), Math.abs(tile.y - tower.y)) <= range;
   }
   return Math.hypot(x - tower.x, y - tower.y) <= range;
 }
