@@ -21,10 +21,11 @@ import {
   TOWER_CATALOG,
   TOWER_DEFS,
   TOWER_MAX_LEVEL,
+  towerAttack,
   towerDps,
-  towerFires,
   towerMaxHp,
   towerRange,
+  towerRangePreview,
   towerUpgradeCost,
   type HudSnapshot,
   type MapId,
@@ -72,7 +73,9 @@ let lastTowerSave = JSON.stringify(sim.grid.towers);
 const hud = ref<HudSnapshot>(hudSnapshot(sim));
 const shop = ref<Shop | null>(null);
 const shopError = ref("");
+const towerMenuDetail = ref(false);
 const leakPulse = ref(0);
+const rewardPulse = ref(0);
 const goldGain = ref(0);
 const goldAnimating = ref(false);
 const hpHit = ref(false);
@@ -160,15 +163,24 @@ const canUpgradeSelected = computed(() => {
 
 const rangePreview = computed(() => {
   const tower = selectedTower.value;
-  if (!tower || !isTowerComplete(tower) || !towerFires(tower)) {
+  if (!tower) {
     return null;
   }
-  return { x: tower.x, y: tower.y, range: towerRange(tower) };
+  return towerRangePreview(tower);
+});
+
+const selectedTile = computed(() => {
+  const tower = selectedTower.value;
+  if (!tower) {
+    return null;
+  }
+  return { x: tower.x, y: tower.y };
 });
 
 const closeShop = (): void => {
   shop.value = null;
   shopError.value = "";
+  towerMenuDetail.value = false;
   pushView();
 };
 
@@ -202,6 +214,8 @@ const pushView = (): void => {
       sim.towerShots,
       rangePreview.value,
       leakPulse.value,
+      rewardPulse.value,
+      selectedTile.value,
     );
   }
 };
@@ -223,6 +237,7 @@ const onRestart = (): void => {
   reportedVictory = false;
   lastTowerSave = JSON.stringify(sim.grid.towers);
   leakPulse.value = 0;
+  rewardPulse.value = 0;
   goldGain.value = 0;
   goldAnimating.value = false;
   hpHit.value = false;
@@ -242,14 +257,24 @@ const onTileClick = (x: number, y: number): void => {
   }
   const kind = tileKind(sim.grid, x, y);
   if (kind === "start" || kind === "base" || kind === "obstacle") {
+    if (shop.value?.mode === "upgrade") {
+      closeShop();
+    }
     return;
   }
   shopError.value = "";
   if (kind === "empty") {
     shop.value = { mode: "build", x, y };
+    towerMenuDetail.value = false;
+    pushView();
+    return;
+  }
+  if (shop.value?.mode === "upgrade" && shop.value.x === x && shop.value.y === y) {
+    closeShop();
     return;
   }
   shop.value = { mode: "upgrade", x, y };
+  towerMenuDetail.value = false;
   pushView();
 };
 
@@ -279,8 +304,13 @@ const onUpgrade = (): void => {
   }
   sim = result.state;
   shopError.value = "";
+  towerMenuDetail.value = false;
   pushHud();
   pushView();
+};
+
+const onToggleDetail = (): void => {
+  towerMenuDetail.value = !towerMenuDetail.value;
 };
 
 const onDestroy = (): void => {
@@ -327,6 +357,7 @@ onMounted(async () => {
         playCombatSfx("leak");
       }
       if (cues.reward) {
+        rewardPulse.value += 1;
         goldGain.value = cues.goldDelta;
         goldAnimating.value = false;
         requestAnimationFrame(() => {
@@ -474,7 +505,7 @@ onUnmounted(() => {
       </div>
     </div>
     <div
-      v-if="shop"
+      v-if="shop?.mode === 'build'"
       class="shop-overlay"
       @click.self="closeShop"
     >
@@ -482,10 +513,10 @@ onUnmounted(() => {
         class="shop-panel"
         role="dialog"
         aria-modal="true"
-        :aria-label="shop.mode === 'build' ? '건설할 종류 선택' : '타워 업그레이드'"
+        aria-label="건설할 종류 선택"
       >
         <header class="shop-head">
-          <h2>{{ shop.mode === "build" ? "건설할 종류 선택" : "타워 업그레이드" }}</h2>
+          <h2>건설할 종류 선택</h2>
           <button
             type="button"
             class="close"
@@ -497,10 +528,7 @@ onUnmounted(() => {
         <p class="shop-gold">
           보유 골드 {{ hud.gold }}
         </p>
-        <div
-          v-if="shop.mode === 'build'"
-          class="type-grid"
-        >
+        <div class="type-grid">
           <button
             v-for="def in TOWER_CATALOG"
             :key="def.id"
@@ -522,38 +550,65 @@ onUnmounted(() => {
             >공격 없음 · 길 차단</span>
           </button>
         </div>
-        <div
-          v-else-if="selectedTower && !isTowerComplete(selectedTower)"
-          class="upgrade-body"
+        <p
+          v-if="shopError"
+          class="shop-error"
         >
-          <p class="building-note">
-            {{
-              selectedTower.level > 1
-                ? "업그레이드 중입니다. 끝난 뒤에 다시 업그레이드할 수 있습니다."
-                : "아직 건설 중입니다. 완성된 뒤에 업그레이드할 수 있습니다."
-            }}
-          </p>
-          <button
-            type="button"
-            class="destroy-btn"
-            @click="onDestroy"
-          >
-            파괴
-          </button>
-        </div>
-        <div
-          v-else-if="upgradePreview && selectedTower"
-          class="upgrade-body"
+          {{ shopError }}
+        </p>
+      </div>
+    </div>
+    <div
+      v-else-if="shop?.mode === 'upgrade' && selectedTower"
+      class="tower-menu"
+      :class="{ 'detail-open': towerMenuDetail }"
+      role="dialog"
+      aria-label="타워 메뉴"
+    >
+      <header class="shop-head">
+        <h2>{{ selectedTowerName }}</h2>
+        <button
+          type="button"
+          class="close"
+          @click="closeShop"
         >
-          <p class="type-name">
-            {{ selectedTowerName }}
-          </p>
+          닫기
+        </button>
+      </header>
+      <div
+        v-if="!isTowerComplete(selectedTower)"
+        class="upgrade-body"
+      >
+        <p class="building-note">
+          {{
+            selectedTower.level > 1
+              ? "업그레이드 중입니다. 끝난 뒤에 다시 업그레이드할 수 있습니다."
+              : "아직 건설 중입니다. 완성된 뒤에 업그레이드할 수 있습니다."
+          }}
+        </p>
+        <button
+          type="button"
+          class="destroy-btn"
+          @click="onDestroy"
+        >
+          파괴
+        </button>
+      </div>
+      <div
+        v-else-if="upgradePreview"
+        class="upgrade-body"
+      >
+        <div
+          v-if="towerMenuDetail"
+          class="tower-detail"
+        >
           <p class="type-stat">
             레벨 {{ upgradePreview.current.level }}
             · 체력 {{ upgradePreview.current.hp }}
             <template v-if="selectedTower.typeId !== 'wall'">
               · 사거리 {{ upgradePreview.current.range }}
               · 공격 {{ upgradePreview.current.dps }}
+              · {{ TOWER_ATTACK_LABELS[towerAttack(selectedTower)] }}
             </template>
             <template v-else>
               · 공격 없음
@@ -577,31 +632,41 @@ onUnmounted(() => {
           >
             최대 레벨입니다
           </p>
-          <div class="shop-actions">
-            <button
-              v-if="canUpgradeSelected"
-              type="button"
-              class="upgrade-btn"
-              @click="onUpgrade"
-            >
-              업그레이드
-            </button>
-            <button
-              type="button"
-              class="destroy-btn"
-              @click="onDestroy"
-            >
-              파괴
-            </button>
-          </div>
         </div>
-        <p
-          v-if="shopError"
-          class="shop-error"
-        >
-          {{ shopError }}
-        </p>
+        <div class="shop-actions">
+          <button
+            v-if="canUpgradeSelected"
+            type="button"
+            class="upgrade-btn"
+            @click="onUpgrade"
+          >
+            업그레이드
+          </button>
+          <button
+            type="button"
+            class="detail-btn"
+            :class="{ active: towerMenuDetail }"
+            :aria-pressed="towerMenuDetail"
+            @click="onToggleDetail"
+          >
+            상세
+          </button>
+          <button
+            v-if="towerMenuDetail"
+            type="button"
+            class="destroy-btn"
+            @click="onDestroy"
+          >
+            파괴
+          </button>
+        </div>
       </div>
+      <p
+        v-if="shopError"
+        class="shop-error"
+      >
+        {{ shopError }}
+      </p>
     </div>
   </div>
 </template>
@@ -729,6 +794,7 @@ onUnmounted(() => {
   margin-left: 6px;
   color: #ffe9a8;
   font-weight: 800;
+  animation: gold-gain-pop 0.7s ease-out;
 }
 
 .base-hp {
@@ -748,6 +814,17 @@ onUnmounted(() => {
   to {
     box-shadow: inset 0 0 0 1px transparent;
     transform: scale(1);
+  }
+}
+
+@keyframes gold-gain-pop {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
   }
 }
 
@@ -850,6 +927,7 @@ onUnmounted(() => {
 
 .close,
 .upgrade-btn,
+.detail-btn,
 .destroy-btn {
   margin: 0;
   padding: 6px 12px;
@@ -941,7 +1019,8 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.upgrade-btn {
+.upgrade-btn,
+.detail-btn {
   align-self: flex-start;
   padding: 8px 14px;
 }
@@ -956,6 +1035,50 @@ onUnmounted(() => {
 .shop-error {
   margin: 12px 0 0;
   color: #f0b4a8;
+}
+
+.tower-menu {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 2;
+  width: fit-content;
+  max-width: min(360px, calc(100% - 24px));
+  padding: 10px 12px 12px;
+  border-radius: 10px;
+  background: rgba(28, 18, 14, 0.94);
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.35);
+  color: #f7efe6;
+  font: 700 13px/1.35 "Segoe UI", sans-serif;
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.tower-menu.detail-open {
+  width: min(360px, calc(100% - 24px));
+}
+
+.tower-menu .shop-head {
+  margin-bottom: 8px;
+}
+
+.tower-menu .shop-head h2 {
+  font-size: 14px;
+}
+
+.tower-menu .shop-error {
+  margin: 8px 0 0;
+}
+
+.tower-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-btn.active {
+  color: #f7efe6;
+  box-shadow: inset 0 0 0 1px rgba(126, 200, 255, 0.85);
 }
 
 .outcome-overlay {

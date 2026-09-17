@@ -45,4 +45,4 @@ Place the following files here on your machine if you have the rights to use the
 - `sfx-collapse.wav` (타워가 적에게 부서질 때 한 번)
 - `sfx-ally-lost.wav` (아군이 잡히거나 시간 안에 못 들어왔을 때 한 번)
 
-Without these files the app still runs, using solid-color placeholders. Missing SFX files stay silent.
+Without these files the app still runs, using painted Start/Base placeholders and short synthesized cues. Missing SFX files fall back to those beeps instead of staying silent.

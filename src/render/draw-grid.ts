@@ -67,6 +67,7 @@ import {
 } from "@/render/tower-sprites";
 
 const TILE_BORDER = 0x161c16;
+const SELECTED_TILE_BORDER = 0xe8b060;
 const PATH_FILL = 0xc9a227;
 const PATH_LINE = 0xf4d35e;
 const TOWER_ANIMATION_SPEED = 0.08;
@@ -325,10 +326,15 @@ function drawRangePreview(
   range: number,
 ): void {
   const center = tileCenter(layout, x, y);
-  graphics.circle(center.x, center.y, range * layout.tileSize).stroke({
-    width: Math.max(2, layout.tileSize * 0.04),
+  const radius = range * layout.tileSize;
+  graphics.circle(center.x, center.y, radius).fill({
     color: 0x7ec8ff,
-    alpha: 0.75,
+    alpha: 0.16,
+  });
+  graphics.circle(center.x, center.y, radius).stroke({
+    width: Math.max(2, layout.tileSize * 0.05),
+    color: 0x7ec8ff,
+    alpha: 0.9,
   });
 }
 
@@ -503,6 +509,31 @@ export type RangePreview = {
   readonly y: number;
   readonly range: number;
 };
+
+export type SelectedTile = {
+  readonly x: number;
+  readonly y: number;
+};
+
+function strokeTile(
+  graphics: Graphics,
+  layout: GridLayout,
+  x: number,
+  y: number,
+  selected: boolean,
+): void {
+  graphics.rect(
+    layout.originX + x * layout.tileSize,
+    layout.originY + y * layout.tileSize,
+    layout.tileSize,
+    layout.tileSize,
+  ).stroke({
+    width: selected ? Math.max(3, layout.tileSize * 0.07) : 1,
+    color: selected ? SELECTED_TILE_BORDER : TILE_BORDER,
+    alpha: selected ? 0.95 : 1,
+    alignment: 0,
+  });
+}
 
 type OccupantClip = "idle" | "attack";
 
@@ -685,6 +716,8 @@ export function createGridView(
     towerShots?: readonly TowerShot[],
     rangePreview?: RangePreview | null,
     baseHitPulse?: number,
+    baseRewardPulse?: number,
+    selectedTile?: SelectedTile | null,
   ): void;
   tileAt(px: number, py: number): TileCoord | null;
 } {
@@ -697,6 +730,8 @@ export function createGridView(
   floor.eventMode = "none";
   const graphics = new Graphics();
   const pathGraphics = new Graphics();
+  const rangeGraphics = new Graphics();
+  rangeGraphics.eventMode = "none";
   const towerLayer = new Container();
   towerLayer.sortableChildren = true;
   const occupantLayer = new Container();
@@ -729,7 +764,9 @@ export function createGridView(
   let prevMageShots = new Map<number, TowerShot>();
   let lastLayout: GridLayout | null = null;
   let lastHitPulse = 0;
+  let lastRewardPulse = 0;
   let hitUntil = 0;
+  let rewardUntil = 0;
   const startSprite = new AnimatedSprite({
     textures: startFrames,
     animationSpeed: START_ANIMATION_SPEED,
@@ -754,6 +791,7 @@ export function createGridView(
     floor,
     graphics,
     pathGraphics,
+    rangeGraphics,
     towerLayer,
     occupantLayer,
     roofLayer,
@@ -831,9 +869,12 @@ export function createGridView(
     towerShots: readonly TowerShot[] = [],
     rangePreview: RangePreview | null = null,
     baseHitPulse = 0,
+    baseRewardPulse = 0,
+    selectedTile: SelectedTile | null = null,
   ): void => {
     graphics.clear();
     pathGraphics.clear();
+    rangeGraphics.clear();
     hpGraphics.clear();
     const layout = fitGridToViewport(grid, viewportWidth, viewportHeight);
     lastLayout = layout;
@@ -858,9 +899,16 @@ export function createGridView(
       lastHitPulse = baseHitPulse;
       hitUntil = performance.now() + 280;
     }
-    if (performance.now() < hitUntil) {
-      baseSprite.x += Math.sin(performance.now() / 28) * Math.min(4, layout.tileSize * 0.08);
+    if (baseRewardPulse > lastRewardPulse) {
+      lastRewardPulse = baseRewardPulse;
+      rewardUntil = performance.now() + 420;
+    }
+    const now = performance.now();
+    if (now < hitUntil) {
+      baseSprite.x += Math.sin(now / 28) * Math.min(4, layout.tileSize * 0.08);
       baseSprite.tint = 0xff6a4a;
+    } else if (now < rewardUntil) {
+      baseSprite.tint = 0xffe08a;
     } else {
       baseSprite.tint = 0xffffff;
     }
@@ -879,9 +927,8 @@ export function createGridView(
     const liveObstacles = new Set<string>();
     const liveBuilding = new Set<string>();
     forEachTile(grid, (x, y) => {
-      const px = layout.originX + x * layout.tileSize;
-      const py = layout.originY + y * layout.tileSize;
       const kind = tileKind(grid, x, y);
+      const selected = selectedTile?.x === x && selectedTile?.y === y;
       if (kind === "obstacle") {
         const obstacle = getObstacle(grid, x, y);
         if (obstacle) {
@@ -911,14 +958,10 @@ export function createGridView(
             true,
           );
         }
-        graphics
-          .rect(px, py, layout.tileSize, layout.tileSize)
-          .stroke({ width: 1, color: TILE_BORDER, alignment: 0 });
+        strokeTile(graphics, layout, x, y, selected);
         return;
       }
-      graphics
-        .rect(px, py, layout.tileSize, layout.tileSize)
-        .stroke({ width: 1, color: TILE_BORDER, alignment: 0 });
+      strokeTile(graphics, layout, x, y, selected);
 
       if (kind !== "tower") {
         return;
@@ -1038,12 +1081,15 @@ export function createGridView(
     }
     if (rangePreview) {
       drawRangePreview(
-        pathGraphics,
+        rangeGraphics,
         layout,
         rangePreview.x,
         rangePreview.y,
         rangePreview.range,
       );
+    }
+    if (selectedTile) {
+      strokeTile(rangeGraphics, layout, selectedTile.x, selectedTile.y, true);
     }
 
     const liveUnits = new Set<number>();

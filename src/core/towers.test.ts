@@ -15,6 +15,7 @@ import {
   towerFires,
   towerMaxHp,
   towerRange,
+  towerRangePreview,
   towerUpgradeCost,
   UPGRADE_DURATION_SEC,
 } from "./towers";
@@ -97,5 +98,30 @@ describe("tower catalog", () => {
 
   it("keeps upgrade work longer than the first build", () => {
     expect(UPGRADE_DURATION_SEC).toBeGreaterThan(BUILD_DURATION_SEC);
+  });
+
+  it("previews range only for finished attack towers", () => {
+    const archer = {
+      typeId: "archer" as const,
+      level: 1,
+      x: 3,
+      y: 2,
+      buildTimeLeft: 0,
+    };
+    expect(towerRangePreview(archer)).toEqual({
+      x: 3,
+      y: 2,
+      range: towerRange(archer),
+    });
+    expect(towerRangePreview({ ...archer, buildTimeLeft: BUILD_DURATION_SEC })).toBeNull();
+    expect(
+      towerRangePreview({
+        typeId: "wall",
+        level: 1,
+        x: 4,
+        y: 2,
+        buildTimeLeft: 0,
+      }),
+    ).toBeNull();
   });
 });

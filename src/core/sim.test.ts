@@ -691,6 +691,62 @@ describe("combatCues", () => {
       reward: true,
     });
   });
+
+  it("stays quiet when an enemy dies away from Base", () => {
+    const sim = createSim();
+    const enemy = sim.units[0]!;
+    const prev = {
+      ...sim,
+      units: [{ ...enemy, x: sim.grid.start.x + 2, y: sim.grid.start.y, hp: 0 }],
+    };
+    const next = { ...prev, units: [] };
+    expect(combatCues(prev, next)).toEqual({
+      leak: false,
+      reward: false,
+      collapse: false,
+      allyLost: false,
+      goldDelta: 0,
+    });
+  });
+
+  it("flags leak once when several enemies reach Base in one tick", () => {
+    const sim = leakIntoBase(createSim(createGrid(12, 8)), BASE_MAX_HP);
+    const second = {
+      ...sim.units[0]!,
+      id: sim.nextUnitId,
+      x: sim.grid.base.x - 0.05,
+      y: sim.grid.base.y,
+    };
+    const prev = { ...sim, units: [...sim.units, second], nextUnitId: sim.nextUnitId + 1 };
+    const next = tick(prev, 0.2);
+    expect(next.baseHp).toBe(prev.baseHp - ENEMY_BASE_DAMAGE * 2);
+    expect(combatCues(prev, next)).toMatchObject({
+      leak: true,
+      reward: false,
+      allyLost: false,
+    });
+  });
+
+  it("flags ally lost when an enemy catches an ally", () => {
+    const sim = createSim(createGrid(12, 8));
+    const start = sim.grid.start;
+    const enemy = { ...sim.units[0]!, id: 1, x: start.x + 2, y: start.y };
+    const ally = {
+      ...sim.units[0]!,
+      id: 2,
+      kind: "ally" as const,
+      enemyType: null,
+      allyType: "porter" as const,
+      x: start.x + 2,
+      y: start.y,
+      attackTile: null,
+    };
+    const prev = { ...sim, units: [enemy, ally] };
+    const next = tick(prev, 0.05);
+    expect(next.units.some((unit) => unit.kind === "ally")).toBe(false);
+    expect(combatCues(prev, next).allyLost).toBe(true);
+    expect(combatCues(prev, next).reward).toBe(false);
+  });
 });
 
 describe("enemy phase base damage", () => {

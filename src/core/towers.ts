@@ -153,6 +153,29 @@ export function towerFires(tower: TowerStatsKey): boolean {
   return towerAttack(tower) !== "none" && towerDps(tower) > 0;
 }
 
+export type TowerRangePreview = {
+  readonly x: number;
+  readonly y: number;
+  readonly range: number;
+};
+
+export function towerRangePreview(tower: {
+  readonly typeId: TowerTypeId;
+  readonly level: number;
+  readonly x: number;
+  readonly y: number;
+  readonly buildTimeLeft: number;
+}): TowerRangePreview | null {
+  if (!isTowerComplete(tower) || !towerFires(tower)) {
+    return null;
+  }
+  const range = towerRange(tower);
+  if (!(range > 0)) {
+    return null;
+  }
+  return { x: tower.x, y: tower.y, range };
+}
+
 export function towerSplashRadius(tower: TowerStatsKey): number {
   return requireType(tower.typeId).splashRadius;
 }

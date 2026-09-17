@@ -145,6 +145,7 @@ export {
   towerFires,
   towerMaxHp,
   towerRange,
+  towerRangePreview,
   towerSlowFactor,
   towerSlowSec,
   towerSplashRadius,
@@ -152,7 +153,7 @@ export {
   towerWorkDuration,
   UPGRADE_DURATION_SEC,
 } from "./towers";
-export type { TowerAttackId, TowerDef, TowerLevelStats, TowerTypeId } from "./towers";
+export type { TowerAttackId, TowerDef, TowerLevelStats, TowerRangePreview, TowerTypeId } from "./towers";
 
 export const UNIT_SPEED_TILES_PER_SEC = 2.75;
 export const UNIT_ATTACK_DPS = 4;

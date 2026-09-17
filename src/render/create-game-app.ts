@@ -2,7 +2,7 @@ import { Application, Rectangle, type FederatedPointerEvent } from "pixi.js";
 import type { Grid, TowerShot, Unit } from "@/core";
 import { loadAllyFrames } from "@/render/ally-sprites";
 import { loadArrowFrames } from "@/render/arrow-sprites";
-import { createGridView, type RangePreview } from "@/render/draw-grid";
+import { createGridView, type RangePreview, type SelectedTile } from "@/render/draw-grid";
 import {
   loadCannonBoomFrames,
   loadCannonProjectileFrames,
@@ -25,6 +25,8 @@ type GameSession = {
     towerShots?: readonly TowerShot[],
     rangePreview?: RangePreview | null,
     baseHitPulse?: number,
+    baseRewardPulse?: number,
+    selectedTile?: SelectedTile | null,
   ) => void;
 };
 
@@ -99,6 +101,8 @@ export async function createGameApp(
   let currentShots: readonly TowerShot[] = [];
   let currentPreview: RangePreview | null = null;
   let currentHitPulse = 0;
+  let currentRewardPulse = 0;
+  let currentSelectedTile: SelectedTile | null = null;
 
   const syncHitArea = (): void => {
     app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
@@ -113,6 +117,8 @@ export async function createGameApp(
       currentShots,
       currentPreview,
       currentHitPulse,
+      currentRewardPulse,
+      currentSelectedTile,
     );
     syncHitArea();
   };
@@ -142,12 +148,16 @@ export async function createGameApp(
       nextShots = [],
       nextPreview = null,
       nextHitPulse = 0,
+      nextRewardPulse = 0,
+      nextSelectedTile = null,
     ) => {
       currentGrid = nextGrid;
       currentUnits = nextUnits;
       currentShots = nextShots;
       currentPreview = nextPreview;
       currentHitPulse = nextHitPulse;
+      currentRewardPulse = nextRewardPulse;
+      currentSelectedTile = nextSelectedTile;
       sync();
     },
   });
@@ -162,8 +172,18 @@ export function setGameView(
   towerShots: readonly TowerShot[] = [],
   rangePreview: RangePreview | null = null,
   baseHitPulse = 0,
+  baseRewardPulse = 0,
+  selectedTile: SelectedTile | null = null,
 ): void {
-  sessions.get(app)?.setView(grid, units, towerShots, rangePreview, baseHitPulse);
+  sessions.get(app)?.setView(
+    grid,
+    units,
+    towerShots,
+    rangePreview,
+    baseHitPulse,
+    baseRewardPulse,
+    selectedTile,
+  );
 }
 
 export function destroyGameApp(app: Application): void {
