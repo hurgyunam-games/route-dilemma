@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, type CSSProperties } from "vue";
+import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
 import {
   ALLY_GOLD,
   ALLY_SPRITE_LABELS,
@@ -34,7 +34,7 @@ import {
   type WaveSpawnRef,
   type WaveTable,
 } from "@/core";
-import { enemyWalkPreview } from "@/render/enemy-sprites";
+import { enemyWalkPreview, loadEnemyWalkThumbs } from "@/render/enemy-sprites";
 
 const emit = defineEmits<{
   leave: [];
@@ -42,6 +42,13 @@ const emit = defineEmits<{
 
 const catalog = ref(getEnemyCatalog());
 const selectedPalette = ref(catalog.value[0]?.id ?? "");
+const walkThumbs = ref<Partial<Record<EnemyTypeId, string>>>({});
+
+onMounted(() => {
+  void loadEnemyWalkThumbs().then((thumbs) => {
+    walkThumbs.value = thumbs;
+  });
+});
 
 const draft = ref<WaveTable>(cloneWaveTable(getWaveTable()));
 const selected = ref(0);
@@ -77,20 +84,32 @@ const hueFilter = (hue: number): string => {
 const spriteStyle = (sprite: EnemyTypeId, hue = 0): CSSProperties => {
   const preview = enemyWalkPreview(sprite);
   const filter = hueFilter(hue);
+  const thumb = walkThumbs.value[sprite];
+  if (thumb) {
+    return {
+      backgroundImage: `url(${thumb})`,
+      backgroundSize: "contain",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      backgroundColor: "#1a1412",
+      filter,
+    };
+  }
   if (preview.url) {
     return {
       backgroundImage: `url(${preview.url})`,
       backgroundSize: `${preview.cols * 100}% 100%`,
       backgroundPosition: "0 0",
       backgroundRepeat: "no-repeat",
-      backgroundColor: "transparent",
+      backgroundColor: "#1a1412",
       filter,
     };
   }
   return { backgroundColor: preview.fallback, filter };
 };
 
-const hasWalkSheet = (sprite: EnemyTypeId): boolean => Boolean(enemyWalkPreview(sprite).url);
+const hasWalkSheet = (sprite: EnemyTypeId): boolean =>
+  !walkThumbs.value[sprite] && Boolean(enemyWalkPreview(sprite).url);
 
 const spawnThumbStyle = (unit: WaveSpawnRef): CSSProperties => {
   const def = spawnDef(unit);
@@ -1037,7 +1056,7 @@ button:disabled {
 
 .chip {
   display: grid;
-  grid-template-columns: 36px 1fr;
+  grid-template-columns: 48px 1fr;
   gap: 8px;
   align-items: center;
   width: 100%;
@@ -1056,17 +1075,19 @@ button:disabled {
 .spawn-row .thumb {
   display: block;
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   overflow: hidden;
   border-radius: 4px;
   image-rendering: pixelated;
+  background-color: #1a1412;
   background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.28);
 }
 
 .spawn-row .thumb {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
 }
 
 .chip .thumb.sheet,
@@ -1103,7 +1124,7 @@ button:disabled {
 .spawn-row,
 .spawn-tail {
   display: grid;
-  grid-template-columns: 28px 28px 28px minmax(0, 1fr) auto;
+  grid-template-columns: 28px 28px 32px minmax(0, 1fr) auto;
   gap: 6px;
   align-items: center;
   margin: 0 0 4px;

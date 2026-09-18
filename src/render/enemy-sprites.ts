@@ -64,6 +64,131 @@ export function enemyWalkPreview(type: EnemyTypeId): {
   };
 }
 
+const ALPHA_MIN = 16;
+const THUMB_PAD_RATIO = 0.12;
+const walkThumbCache = new Map<EnemyTypeId, Promise<string | undefined>>();
+
+export function opaqueBounds(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  alphaMin = ALPHA_MIN,
+): { x: number; y: number; w: number; h: number } | null {
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (data[(y * width + x) * 4 + 3] <= alphaMin) {
+        continue;
+      }
+      if (x < minX) {
+        minX = x;
+      }
+      if (y < minY) {
+        minY = y;
+      }
+      if (x > maxX) {
+        maxX = x;
+      }
+      if (y > maxY) {
+        maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) {
+    return null;
+  }
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+function loadHtmlImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`Failed to load ${url}`));
+    image.src = url;
+  });
+}
+
+function croppedWalkThumb(image: HTMLImageElement): string | undefined {
+  const frameWidth = Math.floor(image.width / ENEMY_SHEET_COLS);
+  const frameHeight = Math.floor(image.height / ENEMY_SHEET_ROWS);
+  if (frameWidth <= 0 || frameHeight <= 0) {
+    return undefined;
+  }
+  const frame = document.createElement("canvas");
+  frame.width = frameWidth;
+  frame.height = frameHeight;
+  const frameCtx = frame.getContext("2d");
+  if (!frameCtx) {
+    return undefined;
+  }
+  frameCtx.imageSmoothingEnabled = false;
+  frameCtx.drawImage(image, 0, 0, frameWidth, frameHeight, 0, 0, frameWidth, frameHeight);
+  const bounds = opaqueBounds(
+    frameCtx.getImageData(0, 0, frameWidth, frameHeight).data,
+    frameWidth,
+    frameHeight,
+  );
+  if (!bounds) {
+    return undefined;
+  }
+  const pad = Math.max(1, Math.round(Math.max(bounds.w, bounds.h) * THUMB_PAD_RATIO));
+  const box = Math.max(bounds.w, bounds.h) + pad * 2;
+  const out = document.createElement("canvas");
+  out.width = box;
+  out.height = box;
+  const outCtx = out.getContext("2d");
+  if (!outCtx) {
+    return undefined;
+  }
+  outCtx.imageSmoothingEnabled = false;
+  outCtx.drawImage(
+    frame,
+    bounds.x,
+    bounds.y,
+    bounds.w,
+    bounds.h,
+    Math.round((box - bounds.w) / 2),
+    Math.round((box - bounds.h) / 2),
+    bounds.w,
+    bounds.h,
+  );
+  return out.toDataURL("image/png");
+}
+
+export function enemyWalkThumbUrl(type: EnemyTypeId): Promise<string | undefined> {
+  const cached = walkThumbCache.get(type);
+  if (cached) {
+    return cached;
+  }
+  const url = localAssetUrl(ENEMY_FILES[type].walk);
+  if (!url) {
+    const empty = Promise.resolve(undefined);
+    walkThumbCache.set(type, empty);
+    return empty;
+  }
+  const pending = loadHtmlImage(url)
+    .then(croppedWalkThumb)
+    .catch(() => undefined);
+  walkThumbCache.set(type, pending);
+  return pending;
+}
+
+export async function loadEnemyWalkThumbs(): Promise<Partial<Record<EnemyTypeId, string>>> {
+  const entries = await Promise.all(
+    ENEMY_TYPE_IDS.map(async (type) => {
+      const url = await enemyWalkThumbUrl(type);
+      return url ? ([type, url] as const) : null;
+    }),
+  );
+  return Object.fromEntries(
+    entries.filter((row): row is readonly [EnemyTypeId, string] => row !== null),
+  );
+}
+
 async function loadEnemyType(type: EnemyTypeId): Promise<EnemySheets> {
   const files = ENEMY_FILES[type];
   const [walk, attack, death] = await Promise.all([
