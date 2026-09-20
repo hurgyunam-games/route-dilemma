@@ -80,13 +80,15 @@ describe("campaign save", () => {
     expect(loaded.status).toBe("newer");
     expect(loaded.saveVersion).toBe(CAMPAIGN_SAVE_VERSION + 1);
     expect(loaded.progress).toEqual(createCampaign());
-    expect(persistCampaign(store, { clearedStage: 1, mapTowers: {} })).toBe(false);
+    expect(persistCampaign(store, { clearedStage: 1, mapTowers: {}, mapRecaptureAt: {} })).toBe(false);
     expect(JSON.parse(store.data[CAMPAIGN_STORAGE_KEY]!).clearedStage).toBe(9);
   });
 
   it("copies a legacy maze-td key onto the route-dilemma key", () => {
     const plains = placeTower(createMapGrid(1), 2, 3, "wall", 0);
-    const legacy = serializeCampaign(saveMapTowers({ clearedStage: 3, mapTowers: {} }, 1, plains.towers));
+    const legacy = serializeCampaign(
+      saveMapTowers({ clearedStage: 3, mapTowers: {}, mapRecaptureAt: {} }, 1, plains.towers),
+    );
     const store = memoryStore({
       [LEGACY_CAMPAIGN_STORAGE_KEYS[0]]: legacy,
     });
@@ -96,5 +98,35 @@ describe("campaign save", () => {
     expect(loaded.progress.mapTowers[1]).toEqual(plains.towers);
     expect(store.data[CAMPAIGN_STORAGE_KEY]).toEqual(serializeCampaign(loaded.progress));
     expect(store.data[LEGACY_CAMPAIGN_STORAGE_KEYS[0]]).toBeUndefined();
+  });
+
+  it("migrates schema 1 saves and keeps recapture locks", () => {
+    const plains = placeTower(createMapGrid(1), 2, 3, "wall", 0);
+    const v1 = JSON.stringify({
+      version: 1,
+      clearedStage: 2,
+      mapTowers: { 1: plains.towers },
+    });
+    const loaded = parseCampaignSave(v1);
+    expect(loaded.status).toBe("migrated");
+    expect(loaded.saveVersion).toBe(CAMPAIGN_SAVE_VERSION);
+    expect(loaded.progress.clearedStage).toBe(2);
+    expect(loaded.progress.mapTowers[1]).toEqual(plains.towers);
+    expect(loaded.progress.mapRecaptureAt).toEqual({});
+  });
+
+  it("round-trips defeat tower damage and recapture time", () => {
+    const plains = placeTower(createMapGrid(1), 2, 3, "archer", 0);
+    const damaged = [{ ...plains.towers[0]!, hp: plains.towers[0]!.hp * 0.2 }];
+    const progress = {
+      ...saveMapTowers(createCampaign(), 1, damaged),
+      mapRecaptureAt: { 1: 1_700_000_000_000 },
+    };
+    const store = memoryStore();
+    expect(persistCampaign(store, progress)).toBe(true);
+    const loaded = loadCampaign(store);
+    expect(loaded.status).toBe("ok");
+    expect(loaded.progress.mapTowers[1]).toEqual(damaged);
+    expect(loaded.progress.mapRecaptureAt[1]).toBe(1_700_000_000_000);
   });
 });

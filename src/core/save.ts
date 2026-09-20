@@ -1,13 +1,18 @@
 /** Serialize campaign progress. Storage is injected so core stays DOM-free. */
 
-import { createCampaign, type CampaignProgress, type MapTowerMap } from "./campaign";
+import {
+  createCampaign,
+  type CampaignProgress,
+  type MapRecaptureMap,
+  type MapTowerMap,
+} from "./campaign";
 import { isMapId, type MapId } from "./maps";
 import { TOWER_MAX_LEVEL, TOWER_TYPE_IDS, type TowerTypeId } from "./towers";
 import type { Tower } from "./grid";
 import { version as npmVersion } from "../../package.json";
 
 /** Schema integer. Bump only when the save *shape* changes, then add a migrateStep. */
-export const CAMPAIGN_SAVE_VERSION = 1;
+export const CAMPAIGN_SAVE_VERSION = 2;
 
 /** Debug string written into saves. Comes from package.json. */
 export const APP_VERSION = npmVersion;
@@ -38,6 +43,7 @@ type CampaignSave = {
   readonly appVersion: string;
   readonly clearedStage: number;
   readonly mapTowers: Record<string, unknown>;
+  readonly mapRecaptureAt: Record<string, unknown>;
 };
 
 function isTowerTypeId(value: unknown): value is TowerTypeId {
@@ -99,6 +105,21 @@ function parseMapTowers(value: unknown): MapTowerMap {
   return next;
 }
 
+function parseMapRecaptureAt(value: unknown): MapRecaptureMap {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  const next: Partial<Record<MapId, number>> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    const id = Number(key);
+    if (!isMapId(id) || typeof raw !== "number" || !Number.isFinite(raw)) {
+      continue;
+    }
+    next[id] = raw;
+  }
+  return next;
+}
+
 function asRawSave(value: unknown): RawSave | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -121,9 +142,20 @@ function readSaveVersion(body: RawSave): number | "invalid" | "missing" {
  * Walk schema versions up to CAMPAIGN_SAVE_VERSION.
  * When the shape changes, add `case n: return migrateVnToVn1(body)`.
  */
-function migrateStep(_body: RawSave, fromVersion: number): RawSave | "invalid" {
+function migrateV1toV2(body: RawSave): RawSave {
+  return {
+    ...body,
+    mapRecaptureAt:
+      body.mapRecaptureAt && typeof body.mapRecaptureAt === "object"
+        ? body.mapRecaptureAt
+        : {},
+  };
+}
+
+function migrateStep(body: RawSave, fromVersion: number): RawSave | "invalid" {
   switch (fromVersion) {
-    // case 1: return migrateV1toV2(_body);
+    case 1:
+      return migrateV1toV2(body);
     default:
       return "invalid";
   }
@@ -151,6 +183,7 @@ function progressFromSave(body: RawSave): CampaignProgress | null {
   return {
     clearedStage,
     mapTowers: parseMapTowers(body.mapTowers),
+    mapRecaptureAt: parseMapRecaptureAt(body.mapRecaptureAt),
   };
 }
 
@@ -167,6 +200,9 @@ export function serializeCampaign(progress: CampaignProgress): string {
     clearedStage: progress.clearedStage,
     mapTowers: Object.fromEntries(
       Object.entries(progress.mapTowers).map(([id, towers]) => [id, towers]),
+    ),
+    mapRecaptureAt: Object.fromEntries(
+      Object.entries(progress.mapRecaptureAt ?? {}).map(([id, at]) => [id, at]),
     ),
   };
   return JSON.stringify(save);

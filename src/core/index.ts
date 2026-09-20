@@ -51,15 +51,24 @@ export {
 } from "./maps";
 export type { GameMapDef, MapId } from "./maps";
 export {
+  applyDefeatTowerLoss,
   campaignMapStatuses,
+  canEnterMap,
   createCampaign,
   currentStage,
+  DEFEAT_HP_MAX_RATIO,
+  DEFEAT_HP_MIN_RATIO,
   isMapCleared,
+  isMapRecapturing,
   isMapUnlocked,
   mapIdForStage,
   playableStage,
+  recaptureRemainingMs,
+  RECAPTURE_DURATION_MS,
+  recordDefeat,
   recordVictory,
   saveMapTowers,
+  startMapRecapture,
   towersForMap,
 } from "./campaign";
 export type { CampaignMapStatus, CampaignProgress } from "./campaign";

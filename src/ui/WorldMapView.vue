@@ -9,7 +9,7 @@ import {
   type MapId,
   type ObstacleKind,
 } from "@/core";
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 const props = defineProps<{
   lastMapId: MapId | null;
@@ -25,6 +25,8 @@ const emit = defineEmits<{
 }>();
 
 const showDevTools = import.meta.env.DEV;
+const nowMs = ref(Date.now());
+let recaptureTimer = 0;
 
 const MAP_ACCENTS: Record<MapId, string> = {
   1: "#7cb87c",
@@ -34,7 +36,7 @@ const MAP_ACCENTS: Record<MapId, string> = {
   5: "#6a9a78",
 };
 
-const statuses = computed(() => campaignMapStatuses(props.progress));
+const statuses = computed(() => campaignMapStatuses(props.progress, nowMs.value));
 const stageNow = computed(() => currentStage(props.progress));
 const loopHint = computed(() =>
   campaignCycle(stageNow.value) > 0
@@ -75,12 +77,25 @@ const miniCells = (map: GameMapDef, towers: readonly { x: number; y: number }[])
   return cells;
 };
 
-const onSelect = (id: MapId, unlocked: boolean): void => {
-  if (!unlocked) {
+const recaptureLabel = (remainingMs: number): string =>
+  `탈환 중 ${Math.max(1, Math.ceil(remainingMs / 1000))}초`;
+
+const onSelect = (id: MapId, unlocked: boolean, recapturing: boolean): void => {
+  if (!unlocked || recapturing) {
     return;
   }
   emit("select", id);
 };
+
+onMounted(() => {
+  recaptureTimer = window.setInterval(() => {
+    nowMs.value = Date.now();
+  }, 250);
+});
+
+onUnmounted(() => {
+  window.clearInterval(recaptureTimer);
+});
 </script>
 
 <template>
@@ -143,17 +158,20 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
           :class="{
             last: lastMapId === status.mapId,
             locked: !status.unlocked,
+            recapturing: status.recapturing,
             cleared: status.cleared,
             current: status.current,
           }"
           :style="{ '--accent': MAP_ACCENTS[status.mapId] }"
-          :disabled="!status.unlocked"
+          :disabled="!status.unlocked || status.recapturing"
           :aria-label="
-            status.unlocked
-              ? `스테이지 ${status.stageId} ${status.map.name} 맵으로 배틀 시작${status.cleared ? ', 클리어' : ''}`
-              : `스테이지 ${status.stageId} ${status.map.name} 잠김`
+            !status.unlocked
+              ? `스테이지 ${status.stageId} ${status.map.name} 잠김`
+              : status.recapturing
+                ? `스테이지 ${status.stageId} ${status.map.name} ${recaptureLabel(status.recaptureRemainingMs)}`
+                : `스테이지 ${status.stageId} ${status.map.name} 맵으로 배틀 시작${status.cleared ? ', 클리어' : ''}`
           "
-          @click="onSelect(status.mapId, status.unlocked)"
+          @click="onSelect(status.mapId, status.unlocked, status.recapturing)"
         >
           <span class="map-index">스테이지 {{ status.stageId }}</span>
           <span class="map-name">{{ status.map.name }}</span>
@@ -174,6 +192,7 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
           <span class="map-meta">맵 {{ status.mapId }} · {{ status.map.cols }}×{{ status.map.rows }}</span>
           <span class="map-state">
             <template v-if="!status.unlocked">잠김</template>
+            <template v-else-if="status.recapturing">{{ recaptureLabel(status.recaptureRemainingMs) }}</template>
             <template v-else-if="status.current">플레이</template>
             <template v-else-if="status.cleared">클리어</template>
             <template v-else>플레이</template>
@@ -318,6 +337,11 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
   outline-color: #8a8478;
 }
 
+.map-card.recapturing {
+  cursor: not-allowed;
+  box-shadow: inset 0 0 0 2px #c08050;
+}
+
 .map-index {
   font: 700 12px/1.2 "Segoe UI", sans-serif;
   letter-spacing: 0.04em;
@@ -387,6 +411,10 @@ const onSelect = (id: MapId, unlocked: boolean): void => {
 }
 
 .map-card.current .map-state {
+  color: #e8b060;
+}
+
+.map-card.recapturing .map-state {
   color: #e8b060;
 }
 </style>

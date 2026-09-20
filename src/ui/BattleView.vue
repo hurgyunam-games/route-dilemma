@@ -61,6 +61,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   leave: [];
   victory: [stageId: number];
+  defeat: [towers: readonly Tower[]];
   saveTowers: [towers: readonly Tower[]];
 }>();
 
@@ -70,6 +71,7 @@ const makeBattle = () =>
 const hostRef = ref<HTMLElement | null>(null);
 let sim = makeBattle();
 let reportedVictory = false;
+let reportedDefeat = false;
 let lastTowerSave = JSON.stringify(sim.grid.towers);
 const hud = ref<HudSnapshot>(hudSnapshot(sim));
 const shop = ref<Shop | null>(null);
@@ -200,7 +202,13 @@ const pushHud = (): void => {
     reportedVictory = true;
     emit("victory", props.stageId);
   }
-  saveTowersIfChanged();
+  if (hud.value.outcome === "defeat" && !reportedDefeat) {
+    reportedDefeat = true;
+    emit("defeat", sim.grid.towers);
+  }
+  if (hud.value.outcome !== "defeat") {
+    saveTowersIfChanged();
+  }
   if (shop.value?.mode === "upgrade" && !getTower(sim.grid, shop.value.x, shop.value.y)) {
     closeShop();
   }
@@ -234,8 +242,12 @@ const onTimeScale = (scale: TimeScale): void => {
 };
 
 const onRestart = (): void => {
+  if (hud.value.outcome === "defeat") {
+    return;
+  }
   sim = makeBattle();
   reportedVictory = false;
+  reportedDefeat = false;
   lastTowerSave = JSON.stringify(sim.grid.towers);
   leakPulse.value = 0;
   rewardPulse.value = 0;
@@ -248,7 +260,9 @@ const onRestart = (): void => {
 };
 
 const onLeaveWorldMap = (): void => {
-  saveTowersIfChanged();
+  if (hud.value.outcome !== "defeat") {
+    saveTowersIfChanged();
+  }
   emit("leave");
 };
 
@@ -487,8 +501,15 @@ onUnmounted(() => {
         :aria-label="outcomeTitle"
       >
         <h2>{{ outcomeTitle }}</h2>
+        <p
+          v-if="hud.outcome === 'defeat'"
+          class="outcome-copy"
+        >
+          지원군이 이 맵을 탈환할 때까지 다시 들어갈 수 없습니다.
+        </p>
         <div class="outcome-actions">
           <button
+            v-if="hud.outcome === 'victory'"
             type="button"
             class="restart-btn"
             @click="onRestart"
@@ -1133,6 +1154,12 @@ onUnmounted(() => {
 
 .outcome-panel.victory h2 {
   color: #b8e0c8;
+}
+
+.outcome-copy {
+  margin: 10px 0 0;
+  color: #d8cfc6;
+  font: 600 14px/1.4 "Segoe UI", sans-serif;
 }
 
 .outcome-actions {

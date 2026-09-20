@@ -3,13 +3,15 @@ import { defineAsyncComponent, onMounted, onUnmounted, ref } from "vue";
 import BattleView from "@/ui/BattleView.vue";
 import WorldMapView from "@/ui/WorldMapView.vue";
 import {
+  canEnterMap,
   createCampaign,
-  isMapUnlocked,
   loadCampaign,
   persistCampaign,
   playableStage,
+  recordDefeat,
   recordVictory,
   saveMapTowers,
+  startMapRecapture,
   towersForMap,
   type CampaignLoad,
   type MapId,
@@ -30,6 +32,7 @@ const saveStatus = ref(saved.status);
 const selectedMapId = ref<MapId | null>(null);
 const selectedStageId = ref<number | null>(null);
 const lastMapId = ref<MapId | null>(null);
+const recaptureOnLeave = ref<MapId | null>(null);
 type ToolPage = "gallery" | "waves" | "enemies";
 
 const SpriteGalleryView = import.meta.env.DEV
@@ -86,7 +89,7 @@ const commit = (next: typeof campaign.value): void => {
 };
 
 const enterMap = (id: MapId): void => {
-  if (!isMapUnlocked(campaign.value, id)) {
+  if (!canEnterMap(campaign.value, id, Date.now())) {
     return;
   }
   selectedMapId.value = id;
@@ -95,12 +98,24 @@ const enterMap = (id: MapId): void => {
 };
 
 const leaveBattle = (): void => {
+  if (recaptureOnLeave.value !== null) {
+    commit(startMapRecapture(campaign.value, recaptureOnLeave.value, Date.now()));
+    recaptureOnLeave.value = null;
+  }
   selectedMapId.value = null;
   selectedStageId.value = null;
 };
 
 const onVictory = (stageId: number): void => {
   commit(recordVictory(campaign.value, stageId));
+};
+
+const onDefeat = (towers: readonly Tower[]): void => {
+  if (selectedMapId.value === null) {
+    return;
+  }
+  recaptureOnLeave.value = selectedMapId.value;
+  commit(recordDefeat(campaign.value, selectedMapId.value, towers, Date.now()));
 };
 
 const onSaveTowers = (towers: readonly Tower[]): void => {
@@ -146,6 +161,7 @@ onUnmounted(() => {
     :towers="towersForMap(campaign, selectedMapId)"
     @leave="leaveBattle"
     @victory="onVictory"
+    @defeat="onDefeat"
     @save-towers="onSaveTowers"
   />
   <WorldMapView
