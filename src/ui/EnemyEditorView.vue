@@ -310,7 +310,7 @@ const openWaves = (): void => {
       <div class="title">
         <h1>적 에디터</h1>
         <p>
-          이름·스프라이트·HP를 가진 적 목록을 만듭니다. 웨이브 에디터는 이 목록을 팔레트로 씁니다.
+          이름·스프라이트·유형·HP를 가진 적 목록을 만듭니다. 웨이브 에디터는 이 목록을 팔레트로 씁니다.
         </p>
       </div>
       <div class="actions">
@@ -462,7 +462,7 @@ const openWaves = (): void => {
             </select>
           </label>
           <label>
-            행동
+            유형
             <select
               :value="enemy.behavior"
               @change="setBehavior"

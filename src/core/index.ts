@@ -179,11 +179,13 @@ export {
   insertWaveSpawn,
   maxEnemyHp,
   moveWaveSpawn,
+  nextEnemySpawnState,
   parseWaveTable,
   parseWaveTableJson,
   resetWaveTable,
   serializeWaveTable,
   setWaveTable,
+  spawnDelay,
   waveEnemyIds,
   waveStageCount,
 } from "./sim";

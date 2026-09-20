@@ -51,7 +51,7 @@
               "enemyId": "slime-14"
             },
             {
-              "enemyId": "cavalry-16"
+              "enemyId": "wisp-16"
             },
             {
               "enemyId": "slime-14"
@@ -63,7 +63,7 @@
               "enemyId": "slime-14"
             },
             {
-              "enemyId": "cavalry-16"
+              "enemyId": "wisp-16"
             },
             {
               "enemyId": "slime-14"
@@ -132,7 +132,7 @@
               "enemyId": "goblin-16"
             },
             {
-              "enemyId": "cavalry-16"
+              "enemyId": "wisp-16"
             },
             {
               "enemyId": "goblin-16"
@@ -144,7 +144,7 @@
               "enemyId": "goblin-16"
             },
             {
-              "enemyId": "cavalry-16"
+              "enemyId": "wisp-16"
             },
             {
               "enemyId": "goblin-16"
@@ -156,7 +156,7 @@
               "enemyId": "goblin-14-ambush"
             },
             {
-              "enemyId": "cavalry-16"
+              "enemyId": "wisp-16"
             }
           ]
         }
@@ -225,7 +225,7 @@
               "enemyId": "goblin-18"
             },
             {
-              "enemyId": "cavalry-16"
+              "enemyId": "wisp-16"
             },
             {
               "enemyId": "goblin-18"
@@ -237,7 +237,7 @@
               "enemyId": "goblin-18"
             },
             {
-              "enemyId": "cavalry-16"
+              "enemyId": "wisp-16"
             },
             {
               "enemyId": "goblin-18"
@@ -249,7 +249,7 @@
               "enemyId": "wolf-20-ambush"
             },
             {
-              "enemyId": "cavalry-16"
+              "enemyId": "wisp-16"
             }
           ]
         }
@@ -318,7 +318,7 @@
               "enemyId": "wolf-20"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-20"
@@ -330,7 +330,7 @@
               "enemyId": "wolf-20"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-20"
@@ -342,7 +342,7 @@
               "enemyId": "wolf-20"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-20"
@@ -417,7 +417,7 @@
               "enemyId": "wolf-22"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-22"
@@ -429,7 +429,7 @@
               "enemyId": "wolf-22"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-22"
@@ -441,7 +441,7 @@
               "enemyId": "wolf-22"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-22"
@@ -564,7 +564,7 @@
               "enemyId": "beast-26"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "beast-26"
@@ -576,7 +576,7 @@
               "enemyId": "wolf-26-ambush"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             }
           ]
         }
@@ -651,7 +651,7 @@
               "enemyId": "wolf-26"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-26"
@@ -663,7 +663,7 @@
               "enemyId": "wolf-26"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-26"
@@ -675,7 +675,7 @@
               "enemyId": "wolf-26"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             },
             {
               "enemyId": "wolf-26"
@@ -687,7 +687,7 @@
               "enemyId": "wolf-26-ambush"
             },
             {
-              "enemyId": "cavalry-22"
+              "enemyId": "wasp-22"
             }
           ]
         }
@@ -762,7 +762,7 @@
               "enemyId": "beast-28"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "beast-28"
@@ -774,7 +774,7 @@
               "enemyId": "beast-28"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "beast-28"
@@ -786,7 +786,7 @@
               "enemyId": "beast-28"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "beast-28"
@@ -798,7 +798,7 @@
               "enemyId": "wolf-26-ambush"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             }
           ]
         }
@@ -879,7 +879,7 @@
               "enemyId": "beast-30"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "beast-30"
@@ -891,7 +891,7 @@
               "enemyId": "beast-30"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "beast-30"
@@ -903,7 +903,7 @@
               "enemyId": "beast-30"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "beast-30"
@@ -915,7 +915,7 @@
               "enemyId": "wolf-32-ambush"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             }
           ]
         }
@@ -996,7 +996,7 @@
               "enemyId": "cavalry-32"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "cavalry-32"
@@ -1008,7 +1008,7 @@
               "enemyId": "cavalry-32"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "cavalry-32"
@@ -1020,7 +1020,7 @@
               "enemyId": "cavalry-32"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "cavalry-32"
@@ -1032,7 +1032,7 @@
               "enemyId": "cavalry-32"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "cavalry-32"
@@ -1167,7 +1167,7 @@
               "enemyId": "cavalry-34"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "cavalry-34"
@@ -1179,7 +1179,7 @@
               "enemyId": "cavalry-34"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "cavalry-34"
@@ -1320,7 +1320,7 @@
               "enemyId": "wolf-32"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "wolf-32"
@@ -1332,7 +1332,7 @@
               "enemyId": "wolf-32"
             },
             {
-              "enemyId": "cavalry-26"
+              "enemyId": "drake-26"
             },
             {
               "enemyId": "wolf-32"
@@ -1419,7 +1419,7 @@
               "enemyId": "cavalry-36"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wisp-34"
             },
             {
               "enemyId": "cavalry-36"
@@ -1431,7 +1431,7 @@
               "enemyId": "cavalry-36"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wasp-34"
             },
             {
               "enemyId": "cavalry-36"
@@ -1443,7 +1443,7 @@
               "enemyId": "cavalry-36"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "drake-34"
             },
             {
               "enemyId": "cavalry-36"
@@ -1455,7 +1455,7 @@
               "enemyId": "cavalry-36"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wisp-34"
             },
             {
               "enemyId": "cavalry-36"
@@ -1548,7 +1548,7 @@
               "enemyId": "cavalry-38"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wasp-34"
             },
             {
               "enemyId": "cavalry-38"
@@ -1560,7 +1560,7 @@
               "enemyId": "cavalry-38"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "drake-34"
             },
             {
               "enemyId": "cavalry-38"
@@ -1572,7 +1572,7 @@
               "enemyId": "cavalry-38"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wisp-34"
             },
             {
               "enemyId": "cavalry-38"
@@ -1584,7 +1584,7 @@
               "enemyId": "cavalry-38"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wasp-34"
             },
             {
               "enemyId": "cavalry-38"
@@ -1725,7 +1725,7 @@
               "enemyId": "beast-36"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "drake-34"
             },
             {
               "enemyId": "beast-36"
@@ -1737,7 +1737,7 @@
               "enemyId": "beast-36"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wisp-34"
             },
             {
               "enemyId": "beast-36"
@@ -1749,7 +1749,7 @@
               "enemyId": "wolf-32-ambush"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wasp-34"
             }
           ]
         }
@@ -1896,7 +1896,7 @@
               "enemyId": "cavalry-38"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "drake-34"
             },
             {
               "enemyId": "cavalry-38"
@@ -1908,7 +1908,7 @@
               "enemyId": "cavalry-38"
             },
             {
-              "enemyId": "cavalry-34-breaker"
+              "enemyId": "wisp-34"
             },
             {
               "enemyId": "cavalry-38"
@@ -2001,7 +2001,7 @@
               "enemyId": "cavalry-42"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wisp-42"
             },
             {
               "enemyId": "cavalry-42"
@@ -2013,7 +2013,7 @@
               "enemyId": "cavalry-42"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wasp-42"
             },
             {
               "enemyId": "cavalry-42"
@@ -2025,7 +2025,7 @@
               "enemyId": "cavalry-42"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "drake-42"
             },
             {
               "enemyId": "cavalry-42"
@@ -2037,7 +2037,7 @@
               "enemyId": "cavalry-42"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wisp-42"
             },
             {
               "enemyId": "cavalry-42"
@@ -2049,7 +2049,7 @@
               "enemyId": "wolf-42-ambush"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wasp-42"
             }
           ]
         }
@@ -2190,7 +2190,7 @@
               "enemyId": "cavalry-40"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "drake-42"
             },
             {
               "enemyId": "cavalry-40"
@@ -2202,7 +2202,7 @@
               "enemyId": "cavalry-40"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wisp-42"
             },
             {
               "enemyId": "cavalry-40"
@@ -2214,7 +2214,7 @@
               "enemyId": "cavalry-40"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wasp-42"
             },
             {
               "enemyId": "cavalry-40"
@@ -2373,7 +2373,7 @@
               "enemyId": "wolf-42"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "drake-42"
             },
             {
               "enemyId": "wolf-42"
@@ -2385,7 +2385,7 @@
               "enemyId": "wolf-42"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wisp-42"
             },
             {
               "enemyId": "wolf-42"
@@ -2397,7 +2397,7 @@
               "enemyId": "wolf-42-ambush"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wasp-42"
             }
           ]
         }
@@ -2562,7 +2562,7 @@
               "enemyId": "beast-44"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "drake-42"
             },
             {
               "enemyId": "wolf-44"
@@ -2574,7 +2574,7 @@
               "enemyId": "cavalry-44"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wisp-42"
             },
             {
               "enemyId": "beast-44"
@@ -2586,7 +2586,7 @@
               "enemyId": "wolf-44"
             },
             {
-              "enemyId": "cavalry-42-breaker"
+              "enemyId": "wasp-42"
             },
             {
               "enemyId": "cavalry-44"

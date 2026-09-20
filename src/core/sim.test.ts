@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 import { createGrid, getObstacle, getTower, hasObstacle, hasTower, placeTower, toggleTower, TOWER_MAX_HP, obstacleMaxHp, upgradeTower } from "./grid";
 import { createMapGrid } from "./maps";
 import { findPath } from "./path";
@@ -34,6 +34,10 @@ import {
   allySpawnDurationSec,
   enemySpawnDurationSec,
   getStageWave,
+  cloneWaveTable,
+  getWaveTable,
+  setWaveTable,
+  resetWaveTable,
   PHASE_TAIL_SEC,
   towerBuildCost,
   towerDps,
@@ -1069,6 +1073,117 @@ describe("wave spawn", () => {
   });
 });
 
+describe("per-enemy spawn delay", () => {
+  afterEach(() => {
+    resetWaveTable();
+  });
+
+  const patchStage1 = (units: readonly { enemyId: string; delay: number }[], restAfter = 2) => {
+    const table = cloneWaveTable(getWaveTable());
+    const first = table.stages[0];
+    if (!first) {
+      throw new Error("missing stage 1");
+    }
+    setWaveTable({
+      stages: [
+        {
+          ...first,
+          bursts: [
+            {
+              interval: 0.8,
+              restAfter,
+              units,
+            },
+            ...(first.bursts.slice(1) as typeof first.bursts),
+          ],
+        },
+        ...table.stages.slice(1),
+      ],
+    });
+  };
+
+  it("spawns the first enemy immediately when its delay is 0", () => {
+    patchStage1([
+      { enemyId: "slime-10", delay: 0 },
+      { enemyId: "slime-10", delay: 0.4 },
+    ]);
+    const sim = createSim(createGrid(12, 8));
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(1);
+  });
+
+  it("waits the first enemy delay before anyone leaves Start", () => {
+    patchStage1([
+      { enemyId: "slime-10", delay: 0.6 },
+      { enemyId: "slime-10", delay: 0.2 },
+    ]);
+    let sim = createSim(createGrid(12, 8));
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(0);
+    sim = tick(sim, 0.5);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(0);
+    sim = tick(sim, 0.2);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(1);
+  });
+
+  it("spaces later enemies by each unit delay, not the burst interval", () => {
+    patchStage1([
+      { enemyId: "slime-10", delay: 0 },
+      { enemyId: "slime-10", delay: 0.5 },
+      { enemyId: "slime-10", delay: 1.2 },
+    ]);
+    let sim = createSim(createGrid(12, 8));
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(1);
+    sim = tick(sim, 0.4);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(1);
+    sim = tick(sim, 0.2);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(2);
+    sim = tick(sim, 1.1);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(2);
+    sim = tick(sim, 0.2);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(3);
+  });
+
+  it("keeps restAfter between bursts after the last per-enemy delay", () => {
+    const table = cloneWaveTable(getWaveTable());
+    const first = table.stages[0];
+    if (!first) {
+      throw new Error("missing stage 1");
+    }
+    setWaveTable({
+      stages: [
+        {
+          ...first,
+          bursts: [
+            {
+              interval: 0.8,
+              restAfter: 1,
+              units: [
+                { enemyId: "slime-10", delay: 0 },
+                { enemyId: "slime-10", delay: 0.5 },
+              ],
+            },
+            {
+              interval: 0.8,
+              restAfter: 0,
+              units: [
+                { enemyId: "slime-10", delay: 0 },
+                { enemyId: "slime-10", delay: 0.5 },
+              ],
+            },
+          ],
+        },
+        ...table.stages.slice(1),
+      ],
+    });
+    let sim = createSim(createGrid(12, 8));
+    sim = tick(sim, 0.6);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(2);
+    sim = tick(sim, 0.9);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(2);
+    sim = tick(sim, 0.2);
+    expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(3);
+  });
+});
+
 describe("build cost and construction", () => {
   it("does not place a tower when gold is short and explains why", () => {
     const sim = { ...createSim(createGrid(12, 8)), gold: 0 };
@@ -1532,7 +1647,7 @@ function asBreaker(sim: ReturnType<typeof createSim>): ReturnType<typeof createS
   }
   return {
     ...sim,
-    units: [{ ...unit, behavior: "breaker", enemyType: "cavalry", hue: 200 }],
+    units: [{ ...unit, behavior: "breaker", enemyType: "wisp", hue: 0 }],
   };
 }
 

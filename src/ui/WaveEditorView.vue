@@ -229,6 +229,19 @@ const setBurstNumber = (
   updateBurst(burstIndex, { [key]: value });
 };
 
+const setSpawnDelay = (burstIndex: number, spawnIndex: number, event: Event): void => {
+  const burst = stage.value?.bursts[burstIndex];
+  const value = readNumber(event);
+  if (!burst || value === null || value < 0) {
+    return;
+  }
+  updateBurst(burstIndex, {
+    units: burst.units.map((spawn, index) =>
+      index === spawnIndex ? { ...spawn, delay: value } : spawn,
+    ),
+  });
+};
+
 const addBurst = (): void => {
   const current = stage.value;
   if (!current) {
@@ -255,10 +268,12 @@ const removeBurst = (burstIndex: number): void => {
 };
 
 const paletteSpawn = (): WaveSpawnRef => {
+  const burst = stage.value?.bursts[selectedBurst.value];
+  const delay = burst ? burst.interval : 0.8;
   if (selectedPalette.value && tryGetEnemy(selectedPalette.value)) {
-    return { enemyId: selectedPalette.value };
+    return { enemyId: selectedPalette.value, delay };
   }
-  return defaultWaveSpawn();
+  return defaultWaveSpawn(delay);
 };
 
 const addSpawn = (burstIndex: number, spawn: WaveSpawnRef = paletteSpawn()): void => {
@@ -642,7 +657,8 @@ const onJsonInput = (event: Event): void => {
           </button>
         </div>
         <p class="hint">
-          같은 버스트는 간격으로 이어 나오고, 버스트가 끝나면 휴식 시간 뒤에 다음 버스트가 시작됩니다.
+          적마다 이전 적 다음 몇 초 뒤에 출발합니다. 첫 적은 버스트 시작 기준이며 지연 0이어도 됩니다.
+          버스트가 끝나면 휴식 뒤에 다음 버스트가 시작됩니다.
         </p>
         <div
           v-for="(burst, burstIndex) in stage.bursts"
@@ -670,8 +686,8 @@ const onJsonInput = (event: Event): void => {
             </button>
           </header>
           <div class="fields">
-            <label>
-              간격 (초)
+            <label title="새로 넣는 적의 지연 기본값입니다. 이미 넣은 적 지연은 바꾸지 않습니다.">
+              기본 간격 (초)
               <input
                 type="number"
                 min="0.05"
@@ -722,6 +738,18 @@ const onJsonInput = (event: Event): void => {
                 aria-hidden="true"
               />
               <span class="spawn-name">{{ spawnLine(spawn) }}</span>
+              <label class="delay">
+                지연
+                <input
+                  type="number"
+                  min="0"
+                  step="0.05"
+                  :value="spawn.delay"
+                  :aria-label="`${spawnIndex + 1}번째 적 출현 지연(초)`"
+                  @change="setSpawnDelay(burstIndex, spawnIndex, $event)"
+                >
+                초
+              </label>
               <button
                 type="button"
                 class="danger"
@@ -1124,7 +1152,7 @@ button:disabled {
 .spawn-row,
 .spawn-tail {
   display: grid;
-  grid-template-columns: 28px 28px 32px minmax(0, 1fr) auto;
+  grid-template-columns: 28px 28px 32px minmax(0, 1fr) 118px auto;
   gap: 6px;
   align-items: center;
   margin: 0 0 4px;
@@ -1196,6 +1224,25 @@ button:disabled {
   gap: 4px;
   align-items: center;
   font: 700 11px/1 "Segoe UI", sans-serif;
+}
+
+.spawn-row .delay {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  color: #8a8478;
+  font: 700 10px/1 "Segoe UI", sans-serif;
+}
+
+.spawn-row .delay input {
+  box-sizing: border-box;
+  width: 52px;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: #1a1412;
+  color: #f7efe6;
+  font: 700 12px/1.2 "Segoe UI", sans-serif;
 }
 
 .json {

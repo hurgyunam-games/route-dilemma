@@ -23,6 +23,8 @@ export const PHASE_TAIL_SEC = 5;
 
 export type WaveSpawnRef = {
   readonly enemyId: string;
+  /** Seconds after the previous enemy (or burst start for the first). */
+  readonly delay: number;
 };
 
 export type WaveSpawn = WaveSpawnRef & {
@@ -118,9 +120,9 @@ export function waveEnemyIds(table: WaveTable = liveTable): readonly string[] {
   return [...ids];
 }
 
-export function defaultWaveSpawn(): WaveSpawnRef {
+export function defaultWaveSpawn(delay = 0): WaveSpawnRef {
   const first = getEnemyCatalog()[0];
-  return { enemyId: first?.id ?? "slime-10" };
+  return { enemyId: first?.id ?? "slime-10", delay };
 }
 
 export function defaultWaveBurst(): WaveBurstRow {
@@ -193,18 +195,22 @@ export function insertWaveSpawn(
   bursts: readonly WaveBurstRow[],
   burstIndex: number,
   index: number,
-  spawn: WaveSpawnRef,
+  spawn: { readonly enemyId: string; readonly delay?: number },
 ): readonly WaveBurstRow[] {
   const burst = bursts[burstIndex];
   if (!burst || burst.units.length >= MAX_WAVE_SPAWNS_PER_BURST) {
     return bursts;
   }
   const insertAt = Math.max(0, Math.min(index, burst.units.length));
+  const next: WaveSpawnRef = {
+    enemyId: spawn.enemyId,
+    delay: spawnDelay(spawn, insertAt, burst.interval),
+  };
   return bursts.map((row, i) =>
     i === burstIndex
       ? {
           ...row,
-          units: [...row.units.slice(0, insertAt), spawn, ...row.units.slice(insertAt)],
+          units: [...row.units.slice(0, insertAt), next, ...row.units.slice(insertAt)],
         }
       : row,
   );
@@ -245,7 +251,10 @@ export function serializeWaveTable(table: WaveTable = liveTable): string {
       const bursts = stage.bursts
         .map((burst) => {
           const units = burst.units
-            .map((spawn) => `            { "enemyId": "${spawn.enemyId}" }`)
+            .map(
+              (spawn) =>
+                `            { "enemyId": "${spawn.enemyId}", "delay": ${formatNum(spawn.delay)} }`,
+            )
             .join(",\n");
           return `        {
           "interval": ${formatNum(burst.interval)},
@@ -304,20 +313,64 @@ function withLoopPressure(row: StageWaveRow, stageId: number): StageWave {
 }
 
 function scaleBurst(burst: WaveBurstRow, hpMul: number, countAdd: number): WaveBurst {
-  const units = burst.units.map((spawn) => resolveAndScale(spawn, hpMul));
+  const units = burst.units.map((spawn, index) => resolveAndScale(spawn, hpMul, index, burst.interval));
   const extra: WaveSpawn[] = [];
   if (units.length > 0) {
     for (let i = 0; i < countAdd; i += 1) {
-      extra.push({ ...units[i % units.length]! });
+      const template = units[i % units.length]!;
+      extra.push({
+        ...template,
+        delay: template.delay > 0 ? template.delay : burst.interval,
+      });
     }
   }
   return { interval: burst.interval, restAfter: burst.restAfter, units: [...units, ...extra] };
 }
 
-function resolveAndScale(ref: WaveSpawnRef, hpMul: number): WaveSpawn {
+export function spawnDelay(
+  spawn: { readonly delay?: number },
+  index: number,
+  interval: number,
+): number {
+  return spawn.delay ?? (index === 0 ? 0 : interval);
+}
+
+/** Cursor after spawning `spawnedIndex` in `burstIndex`. */
+export function nextEnemySpawnState(
+  stage: Pick<StageWaveRow, "bursts"> | Pick<StageWave, "bursts">,
+  burstIndex: number,
+  spawnedIndex: number,
+): { burstIndex: number; spawnedInBurst: number; spawnCooldown: number } {
+  const burst = stage.bursts[burstIndex];
+  const nextInBurst = spawnedIndex + 1;
+  if (burst && nextInBurst < burst.units.length) {
+    return {
+      burstIndex,
+      spawnedInBurst: nextInBurst,
+      spawnCooldown: spawnDelay(burst.units[nextInBurst]!, nextInBurst, burst.interval),
+    };
+  }
+  const nextBurstIndex = burstIndex + 1;
+  const nextBurst = stage.bursts[nextBurstIndex];
+  const rest = burst?.restAfter ?? 0;
+  const lead = nextBurst ? spawnDelay(nextBurst.units[0]!, 0, nextBurst.interval) : 0;
+  return {
+    burstIndex: nextBurstIndex,
+    spawnedInBurst: 0,
+    spawnCooldown: rest + lead,
+  };
+}
+
+function resolveAndScale(
+  ref: WaveSpawnRef,
+  hpMul: number,
+  index: number,
+  interval: number,
+): WaveSpawn {
   const def = getEnemy(ref.enemyId);
   return {
     enemyId: def.id,
+    delay: spawnDelay(ref, index, interval),
     type: def.sprite,
     hp: Math.max(1, Math.round(def.hp * hpMul)),
     hue: def.hue,
@@ -346,11 +399,15 @@ export function maxEnemyHp(stage: StageWave): number {
 export function enemySpawnDurationSec(
   stage: Pick<StageWaveRow, "bursts"> | Pick<StageWave, "bursts">,
 ): number {
-  return stage.bursts.reduce((sum, burst, index, all) => {
-    const spawn = Math.max(0, burst.units.length - 1) * burst.interval;
+  const total = stage.bursts.reduce((sum, burst, index, all) => {
+    const spawn = burst.units.reduce(
+      (wait, unit, unitIndex) => wait + spawnDelay(unit, unitIndex, burst.interval),
+      0,
+    );
     const rest = index < all.length - 1 ? burst.restAfter : 0;
     return sum + spawn + rest;
   }, 0);
+  return Math.round(total * 1000) / 1000;
 }
 
 export function allySpawnDurationSec(
@@ -364,7 +421,7 @@ export function tightPhaseSec(spawnDuration: number): number {
 }
 
 function cloneSpawn(spawn: WaveSpawnRef): WaveSpawnRef {
-  return { enemyId: spawn.enemyId };
+  return { enemyId: spawn.enemyId, delay: spawn.delay };
 }
 
 function cloneBurst(burst: WaveBurstRow): WaveBurstRow {
@@ -410,10 +467,11 @@ function parseBurst(input: unknown, stageId: number, burstId: number): WaveBurst
     throw new Error(`Stage ${stageId} burst ${burstId} must be an object`);
   }
   const burst = input as Record<string, unknown>;
+  const interval = asPositive(burst.interval, `Stage ${stageId} burst ${burstId} interval`);
   return {
-    interval: asPositive(burst.interval, `Stage ${stageId} burst ${burstId} interval`),
+    interval,
     restAfter: asNonNegative(burst.restAfter, `Stage ${stageId} burst ${burstId} restAfter`),
-    units: parseBurstUnits(burst, stageId, burstId),
+    units: parseBurstUnits(burst, stageId, burstId, interval),
   };
 }
 
@@ -421,6 +479,7 @@ function parseBurstUnits(
   burst: Record<string, unknown>,
   stageId: number,
   burstId: number,
+  interval: number,
 ): WaveSpawnRef[] {
   if (Array.isArray(burst.units)) {
     if (burst.units.length === 0) {
@@ -429,7 +488,9 @@ function parseBurstUnits(
     if (burst.units.length > MAX_WAVE_SPAWNS_PER_BURST) {
       throw new Error(`Stage ${stageId} burst ${burstId} has too many units`);
     }
-    return burst.units.map((spawn, index) => parseSpawn(spawn, stageId, burstId, index + 1));
+    return burst.units.map((spawn, index) =>
+      parseSpawn(spawn, stageId, burstId, index + 1, index, interval),
+    );
   }
   const typesValue = burst.types;
   if (!Array.isArray(typesValue) || typesValue.length === 0) {
@@ -442,7 +503,13 @@ function parseBurstUnits(
     throw new Error(`Stage ${stageId} burst ${burstId} has too many units`);
   }
   return Array.from({ length: count }, (_, index) =>
-    spawnRefFromStats(types[index % types.length] ?? "slime", hp, stageId, burstId),
+    spawnRefFromStats(
+      types[index % types.length] ?? "slime",
+      hp,
+      stageId,
+      burstId,
+      spawnDelay({}, index, interval),
+    ),
   );
 }
 
@@ -451,18 +518,24 @@ function parseSpawn(
   stageId: number,
   burstId: number,
   spawnId: number,
+  index: number,
+  interval: number,
 ): WaveSpawnRef {
   if (typeof input !== "object" || input === null) {
     throw new Error(`Stage ${stageId} burst ${burstId} unit ${spawnId} must be an object`);
   }
   const spawn = input as Record<string, unknown>;
+  const delay =
+    spawn.delay === undefined
+      ? spawnDelay({}, index, interval)
+      : asNonNegative(spawn.delay, `Stage ${stageId} burst ${burstId} unit ${spawnId} delay`);
   if (typeof spawn.enemyId === "string") {
     getEnemy(spawn.enemyId);
-    return { enemyId: spawn.enemyId };
+    return { enemyId: spawn.enemyId, delay };
   }
   const type = parseEnemyType(spawn.type, stageId, burstId);
   const hp = asPositiveInt(spawn.hp, `Stage ${stageId} burst ${burstId} unit ${spawnId} hp`);
-  return spawnRefFromStats(type, hp, stageId, burstId);
+  return spawnRefFromStats(type, hp, stageId, burstId, delay);
 }
 
 function spawnRefFromStats(
@@ -470,12 +543,13 @@ function spawnRefFromStats(
   hp: number,
   stageId: number,
   burstId: number,
+  delay: number,
 ): WaveSpawnRef {
   const enemyId = findEnemyIdForStats(type, hp);
   if (!enemyId) {
     throw new Error(`Stage ${stageId} burst ${burstId} has no enemy ${type} hp ${hp}`);
   }
-  return { enemyId };
+  return { enemyId, delay };
 }
 
 function parseEnemyType(value: unknown, stageId: number, burstId: number): EnemyTypeId {

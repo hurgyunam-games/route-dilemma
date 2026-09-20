@@ -1,11 +1,12 @@
-import type {
-  EnemyTypeId,
-  GridLayout,
-  Obstacle,
-  ObstacleKind,
-  Tower,
-  TowerTypeId,
-  Unit,
+import {
+  ENEMY_TYPE_IDS,
+  type EnemyTypeId,
+  type GridLayout,
+  type Obstacle,
+  type ObstacleKind,
+  type Tower,
+  type TowerTypeId,
+  type Unit,
 } from "@/core";
 import type { AnimatedSprite, Sprite, Texture } from "pixi.js";
 
@@ -85,6 +86,9 @@ export const spriteLayout: SpriteLayout = {
     wolf: 1.4,
     slime: 1.05,
     goblin: 1.25,
+    wisp: 1.05,
+    wasp: 1.15,
+    drake: 1.7,
   },
   enemyAnchorY: {
     beast: 86 / 96,
@@ -92,6 +96,9 @@ export const spriteLayout: SpriteLayout = {
     wolf: 40 / 48,
     slime: 42 / 48,
     goblin: 38 / 48,
+    wisp: 86 / 96,
+    wasp: 72 / 96,
+    drake: 88 / 96,
   },
   enemyFootInTile: {
     beast: 1.1,
@@ -99,6 +106,9 @@ export const spriteLayout: SpriteLayout = {
     wolf: 0.78,
     slime: 0.86,
     goblin: 0.78,
+    wisp: 0.86,
+    wasp: 0.55,
+    drake: 0.95,
   },
   enemyXInTile: {
     beast: 0,
@@ -106,6 +116,9 @@ export const spriteLayout: SpriteLayout = {
     wolf: 0,
     slime: 0,
     goblin: 0,
+    wisp: 0,
+    wasp: 0,
+    drake: 0.1,
   },
   allyWidthInTile: 1.35,
   allyAnchorY: 86 / 96,
@@ -185,7 +198,7 @@ function fmt(value: number): string {
 
 export function formatSpriteLayoutSource(): string {
   const s = spriteLayout;
-  const enemyKeys: EnemyTypeId[] = ["beast", "cavalry", "wolf", "slime", "goblin"];
+  const enemyKeys = [...ENEMY_TYPE_IDS];
   const enemyBlock = (row: Record<EnemyTypeId, number>) =>
     enemyKeys.map((key) => `    ${key}: ${fmt(row[key])},`).join("\n");
   return `export const spriteLayout: SpriteLayout = {

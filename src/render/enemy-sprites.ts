@@ -49,6 +49,24 @@ const ENEMY_FILES: Record<
     death: "enemy-goblin-death.png",
     fallback: ["#3a8b3a", "#b4453a", "#2a4a28"],
   },
+  wisp: {
+    walk: "enemy-wisp-walk.png",
+    attack: "enemy-wisp-attack.png",
+    death: "enemy-wisp-death.png",
+    fallback: ["#7aaa3a", "#c8d86a", "#2a4a28"],
+  },
+  wasp: {
+    walk: "enemy-wasp-walk.png",
+    attack: "enemy-wasp-attack.png",
+    death: "enemy-wasp-death.png",
+    fallback: ["#c48a28", "#e8d090", "#4a3020"],
+  },
+  drake: {
+    walk: "enemy-drake-walk.png",
+    attack: "enemy-drake-attack.png",
+    death: "enemy-drake-death.png",
+    fallback: ["#3a5aaa", "#6a8ad0", "#2a3048"],
+  },
 };
 
 export function enemyWalkPreview(type: EnemyTypeId): {

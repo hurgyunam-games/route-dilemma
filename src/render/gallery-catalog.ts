@@ -44,6 +44,9 @@ export const ENEMY_LABELS: Record<EnemyTypeId, string> = {
   wolf: "늑대",
   slime: "슬라임",
   goblin: "고블린",
+  wisp: "위습",
+  wasp: "말벌",
+  drake: "비룡기수",
 };
 
 export type GalleryItem =

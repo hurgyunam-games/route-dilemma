@@ -19,11 +19,13 @@ import {
   insertWaveSpawn,
   maxEnemyHp,
   moveWaveSpawn,
+  nextEnemySpawnState,
   parseWaveTableJson,
   previousCycleStage,
   resetWaveTable,
   serializeWaveTable,
   setWaveTable,
+  spawnDelay,
 } from "./waves";
 
 describe("stage wave table", () => {
@@ -75,7 +77,7 @@ describe("stage wave table", () => {
       "slime",
       "goblin",
       "slime",
-      "cavalry",
+      "wisp",
     ]);
     expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "breaker")).toBe(true);
     expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "ambush")).toBe(true);
@@ -151,7 +153,7 @@ describe("wave table edit", () => {
     }
     expect(parsed.table.stages).toHaveLength(STAGE_COUNT);
     expect(parsed.table.stages[0]?.id).toBe(1);
-    expect(parsed.table.stages[0]?.bursts[0]?.units[0]).toEqual({ enemyId: "slime-10" });
+    expect(parsed.table.stages[0]?.bursts[0]?.units[0]).toEqual({ enemyId: "slime-10", delay: 0 });
   });
 
   it("expands legacy count/types bursts into catalog enemy ids", () => {
@@ -180,11 +182,86 @@ describe("wave table edit", () => {
       return;
     }
     expect(parsed.table.stages[0]?.bursts[0]?.units).toEqual([
-      { enemyId: "slime-12" },
-      { enemyId: "goblin-12" },
-      { enemyId: "slime-12" },
-      { enemyId: "goblin-12" },
+      { enemyId: "slime-12", delay: 0 },
+      { enemyId: "goblin-12", delay: 0.8 },
+      { enemyId: "slime-12", delay: 0.8 },
+      { enemyId: "goblin-12", delay: 0.8 },
     ]);
+  });
+
+  it("fills omitted per-enemy delay from burst interval", () => {
+    const parsed = parseWaveTableJson(
+      JSON.stringify({
+        stages: Array.from({ length: 5 }, (_, index) => ({
+          id: index + 1,
+          enemyPhaseSec: 30,
+          allyPhaseSec: 10,
+          allyCount: 2,
+          allyInterval: 1,
+          bursts: [
+            {
+              interval: 1.2,
+              restAfter: 2,
+              units: [{ enemyId: "slime-10" }, { enemyId: "goblin-14" }, { enemyId: "wolf-20" }],
+            },
+          ],
+        })),
+      }),
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) {
+      return;
+    }
+    expect(parsed.table.stages[0]?.bursts[0]?.units.map((spawn) => spawn.delay)).toEqual([0, 1.2, 1.2]);
+  });
+
+  it("keeps explicit per-enemy delays and uses them for spawn duration", () => {
+    const parsed = parseWaveTableJson(
+      JSON.stringify({
+        stages: Array.from({ length: 5 }, (_, index) => ({
+          id: index + 1,
+          enemyPhaseSec: 30,
+          allyPhaseSec: 10,
+          allyCount: 2,
+          allyInterval: 1,
+          bursts: [
+            {
+              interval: 0.8,
+              restAfter: 1.5,
+              units: [
+                { enemyId: "slime-10", delay: 0 },
+                { enemyId: "goblin-14", delay: 0.2 },
+                { enemyId: "wolf-20", delay: 2 },
+              ],
+            },
+            {
+              interval: 0.8,
+              restAfter: 0,
+              units: [
+                { enemyId: "slime-10", delay: 0.5 },
+                { enemyId: "goblin-14", delay: 0.1 },
+              ],
+            },
+          ],
+        })),
+      }),
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) {
+      return;
+    }
+    const stage = parsed.table.stages[0]!;
+    expect(stage.bursts[0]?.units.map((spawn) => spawn.delay)).toEqual([0, 0.2, 2]);
+    expect(enemySpawnDurationSec(stage)).toBe(0 + 0.2 + 2 + 1.5 + 0.5 + 0.1);
+    expect(nextEnemySpawnState(stage, 0, 0).spawnCooldown).toBe(0.2);
+    expect(nextEnemySpawnState(stage, 0, 2)).toEqual({
+      burstIndex: 1,
+      spawnedInBurst: 0,
+      spawnCooldown: 1.5 + 0.5,
+    });
+    expect(spawnDelay({ delay: 0.4 }, 3, 0.8)).toBe(0.4);
+    expect(spawnDelay({}, 0, 0.8)).toBe(0);
+    expect(spawnDelay({}, 2, 0.8)).toBe(0.8);
   });
 
   it("reorders an explicit spawn list", () => {
@@ -194,9 +271,9 @@ describe("wave table edit", () => {
           interval: 0.8,
           restAfter: 1,
           units: [
-            { enemyId: "slime-10" },
-            { enemyId: "wolf-20" },
-            { enemyId: "goblin-14" },
+            { enemyId: "slime-10", delay: 0 },
+            { enemyId: "wolf-20", delay: 0.8 },
+            { enemyId: "goblin-14", delay: 0.4 },
           ],
         },
       ],
@@ -214,12 +291,15 @@ describe("wave table edit", () => {
 
   it("inserts a palette enemy into a burst", () => {
     const inserted = insertWaveSpawn(
-      [{ interval: 0.8, restAfter: 1, units: [{ enemyId: "slime-10" }] }],
+      [{ interval: 0.8, restAfter: 1, units: [{ enemyId: "slime-10", delay: 0 }] }],
       0,
       0,
       { enemyId: "goblin-14" },
     );
     expect(inserted[0]?.units.map((spawn) => spawn.enemyId)).toEqual(["goblin-14", "slime-10"]);
+    expect(inserted[0]?.units.map((spawn) => spawn.delay)).toEqual([0, 0]);
+    const appended = insertWaveSpawn(inserted, 0, 2, { enemyId: "wolf-20" });
+    expect(appended[0]?.units.map((spawn) => spawn.delay)).toEqual([0, 0, 0.8]);
   });
 
   it("rejects invalid json and empty bursts", () => {
@@ -232,6 +312,22 @@ describe("wave table edit", () => {
       ),
     };
     expect(parseWaveTableJson(JSON.stringify(broken)).ok).toBe(false);
+    const withNegDelay = {
+      stages: clone.stages.map((row, index) =>
+        index === 0
+          ? {
+              ...row,
+              bursts: [
+                {
+                  ...row.bursts[0]!,
+                  units: [{ enemyId: "slime-10", delay: -1 }],
+                },
+              ],
+            }
+          : row,
+      ),
+    };
+    expect(parseWaveTableJson(JSON.stringify(withNegDelay)).ok).toBe(false);
   });
 
   it("applies an override so later getStageWave reads the edited row", () => {
@@ -256,9 +352,9 @@ describe("wave table edit", () => {
               interval: first.bursts[0]!.interval,
               restAfter: first.bursts[0]!.restAfter,
               units: [
-                { enemyId: "cavalry-99" },
-                { enemyId: "cavalry-99" },
-                { enemyId: "cavalry-99" },
+                { enemyId: "cavalry-99", delay: 0 },
+                { enemyId: "cavalry-99", delay: 0.3 },
+                { enemyId: "cavalry-99", delay: 1.1 },
               ],
             },
           ],

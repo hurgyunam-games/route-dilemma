@@ -1,6 +1,15 @@
 import enemyTable from "./enemies.json";
 
-export const ENEMY_TYPE_IDS = ["beast", "cavalry", "wolf", "slime", "goblin"] as const;
+export const ENEMY_TYPE_IDS = [
+  "beast",
+  "cavalry",
+  "wolf",
+  "slime",
+  "goblin",
+  "wisp",
+  "wasp",
+  "drake",
+] as const;
 export type EnemyTypeId = (typeof ENEMY_TYPE_IDS)[number];
 
 export const ENEMY_SPRITE_LABELS: Record<EnemyTypeId, string> = {
@@ -9,6 +18,9 @@ export const ENEMY_SPRITE_LABELS: Record<EnemyTypeId, string> = {
   wolf: "늑대",
   slime: "슬라임",
   goblin: "고블린",
+  wisp: "위습",
+  wasp: "말벌",
+  drake: "비룡기수",
 };
 
 export const ENEMY_BEHAVIOR_IDS = ["normal", "breaker", "ambush"] as const;
@@ -16,8 +28,8 @@ export type EnemyBehaviorId = (typeof ENEMY_BEHAVIOR_IDS)[number];
 
 export const ENEMY_BEHAVIOR_LABELS: Record<EnemyBehaviorId, string> = {
   normal: "일반",
-  breaker: "돌파",
-  ambush: "매복",
+  breaker: "돌진",
+  ambush: "약탈",
 };
 
 export const DEFAULT_ENEMY_BEHAVIOR: EnemyBehaviorId = "normal";
@@ -186,10 +198,11 @@ function parseEnemyDef(input: unknown, index: number): EnemyDef {
   if (!name) {
     throw new Error(`Enemy ${id} needs a name`);
   }
+  const sprite = parseSprite(row.sprite, id);
   return {
     id,
     name,
-    sprite: parseSprite(row.sprite, id),
+    sprite,
     hp: asPositiveInt(row.hp, `Enemy ${id} hp`),
     hue: asHue(row.hue, id),
     behavior: parseBehavior(row.behavior, id),

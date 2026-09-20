@@ -36,7 +36,9 @@ import {
 } from "./towers";
 import {
   getStageWave,
+  nextEnemySpawnState,
   phaseDuration,
+  spawnDelay,
   type EnemyTypeId,
   type StageWave,
   type WaveBurst,
@@ -111,11 +113,13 @@ export {
   insertWaveSpawn,
   maxEnemyHp,
   moveWaveSpawn,
+  nextEnemySpawnState,
   parseWaveTable,
   parseWaveTableJson,
   resetWaveTable,
   serializeWaveTable,
   setWaveTable,
+  spawnDelay,
   waveEnemyIds,
   waveStageCount,
 } from "./waves";
@@ -292,13 +296,16 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
   const requested = Math.max(1, Math.round(stageId));
   const stage = getStageWave(requested);
   const first = stage.bursts[0]!;
+  const lead = spawnDelay(first.units[0]!, 0, first.interval);
+  const spawned = lead > 0 ? null : spawnFromBurst(1, grid.start, "enemy", first, 0, stage.speed);
+  const cursor = spawned ? nextEnemySpawnState(stage, 0, 0) : { burstIndex: 0, spawnedInBurst: 0, spawnCooldown: lead };
   return {
     grid,
-    units: [spawnFromBurst(1, grid.start, "enemy", first, 0, stage.speed)],
+    units: spawned ? [spawned] : [],
     towerShots: [],
     fireCooldown: {},
     nextShotId: 1,
-    nextUnitId: 2,
+    nextUnitId: spawned ? 2 : 1,
     time: 0,
     phase: "enemy",
     phaseTimeLeft: stage.enemyPhaseSec,
@@ -308,9 +315,9 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
     stageId: requested,
     waveIndex: 0,
     waveCount: BATTLE_WAVE_COUNT,
-    burstIndex: 0,
-    spawnedInBurst: 1,
-    spawnCooldown: first.interval,
+    burstIndex: cursor.burstIndex,
+    spawnedInBurst: cursor.spawnedInBurst,
+    spawnCooldown: cursor.spawnCooldown,
     outcome: "playing",
   };
 }
@@ -502,7 +509,9 @@ function tickOnce(state: SimState, dt: number): SimState {
   const phaseChanged = clock.phase !== state.phase;
   let burstIndex = phaseChanged ? 0 : state.burstIndex;
   let spawnedInBurst = phaseChanged ? 0 : state.spawnedInBurst;
-  let spawnCooldown = phaseChanged ? 0 : state.spawnCooldown - dt;
+  let spawnCooldown = phaseChanged
+    ? enemyPhaseLead(clock.phase, stage)
+    : state.spawnCooldown - dt;
   const retained = retainUnits(state.units, state.phase, clock.phase);
   const ambushCtx: AmbushContext = {
     allies: retained.filter((unit) => unit.kind === "ally"),
@@ -752,13 +761,10 @@ function trySpawnWave(
     return { units, nextUnitId, burstIndex, spawnedInBurst, spawnCooldown };
   }
   if (spawnedInBurst >= burst.units.length) {
-    const nextBurst = burstIndex + 1;
     return {
       units,
       nextUnitId,
-      burstIndex: nextBurst,
-      spawnedInBurst: 0,
-      spawnCooldown: burst.restAfter,
+      ...nextEnemySpawnState(stage, burstIndex, burst.units.length - 1),
     };
   }
 
@@ -768,10 +774,16 @@ function trySpawnWave(
       spawnFromBurst(nextUnitId, start, "enemy", burst, spawnedInBurst, stage.speed),
     ]),
     nextUnitId: nextUnitId + 1,
-    burstIndex,
-    spawnedInBurst: spawnedInBurst + 1,
-    spawnCooldown: burst.interval,
+    ...nextEnemySpawnState(stage, burstIndex, spawnedInBurst),
   };
+}
+
+function enemyPhaseLead(phase: UnitKind, stage: StageWave): number {
+  if (phase !== "enemy") {
+    return 0;
+  }
+  const first = stage.bursts[0];
+  return first ? spawnDelay(first.units[0]!, 0, first.interval) : 0;
 }
 
 function kindOccupiesStart(

@@ -98,11 +98,10 @@ describe("enemy catalog", () => {
       JSON.stringify({
         enemies: [
           {
-            id: "cavalry-16",
-            name: "돌파 기병",
-            sprite: "cavalry",
+            id: "wisp-16",
+            name: "돌진 위습",
+            sprite: "wisp",
             hp: 16,
-            hue: 200,
             behavior: "breaker",
           },
         ],
@@ -113,7 +112,36 @@ describe("enemy catalog", () => {
       return;
     }
     expect(breaker.table.enemies[0]?.behavior).toBe("breaker");
-    expect(getEnemy("cavalry-16").behavior).toBe("breaker");
+    expect(getEnemy("wisp-16").behavior).toBe("breaker");
+  });
+
+  it("lets any sprite use breaker or ambush as a type attribute", () => {
+    const mixed = parseEnemyTableJson(
+      JSON.stringify({
+        enemies: [
+          {
+            id: "cavalry-16",
+            name: "돌진 기병",
+            sprite: "cavalry",
+            hp: 16,
+            behavior: "breaker",
+          },
+          {
+            id: "slime-11-ambush",
+            name: "약탈 슬라임",
+            sprite: "slime",
+            hp: 11,
+            behavior: "ambush",
+          },
+        ],
+      }),
+    );
+    expect(mixed.ok).toBe(true);
+    if (!mixed.ok) {
+      return;
+    }
+    expect(mixed.table.enemies[0]?.behavior).toBe("breaker");
+    expect(mixed.table.enemies[1]?.behavior).toBe("ambush");
   });
 
   it("keeps ambush behavior", () => {
@@ -122,7 +150,7 @@ describe("enemy catalog", () => {
         enemies: [
           {
             id: "goblin-14-ambush",
-            name: "매복 고블린",
+            name: "약탈 고블린",
             sprite: "goblin",
             hp: 14,
             hue: 280,
