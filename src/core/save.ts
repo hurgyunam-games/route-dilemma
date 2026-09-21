@@ -12,7 +12,7 @@ import type { Tower } from "./grid";
 import { version as npmVersion } from "../../package.json";
 
 /** Schema integer. Bump only when the save *shape* changes, then add a migrateStep. */
-export const CAMPAIGN_SAVE_VERSION = 2;
+export const CAMPAIGN_SAVE_VERSION = 3;
 
 /** Debug string written into saves. Comes from package.json. */
 export const APP_VERSION = npmVersion;
@@ -44,6 +44,7 @@ type CampaignSave = {
   readonly clearedStage: number;
   readonly mapTowers: Record<string, unknown>;
   readonly mapRecaptureAt: Record<string, unknown>;
+  readonly bestiaryUnlocked: readonly string[];
 };
 
 function isTowerTypeId(value: unknown): value is TowerTypeId {
@@ -120,6 +121,22 @@ function parseMapRecaptureAt(value: unknown): MapRecaptureMap {
   return next;
 }
 
+function parseBestiaryUnlocked(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const next: string[] = [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (typeof item !== "string" || item === "" || seen.has(item)) {
+      continue;
+    }
+    seen.add(item);
+    next.push(item);
+  }
+  return next;
+}
+
 function asRawSave(value: unknown): RawSave | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -152,10 +169,19 @@ function migrateV1toV2(body: RawSave): RawSave {
   };
 }
 
+function migrateV2toV3(body: RawSave): RawSave {
+  return {
+    ...body,
+    bestiaryUnlocked: Array.isArray(body.bestiaryUnlocked) ? body.bestiaryUnlocked : [],
+  };
+}
+
 function migrateStep(body: RawSave, fromVersion: number): RawSave | "invalid" {
   switch (fromVersion) {
     case 1:
       return migrateV1toV2(body);
+    case 2:
+      return migrateV2toV3(body);
     default:
       return "invalid";
   }
@@ -184,6 +210,7 @@ function progressFromSave(body: RawSave): CampaignProgress | null {
     clearedStage,
     mapTowers: parseMapTowers(body.mapTowers),
     mapRecaptureAt: parseMapRecaptureAt(body.mapRecaptureAt),
+    bestiaryUnlocked: parseBestiaryUnlocked(body.bestiaryUnlocked),
   };
 }
 
@@ -204,6 +231,7 @@ export function serializeCampaign(progress: CampaignProgress): string {
     mapRecaptureAt: Object.fromEntries(
       Object.entries(progress.mapRecaptureAt ?? {}).map(([id, at]) => [id, at]),
     ),
+    bestiaryUnlocked: [...(progress.bestiaryUnlocked ?? [])],
   };
   return JSON.stringify(save);
 }

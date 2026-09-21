@@ -120,6 +120,7 @@ export {
   serializeWaveTable,
   setWaveTable,
   spawnDelay,
+  stageWaveEnemyIds,
   waveEnemyIds,
   waveStageCount,
 } from "./waves";
@@ -190,6 +191,8 @@ export const PHASE_DURATION_SEC = getStageWave(1).enemyPhaseSec;
 export const SPAWN_INTERVAL_SEC = getStageWave(1).bursts[0]!.interval;
 export const WAVE_SIZE = getStageWave(1).bursts[0]!.units.length;
 export const BATTLE_WAVE_COUNT = 3;
+/** Seconds the incoming-enemy banner stays up before the first spawn. */
+export const WAVE_PREVIEW_SEC = 2.4;
 
 export type Phase = "enemy" | "ally";
 export type UnitKind = Phase;
@@ -261,6 +264,7 @@ export type SimState = {
   readonly burstIndex: number;
   readonly spawnedInBurst: number;
   readonly spawnCooldown: number;
+  readonly wavePreviewTimeLeft: number;
   readonly outcome: BattleOutcome;
 };
 
@@ -275,6 +279,7 @@ export type HudSnapshot = {
   readonly stageId: number;
   readonly waveIndex: number;
   readonly waveCount: number;
+  readonly wavePreviewTimeLeft: number;
   readonly outcome: BattleOutcome;
 };
 
@@ -297,15 +302,13 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
   const stage = getStageWave(requested);
   const first = stage.bursts[0]!;
   const lead = spawnDelay(first.units[0]!, 0, first.interval);
-  const spawned = lead > 0 ? null : spawnFromBurst(1, grid.start, "enemy", first, 0, stage.speed);
-  const cursor = spawned ? nextEnemySpawnState(stage, 0, 0) : { burstIndex: 0, spawnedInBurst: 0, spawnCooldown: lead };
   return {
     grid,
-    units: spawned ? [spawned] : [],
+    units: [],
     towerShots: [],
     fireCooldown: {},
     nextShotId: 1,
-    nextUnitId: spawned ? 2 : 1,
+    nextUnitId: 1,
     time: 0,
     phase: "enemy",
     phaseTimeLeft: stage.enemyPhaseSec,
@@ -315,11 +318,20 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
     stageId: requested,
     waveIndex: 0,
     waveCount: BATTLE_WAVE_COUNT,
-    burstIndex: cursor.burstIndex,
-    spawnedInBurst: cursor.spawnedInBurst,
-    spawnCooldown: cursor.spawnCooldown,
+    burstIndex: 0,
+    spawnedInBurst: 0,
+    spawnCooldown: lead,
+    wavePreviewTimeLeft: WAVE_PREVIEW_SEC,
     outcome: "playing",
   };
+}
+
+/** Finish the incoming banner and spawn the first enemy, matching pre-preview createSim. */
+export function skipWavePreview(state: SimState): SimState {
+  if (!(state.wavePreviewTimeLeft > 0) || state.phase !== "enemy") {
+    return state;
+  }
+  return beginEnemySpawns({ ...state, wavePreviewTimeLeft: 0 });
 }
 
 export function hudSnapshot(state: SimState): HudSnapshot {
@@ -337,6 +349,7 @@ export function hudSnapshot(state: SimState): HudSnapshot {
     stageId: state.stageId,
     waveIndex: state.waveIndex,
     waveCount: state.waveCount,
+    wavePreviewTimeLeft: state.wavePreviewTimeLeft,
     outcome: state.outcome,
   };
 }
@@ -472,7 +485,8 @@ export function tick(state: SimState, dt: number): SimState {
   if (state.outcome !== "playing") {
     return state;
   }
-  const scaled = dt * state.timeScale;
+  const previewing = state.phase === "enemy" && state.wavePreviewTimeLeft > 0;
+  const scaled = previewing && !(state.timeScale > 0) ? dt : dt * state.timeScale;
   if (!(scaled > 0)) {
     return state;
   }
@@ -491,6 +505,26 @@ function tickOnce(state: SimState, dt: number): SimState {
     return state;
   }
 
+  if (state.phase === "enemy" && state.wavePreviewTimeLeft > 0) {
+    const time = state.time + dt;
+    const grid = advanceTowerBuilds(state.grid, dt);
+    const left = state.wavePreviewTimeLeft - dt;
+    if (left > 1e-9) {
+      return { ...state, grid, time, wavePreviewTimeLeft: left };
+    }
+    const started = beginEnemySpawns({
+      ...state,
+      grid,
+      time,
+      wavePreviewTimeLeft: 0,
+    });
+    const leftover = Math.max(0, -left);
+    if (leftover > 1e-9 && started.timeScale > 0 && started.outcome === "playing") {
+      return tickOnce(started, leftover);
+    }
+    return started;
+  }
+
   const time = state.time + dt;
   const stage = getStageWave(state.stageId);
   const clock = tickPhaseClock(
@@ -507,6 +541,8 @@ function tickOnce(state: SimState, dt: number): SimState {
   let nextUnitId = state.nextUnitId;
   let units: Unit[] = [];
   const phaseChanged = clock.phase !== state.phase;
+  const wavePreviewTimeLeft =
+    phaseChanged && clock.phase === "enemy" ? WAVE_PREVIEW_SEC : 0;
   let burstIndex = phaseChanged ? 0 : state.burstIndex;
   let spawnedInBurst = phaseChanged ? 0 : state.spawnedInBurst;
   let spawnCooldown = phaseChanged
@@ -550,6 +586,7 @@ function tickOnce(state: SimState, dt: number): SimState {
       burstIndex,
       spawnedInBurst,
       spawnCooldown,
+      wavePreviewTimeLeft,
       outcome: "defeat",
     };
   }
@@ -566,21 +603,23 @@ function tickOnce(state: SimState, dt: number): SimState {
   );
   units = fired.units;
 
-  const spawned = trySpawnWave(
-    units,
-    nextUnitId,
-    grid.start,
-    clock.phase,
-    stage,
-    burstIndex,
-    spawnedInBurst,
-    spawnCooldown,
-  );
-  units = spawned.units;
-  nextUnitId = spawned.nextUnitId;
-  burstIndex = spawned.burstIndex;
-  spawnedInBurst = spawned.spawnedInBurst;
-  spawnCooldown = spawned.spawnCooldown;
+  if (!(wavePreviewTimeLeft > 0)) {
+    const spawned = trySpawnWave(
+      units,
+      nextUnitId,
+      grid.start,
+      clock.phase,
+      stage,
+      burstIndex,
+      spawnedInBurst,
+      spawnCooldown,
+    );
+    units = spawned.units;
+    nextUnitId = spawned.nextUnitId;
+    burstIndex = spawned.burstIndex;
+    spawnedInBurst = spawned.spawnedInBurst;
+    spawnCooldown = spawned.spawnCooldown;
+  }
 
   const next: SimState = {
     grid,
@@ -601,9 +640,41 @@ function tickOnce(state: SimState, dt: number): SimState {
     burstIndex,
     spawnedInBurst,
     spawnCooldown,
+    wavePreviewTimeLeft,
     outcome: "playing",
   };
   return { ...next, outcome: resolveOutcome(next, stage) };
+}
+
+function beginEnemySpawns(state: SimState): SimState {
+  const stage = getStageWave(state.stageId);
+  const burst = stage.bursts[state.burstIndex];
+  if (!burst || state.spawnedInBurst >= burst.units.length) {
+    return state;
+  }
+  if (state.spawnCooldown > 0) {
+    return state;
+  }
+  if (kindOccupiesStart(state.units, state.grid.start, "enemy")) {
+    return state;
+  }
+  const spawned = spawnFromBurst(
+    state.nextUnitId,
+    state.grid.start,
+    "enemy",
+    burst,
+    state.spawnedInBurst,
+    stage.speed,
+  );
+  const cursor = nextEnemySpawnState(stage, state.burstIndex, state.spawnedInBurst);
+  return {
+    ...state,
+    units: enemiesCatchAllies([...state.units, spawned]),
+    nextUnitId: state.nextUnitId + 1,
+    burstIndex: cursor.burstIndex,
+    spawnedInBurst: cursor.spawnedInBurst,
+    spawnCooldown: cursor.spawnCooldown,
+  };
 }
 
 function tickPhaseClock(

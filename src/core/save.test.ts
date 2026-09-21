@@ -80,14 +80,14 @@ describe("campaign save", () => {
     expect(loaded.status).toBe("newer");
     expect(loaded.saveVersion).toBe(CAMPAIGN_SAVE_VERSION + 1);
     expect(loaded.progress).toEqual(createCampaign());
-    expect(persistCampaign(store, { clearedStage: 1, mapTowers: {}, mapRecaptureAt: {} })).toBe(false);
+    expect(persistCampaign(store, { clearedStage: 1, mapTowers: {}, mapRecaptureAt: {}, bestiaryUnlocked: [] })).toBe(false);
     expect(JSON.parse(store.data[CAMPAIGN_STORAGE_KEY]!).clearedStage).toBe(9);
   });
 
   it("copies a legacy maze-td key onto the route-dilemma key", () => {
     const plains = placeTower(createMapGrid(1), 2, 3, "wall", 0);
     const legacy = serializeCampaign(
-      saveMapTowers({ clearedStage: 3, mapTowers: {}, mapRecaptureAt: {} }, 1, plains.towers),
+      saveMapTowers({ clearedStage: 3, mapTowers: {}, mapRecaptureAt: {}, bestiaryUnlocked: [] }, 1, plains.towers),
     );
     const store = memoryStore({
       [LEGACY_CAMPAIGN_STORAGE_KEYS[0]]: legacy,
@@ -113,6 +113,7 @@ describe("campaign save", () => {
     expect(loaded.progress.clearedStage).toBe(2);
     expect(loaded.progress.mapTowers[1]).toEqual(plains.towers);
     expect(loaded.progress.mapRecaptureAt).toEqual({});
+    expect(loaded.progress.bestiaryUnlocked).toEqual([]);
   });
 
   it("round-trips defeat tower damage and recapture time", () => {
@@ -128,5 +129,28 @@ describe("campaign save", () => {
     expect(loaded.status).toBe("ok");
     expect(loaded.progress.mapTowers[1]).toEqual(damaged);
     expect(loaded.progress.mapRecaptureAt[1]).toBe(1_700_000_000_000);
+  });
+
+  it("migrates schema 2 saves with an empty bestiary", () => {
+    const v2 = JSON.stringify({
+      version: 2,
+      clearedStage: 1,
+      mapTowers: {},
+      mapRecaptureAt: {},
+    });
+    const loaded = parseCampaignSave(v2);
+    expect(loaded.status).toBe("migrated");
+    expect(loaded.saveVersion).toBe(CAMPAIGN_SAVE_VERSION);
+    expect(loaded.progress.bestiaryUnlocked).toEqual([]);
+  });
+
+  it("round-trips bestiary unlock ids", () => {
+    const progress = { ...createCampaign(), bestiaryUnlocked: ["slime-10", "wisp-16"] };
+    const store = memoryStore();
+    expect(persistCampaign(store, progress)).toBe(true);
+    const loaded = loadCampaign(store);
+    expect(loaded.status).toBe("ok");
+    expect(loaded.progress.bestiaryUnlocked).toEqual(["slime-10", "wisp-16"]);
+    expect(loaded.progress.clearedStage).toBe(0);
   });
 });

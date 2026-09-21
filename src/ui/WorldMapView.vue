@@ -10,6 +10,7 @@ import {
   type ObstacleKind,
 } from "@/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
+import BestiaryOverlay from "@/ui/BestiaryOverlay.vue";
 
 const props = defineProps<{
   lastMapId: MapId | null;
@@ -25,6 +26,7 @@ const emit = defineEmits<{
 }>();
 
 const showDevTools = import.meta.env.DEV;
+const bestiaryOpen = ref(false);
 const nowMs = ref(Date.now());
 let recaptureTimer = 0;
 
@@ -108,6 +110,15 @@ onUnmounted(() => {
       <p>
         스테이지 1–5는 맵 1–5와 하나씩 대응합니다. 스테이지 6부터는 맵 1로 돌아오며, 그 맵에 지은 타워가 남아 있습니다.
       </p>
+      <div class="play-links">
+        <button
+          type="button"
+          class="gallery-link"
+          @click="bestiaryOpen = true"
+        >
+          도감
+        </button>
+      </div>
       <div
         v-if="showDevTools"
         class="tool-links"
@@ -200,11 +211,17 @@ onUnmounted(() => {
         </button>
       </li>
     </ol>
+    <BestiaryOverlay
+      v-if="bestiaryOpen"
+      :unlocked-ids="progress.bestiaryUnlocked"
+      @close="bestiaryOpen = false"
+    />
   </div>
 </template>
 
 <style scoped>
 .world-map {
+  position: relative;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -252,6 +269,7 @@ onUnmounted(() => {
   color: #e08070;
 }
 
+.play-links,
 .tool-links {
   display: flex;
   flex-wrap: wrap;

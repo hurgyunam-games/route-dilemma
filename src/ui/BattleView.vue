@@ -15,23 +15,26 @@ import {
   simBeginBuild,
   simRemoveTower,
   simUpgradeTower,
+  stageWaveEnemyIds,
   tileKind,
   tick,
   TOWER_ATTACK_LABELS,
   TOWER_CATALOG,
   TOWER_DEFS,
   TOWER_MAX_LEVEL,
-  TOWER_ROLE_LABELS,
+  TOWER_TYPE_IDS,
   towerAttack,
   towerDps,
   towerMaxHp,
   towerRange,
   towerRangePreview,
   towerUpgradeCost,
+  wavePreviewRoster,
   type HudSnapshot,
   type MapId,
   type TimeScale,
   type Tower,
+  type TowerDef,
   type TowerTypeId,
 } from "@/core";
 import {
@@ -40,6 +43,12 @@ import {
   setGameView,
 } from "@/render/create-game-app";
 import { playCombatSfx, unlockCombatSfx } from "@/render/sfx";
+import {
+  loadTowerBuildThumbs,
+  towerBuildFallbackThumb,
+} from "@/render/tower-thumbs";
+import BestiaryOverlay from "@/ui/BestiaryOverlay.vue";
+import WavePreviewBanner from "@/ui/WavePreviewBanner.vue";
 
 const TIME_CONTROLS: readonly { scale: TimeScale; label: string }[] = [
   { scale: 0, label: "일시정지" },
@@ -56,6 +65,7 @@ const props = defineProps<{
   mapId: MapId;
   stageId: number;
   towers: readonly Tower[];
+  bestiaryUnlocked?: readonly string[];
 }>();
 
 const emit = defineEmits<{
@@ -63,6 +73,7 @@ const emit = defineEmits<{
   victory: [stageId: number];
   defeat: [towers: readonly Tower[]];
   saveTowers: [towers: readonly Tower[]];
+  unlockBestiary: [enemyIds: readonly string[]];
 }>();
 
 const makeBattle = () =>
@@ -77,6 +88,17 @@ const hud = ref<HudSnapshot>(hudSnapshot(sim));
 const shop = ref<Shop | null>(null);
 const shopError = ref("");
 const towerMenuDetail = ref(false);
+const hoveredBuildType = ref<TowerTypeId | null>(null);
+const bestiaryOpen = ref(false);
+const bestiaryFocusId = ref<string | null>(null);
+const previewKnownIds = ref<readonly string[]>([...(props.bestiaryUnlocked ?? [])]);
+const newBestiaryIds = ref<readonly string[]>([]);
+let unlockedWaveKey = "";
+const buildThumbs = ref<Record<TowerTypeId, string>>(
+  Object.fromEntries(
+    TOWER_TYPE_IDS.map((id) => [id, towerBuildFallbackThumb(id)]),
+  ) as Record<TowerTypeId, string>,
+);
 const leakPulse = ref(0);
 const rewardPulse = ref(0);
 const goldGain = ref(0);
@@ -111,6 +133,15 @@ const loopHint = computed(() =>
 );
 const waveLabel = computed(
   () => `웨이브 ${hud.value.waveIndex + 1} / ${hud.value.waveCount}`,
+);
+const showWavePreview = computed(
+  () =>
+    hud.value.outcome === "playing" &&
+    hud.value.phase === "enemy" &&
+    hud.value.wavePreviewTimeLeft > 0,
+);
+const previewRoster = computed(() =>
+  wavePreviewRoster(stageWaveEnemyIds(props.stageId), previewKnownIds.value),
 );
 const outcomeTitle = computed(() =>
   hud.value.outcome === "defeat" ? "Game Over" : "Victory",
@@ -180,11 +211,67 @@ const selectedTile = computed(() => {
   return { x: tower.x, y: tower.y };
 });
 
+const hoveredBuildDef = computed(() => {
+  const id = hoveredBuildType.value;
+  return id ? TOWER_DEFS[id] : null;
+});
+
+const buildThumbStyle = (typeId: TowerTypeId) => ({
+  backgroundImage: `url(${buildThumbs.value[typeId]})`,
+});
+
+const buildSpecLines = (def: TowerDef): readonly string[] => {
+  if (def.attack === "none") {
+    return [`비용 ${def.cost}`, `체력 ${def.hp}`, "공격 없음 · 길 차단"];
+  }
+  return [
+    `비용 ${def.cost}`,
+    `체력 ${def.hp}`,
+    `사거리 ${def.range}`,
+    `공격 ${def.dps} · ${TOWER_ATTACK_LABELS[def.attack]}`,
+  ];
+};
+
+const onHoverBuildType = (typeId: TowerTypeId): void => {
+  hoveredBuildType.value = typeId;
+};
+
+const onLeaveBuildGrid = (): void => {
+  hoveredBuildType.value = null;
+};
+
+const onBuildGridFocusOut = (event: FocusEvent): void => {
+  const grid = event.currentTarget;
+  const next = event.relatedTarget;
+  if (grid instanceof Node && next instanceof Node && grid.contains(next)) {
+    return;
+  }
+  hoveredBuildType.value = null;
+};
+
 const closeShop = (): void => {
   shop.value = null;
   shopError.value = "";
   towerMenuDetail.value = false;
+  hoveredBuildType.value = null;
   pushView();
+};
+
+const openBestiary = (): void => {
+  closeShop();
+  bestiaryFocusId.value = null;
+  bestiaryOpen.value = true;
+};
+
+const openBestiaryEnemy = (enemyId: string): void => {
+  closeShop();
+  bestiaryFocusId.value = enemyId;
+  bestiaryOpen.value = true;
+};
+
+const closeBestiary = (): void => {
+  bestiaryOpen.value = false;
+  bestiaryFocusId.value = null;
 };
 
 const saveTowersIfChanged = (): void => {
@@ -196,8 +283,29 @@ const saveTowersIfChanged = (): void => {
   emit("saveTowers", sim.grid.towers);
 };
 
+const maybeUnlockPreview = (): void => {
+  if (sim.phase !== "enemy" || !(sim.wavePreviewTimeLeft > 0) || sim.outcome !== "playing") {
+    return;
+  }
+  const key = `${sim.stageId}:${sim.waveIndex}`;
+  if (unlockedWaveKey === key) {
+    return;
+  }
+  unlockedWaveKey = key;
+  previewKnownIds.value = [...(props.bestiaryUnlocked ?? [])];
+  const ids = stageWaveEnemyIds(sim.stageId);
+  const fresh = ids.filter((id) => !previewKnownIds.value.includes(id));
+  if (fresh.length > 0) {
+    newBestiaryIds.value = [...new Set([...newBestiaryIds.value, ...fresh])];
+  }
+  if (ids.length > 0) {
+    emit("unlockBestiary", ids);
+  }
+};
+
 const pushHud = (): void => {
   hud.value = hudSnapshot(sim);
+  maybeUnlockPreview();
   if (hud.value.outcome === "victory" && !reportedVictory) {
     reportedVictory = true;
     emit("victory", props.stageId);
@@ -248,6 +356,9 @@ const onRestart = (): void => {
   sim = makeBattle();
   reportedVictory = false;
   reportedDefeat = false;
+  unlockedWaveKey = "";
+  newBestiaryIds.value = [];
+  bestiaryFocusId.value = null;
   lastTowerSave = JSON.stringify(sim.grid.towers);
   leakPulse.value = 0;
   rewardPulse.value = 0;
@@ -347,15 +458,23 @@ const onDestroy = (): void => {
 };
 
 onMounted(async () => {
+  maybeUnlockPreview();
   if (!hostRef.value) {
     return;
   }
+  void loadTowerBuildThumbs().then((thumbs) => {
+    buildThumbs.value = thumbs;
+  });
   app = await createGameApp(hostRef.value, sim.grid, sim.units, onTileClick);
   unlockCombatSfx();
   hostRef.value.addEventListener("pointerdown", unlockCombatSfx, { once: true });
 
   const loop = (ts: number): void => {
     raf = requestAnimationFrame(loop);
+    if (bestiaryOpen.value) {
+      lastTs = ts;
+      return;
+    }
     const dt = lastTs === 0 ? 0 : Math.min(0.05, (ts - lastTs) / 1000);
     lastTs = ts;
     if (dt > 0) {
@@ -424,6 +543,13 @@ onUnmounted(() => {
         >
           월드맵
         </button>
+        <button
+          type="button"
+          class="world-map-btn"
+          @click="openBestiary"
+        >
+          도감
+        </button>
         <div class="hud-main">
           <div
             class="phase-bar"
@@ -489,6 +615,11 @@ onUnmounted(() => {
         </p>
       </div>
     </div>
+    <WavePreviewBanner
+      v-if="showWavePreview"
+      :roster="previewRoster"
+      @select="openBestiaryEnemy"
+    />
     <div
       v-if="hud.outcome !== 'playing'"
       class="outcome-overlay"
@@ -550,28 +681,48 @@ onUnmounted(() => {
         <p class="shop-gold">
           보유 골드 {{ hud.gold }}
         </p>
-        <div class="type-grid">
-          <button
-            v-for="def in TOWER_CATALOG"
-            :key="def.id"
-            type="button"
-            class="type-card"
-            :class="def.id"
-            @click="onPickType(def.id)"
+        <div
+          class="type-picker"
+          @mouseleave="onLeaveBuildGrid"
+          @focusout="onBuildGridFocusOut"
+        >
+          <div class="type-grid">
+            <button
+              v-for="def in TOWER_CATALOG"
+              :key="def.id"
+              type="button"
+              class="type-card"
+              :class="[def.id, { hovered: hoveredBuildType === def.id }]"
+              :aria-describedby="hoveredBuildType === def.id ? 'build-type-spec' : undefined"
+              @mouseenter="onHoverBuildType(def.id)"
+              @focus="onHoverBuildType(def.id)"
+              @click="onPickType(def.id)"
+            >
+              <span
+                class="type-thumb"
+                :style="buildThumbStyle(def.id)"
+                aria-hidden="true"
+              />
+              <span class="type-name">{{ def.name }}</span>
+            </button>
+          </div>
+          <div
+            id="build-type-spec"
+            class="build-spec"
+            :class="{ open: hoveredBuildDef }"
+            role="tooltip"
           >
-            <span class="type-name">{{ def.name }}</span>
-            <span class="type-role">{{ TOWER_ROLE_LABELS[def.attack] }}</span>
-            <span class="type-stat">비용 {{ def.cost }}</span>
-            <span class="type-stat">체력 {{ def.hp }}</span>
-            <template v-if="def.attack !== 'none'">
-              <span class="type-stat">사거리 {{ def.range }}</span>
-              <span class="type-stat">공격 {{ def.dps }} · {{ TOWER_ATTACK_LABELS[def.attack] }}</span>
+            <template v-if="hoveredBuildDef">
+              <p class="build-spec-name">{{ hoveredBuildDef.name }}</p>
+              <p
+                v-for="line in buildSpecLines(hoveredBuildDef)"
+                :key="line"
+                class="type-stat"
+              >
+                {{ line }}
+              </p>
             </template>
-            <span
-              v-else
-              class="type-stat"
-            >공격 없음 · 길 차단</span>
-          </button>
+          </div>
         </div>
         <p
           v-if="shopError"
@@ -691,6 +842,13 @@ onUnmounted(() => {
         {{ shopError }}
       </p>
     </div>
+    <BestiaryOverlay
+      v-if="bestiaryOpen"
+      :unlocked-ids="bestiaryUnlocked ?? []"
+      :new-ids="newBestiaryIds"
+      :focus-id="bestiaryFocusId"
+      @close="closeBestiary"
+    />
   </div>
 </template>
 
@@ -926,7 +1084,7 @@ onUnmounted(() => {
 }
 
 .shop-panel {
-  width: min(440px, calc(100% - 32px));
+  width: min(560px, calc(100% - 32px));
   padding: 16px 18px 18px;
   border-radius: 10px;
   background: rgba(28, 18, 14, 0.96);
@@ -969,24 +1127,30 @@ onUnmounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
+.type-picker {
+  display: flex;
+  flex-direction: column;
+}
+
 .type-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
 }
 
 .type-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
   margin: 0;
-  padding: 10px 8px;
+  padding: 8px 4px 10px;
   border: 0;
   border-radius: 8px;
   background: rgba(20, 12, 10, 0.9);
   color: #f7efe6;
   font: 700 13px/1.3 "Segoe UI", sans-serif;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -1010,16 +1174,46 @@ onUnmounted(() => {
   box-shadow: inset 0 0 0 2px #a8a090;
 }
 
-.type-name {
-  margin: 0;
-  font-size: 15px;
+.type-card.hovered,
+.type-card:focus-visible {
+  background: rgba(56, 38, 28, 0.95);
 }
 
-.type-role {
-  margin: 0 0 2px;
+.type-thumb {
+  display: block;
+  width: 100%;
+  max-width: 72px;
+  height: 104px;
+  border-radius: 6px;
+  background-color: #1a1412;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.2);
+}
+
+.type-name {
+  margin: 0;
+  font-size: 14px;
+}
+
+.build-spec {
+  min-height: 92px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.build-spec.open {
+  background: rgba(20, 12, 10, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.28);
+}
+
+.build-spec-name {
+  margin: 0 0 4px;
   color: #f0d090;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 14px;
 }
 
 .type-stat {

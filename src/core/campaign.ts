@@ -16,6 +16,7 @@ export type CampaignProgress = {
   readonly clearedStage: number;
   readonly mapTowers: MapTowerMap;
   readonly mapRecaptureAt: MapRecaptureMap;
+  readonly bestiaryUnlocked: readonly string[];
 };
 
 export type CampaignMapStatus = {
@@ -31,7 +32,7 @@ export type CampaignMapStatus = {
 };
 
 export function createCampaign(): CampaignProgress {
-  return { clearedStage: 0, mapTowers: {}, mapRecaptureAt: {} };
+  return { clearedStage: 0, mapTowers: {}, mapRecaptureAt: {}, bestiaryUnlocked: [] };
 }
 
 export function mapIdForStage(stageId: number): MapId {

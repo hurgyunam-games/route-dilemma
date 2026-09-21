@@ -13,6 +13,7 @@ import {
   saveMapTowers,
   startMapRecapture,
   towersForMap,
+  unlockBestiaryEnemies,
   type CampaignLoad,
   type MapId,
   type Tower,
@@ -125,6 +126,10 @@ const onSaveTowers = (towers: readonly Tower[]): void => {
   commit(saveMapTowers(campaign.value, selectedMapId.value, towers));
 };
 
+const onUnlockBestiary = (enemyIds: readonly string[]): void => {
+  commit(unlockBestiaryEnemies(campaign.value, enemyIds));
+};
+
 onMounted(() => {
   if (!import.meta.env.DEV) {
     return;
@@ -159,10 +164,12 @@ onUnmounted(() => {
     :map-id="selectedMapId"
     :stage-id="selectedStageId"
     :towers="towersForMap(campaign, selectedMapId)"
+    :bestiary-unlocked="campaign.bestiaryUnlocked"
     @leave="leaveBattle"
     @victory="onVictory"
     @defeat="onDefeat"
     @save-towers="onSaveTowers"
+    @unlock-bestiary="onUnlockBestiary"
   />
   <WorldMapView
     v-else

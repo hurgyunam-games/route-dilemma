@@ -12,7 +12,9 @@ import {
   START_GOLD_PER_STAGE,
   startingGold,
   BUILD_DURATION_SEC,
-  createSim,
+  createSim as createLiveSim,
+  skipWavePreview,
+  WAVE_PREVIEW_SEC,
   combatCues,
   ENEMY_BASE_DAMAGE,
   hudSnapshot,
@@ -23,7 +25,7 @@ import {
   simRemoveTower,
   simToggleTower,
   simUpgradeTower,
-  tick,
+  tick as liveTick,
   TOWER_ATTACK_DPS,
   TOWER_FIRE_INTERVAL_SEC,
   TOWER_RANGE_TILES,
@@ -46,7 +48,30 @@ import {
   TOWER_TYPE_IDS,
   UPGRADE_DURATION_SEC,
   BATTLE_WAVE_COUNT,
+  type SimState,
 } from "./sim";
+
+const createSim = (...args: Parameters<typeof createLiveSim>): SimState =>
+  skipWavePreview(createLiveSim(...args));
+
+const tick = (state: SimState, dt: number): SimState => {
+  if (state.outcome !== "playing") {
+    return state;
+  }
+  let current = skipWavePreview(state);
+  const scaled = dt * current.timeScale;
+  if (!(scaled > 0)) {
+    return current;
+  }
+  let remaining = Math.min(scaled, 4);
+  while (remaining > 1e-9) {
+    const stepped = Math.min(0.05, remaining);
+    const wall = current.timeScale > 0 ? stepped / current.timeScale : stepped;
+    current = skipWavePreview(liveTick(current, wall));
+    remaining -= stepped;
+  }
+  return current;
+};
 
 function wallColumn(grid: ReturnType<typeof createGrid>, x: number) {
   let next = grid;
@@ -1807,6 +1832,45 @@ describe("ambush enemies", () => {
     } else {
       expect(sim.units.some((row) => row.behavior === "ambush")).toBe(false);
     }
+  });
+});
+
+describe("wave preview", () => {
+  it("holds the first spawn until the incoming banner ends", () => {
+    const sim = createLiveSim();
+    expect(sim.units).toHaveLength(0);
+    expect(sim.wavePreviewTimeLeft).toBe(WAVE_PREVIEW_SEC);
+    expect(hudSnapshot(sim).wavePreviewTimeLeft).toBe(WAVE_PREVIEW_SEC);
+
+    const mid = liveTick(sim, 1);
+    expect(mid.units).toHaveLength(0);
+    expect(mid.wavePreviewTimeLeft).toBeCloseTo(WAVE_PREVIEW_SEC - 1, 5);
+    expect(mid.phaseTimeLeft).toBeCloseTo(sim.phaseTimeLeft, 5);
+    expect(mid.phase).toBe("enemy");
+
+    const done = liveTick(setTimeScale(mid, 0), mid.wavePreviewTimeLeft);
+    expect(done.wavePreviewTimeLeft).toBe(0);
+    expect(done.units).toHaveLength(1);
+    expect(done.units[0]!.kind).toBe("enemy");
+    expect(unitTile(done.units[0]!)).toEqual(done.grid.start);
+    expect(done.phaseTimeLeft).toBeCloseTo(sim.phaseTimeLeft, 4);
+  });
+
+  it("still counts the banner down while the battle is paused", () => {
+    const paused = setTimeScale(createLiveSim(), 0);
+    const done = liveTick(paused, WAVE_PREVIEW_SEC);
+    expect(done.timeScale).toBe(0);
+    expect(done.wavePreviewTimeLeft).toBe(0);
+    expect(done.units).toHaveLength(1);
+    expect(unitTile(done.units[0]!)).toEqual(done.grid.start);
+    expect(done.phaseTimeLeft).toBeCloseTo(paused.phaseTimeLeft, 5);
+  });
+
+  it("matches the old immediate spawn after skipWavePreview", () => {
+    const skipped = skipWavePreview(createLiveSim());
+    expect(skipped.wavePreviewTimeLeft).toBe(0);
+    expect(skipped.units).toHaveLength(1);
+    expect(unitTile(skipped.units[0]!)).toEqual(skipped.grid.start);
   });
 });
 

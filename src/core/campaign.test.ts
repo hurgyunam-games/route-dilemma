@@ -211,4 +211,11 @@ describe("campaign defeat penalty", () => {
     expect(canEnterMap(later, 1, 20_000 + RECAPTURE_DURATION_MS)).toBe(true);
     expect(towersForMap(later, 1)).toEqual([]);
   });
+
+  it("keeps bestiary unlocks when stages and towers change", () => {
+    const progress = { ...createCampaign(), bestiaryUnlocked: ["slime-10"] };
+    expect(recordVictory(progress, 1).bestiaryUnlocked).toEqual(["slime-10"]);
+    expect(saveMapTowers(progress, 1, []).bestiaryUnlocked).toEqual(["slime-10"]);
+    expect(recordDefeat(progress, 1, [], 1_000, () => 0.5).bestiaryUnlocked).toEqual(["slime-10"]);
+  });
 });

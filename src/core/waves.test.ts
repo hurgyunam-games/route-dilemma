@@ -26,6 +26,7 @@ import {
   serializeWaveTable,
   setWaveTable,
   spawnDelay,
+  stageWaveEnemyIds,
 } from "./waves";
 
 describe("stage wave table", () => {
@@ -42,6 +43,16 @@ describe("stage wave table", () => {
       ),
     });
     expect(getStageWave(1).bursts[0]?.units[0]?.hue).toBe(77);
+  });
+
+  it("lists unique catalog ids for a stage assault in spawn order", () => {
+    expect(stageWaveEnemyIds(1)).toEqual([
+      "slime-10",
+      "slime-14",
+      "goblin-14",
+      "wisp-16",
+      "goblin-14-ambush",
+    ]);
   });
 
   it("defines 20 fixed stages in order", () => {

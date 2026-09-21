@@ -120,6 +120,22 @@ export function waveEnemyIds(table: WaveTable = liveTable): readonly string[] {
   return [...ids];
 }
 
+/** Unique catalog ids that appear in this stage's enemy assault. */
+export function stageWaveEnemyIds(stageId: number): readonly string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const burst of getStageWave(stageId).bursts) {
+    for (const spawn of burst.units) {
+      if (seen.has(spawn.enemyId)) {
+        continue;
+      }
+      seen.add(spawn.enemyId);
+      ids.push(spawn.enemyId);
+    }
+  }
+  return ids;
+}
+
 export function defaultWaveSpawn(delay = 0): WaveSpawnRef {
   const first = getEnemyCatalog()[0];
   return { enemyId: first?.id ?? "slime-10", delay };

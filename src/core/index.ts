@@ -73,6 +73,15 @@ export {
 } from "./campaign";
 export type { CampaignMapStatus, CampaignProgress } from "./campaign";
 export {
+  BESTIARY_LOCKED_NAME,
+  ENEMY_ROLE_LABELS,
+  bestiaryEntries,
+  isBestiaryEnemyUnlocked,
+  unlockBestiaryEnemies,
+  wavePreviewRoster,
+} from "./bestiary";
+export type { BestiaryEntry, WavePreviewEntry } from "./bestiary";
+export {
   APP_VERSION,
   CAMPAIGN_SAVE_VERSION,
   CAMPAIGN_STORAGE_KEY,
@@ -100,6 +109,7 @@ export {
   canUpgrade,
   CATCH_RANGE_TILES,
   createSim,
+  skipWavePreview,
   DEFAULT_TOWER_TYPE,
   ENEMY_BASE_DAMAGE,
   combatCues,
@@ -140,6 +150,7 @@ export {
   UNIT_MAX_HP,
   unitTile,
   WAVE_SIZE,
+  WAVE_PREVIEW_SEC,
   BATTLE_WAVE_COUNT,
   ENEMY_BEHAVIOR_IDS,
   ENEMY_BEHAVIOR_LABELS,
@@ -195,6 +206,7 @@ export {
   serializeWaveTable,
   setWaveTable,
   spawnDelay,
+  stageWaveEnemyIds,
   waveEnemyIds,
   waveStageCount,
 } from "./sim";
