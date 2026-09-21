@@ -20,6 +20,9 @@ import {
   towerSplashRadius,
   towerUpgradeCost,
   UPGRADE_DURATION_SEC,
+  WALL_WAVE_REPAIR_MAX_HP_RATIO,
+  WAVE_REPAIR_MAX_HP_RATIO,
+  waveRepairAmount,
 } from "./towers";
 
 describe("tower catalog", () => {
@@ -44,6 +47,8 @@ describe("tower catalog", () => {
     expect(TOWER_ROLE_LABELS.melee).toBe("근접 공격");
     expect(TOWER_ROLE_LABELS.splash).toBe("범위 공격");
     expect(TOWER_ROLE_LABELS.single).toBe("단발 공격");
+    expect(TOWER_ROLE_LABELS.splash).not.toBe(TOWER_ROLE_LABELS.single);
+    expect(TOWER_ROLE_LABELS.splash).not.toBe(TOWER_ROLE_LABELS.melee);
     expect(TOWER_ROLE_LABELS.none).toBe("길 차단");
     expect(towerSplashRadius({ typeId: "cannon", level: 1 })).toBeGreaterThan(2);
     expect(towerSplashRadius({ typeId: "archer", level: 1 })).toBe(0);
@@ -85,12 +90,17 @@ describe("tower catalog", () => {
 
   it("makes walls cheap to place, expensive to harden, and never fire", () => {
     const wall = { typeId: "wall" as const, level: 1 };
+    expect(towerBuildCost("wall")).toBe(5);
     expect(towerBuildCost("wall")).toBeLessThan(towerBuildCost("archer"));
+    expect(towerUpgradeCost(wall)).toBe(15);
     expect(towerUpgradeCost(wall)).toBeGreaterThan(towerBuildCost("wall"));
-    expect(towerMaxHp(wall)).toBe(towerMaxHp({ typeId: "archer", level: 1 }));
-    expect(towerMaxHp({ typeId: "wall", level: 5 })).toBeGreaterThan(
-      towerMaxHp({ typeId: "cannon", level: 5 }),
-    );
+    expect(towerMaxHp(wall)).toBeGreaterThan(towerMaxHp({ typeId: "archer", level: 1 }) * 1.5);
+    expect(towerMaxHp(wall)).toBeGreaterThan(towerMaxHp({ typeId: "melee", level: 1 }));
+    for (let level = 1; level <= TOWER_MAX_LEVEL; level += 1) {
+      const wallHp = towerMaxHp({ typeId: "wall", level });
+      expect(wallHp).toBeGreaterThan(towerMaxHp({ typeId: "archer", level }));
+      expect(wallHp).toBeGreaterThan(towerMaxHp({ typeId: "melee", level }));
+    }
     expect(towerFires(wall)).toBe(false);
     expect(towerFires({ typeId: "archer", level: 1 })).toBe(true);
     expect(canUpgrade({ ...wall, buildTimeLeft: 0 })).toBe(true);
@@ -150,5 +160,18 @@ describe("tower catalog", () => {
       range: 1,
       shape: "square",
     });
+  });
+
+  it("repairs walls more than attack towers at wave end", () => {
+    const archer = { typeId: "archer" as const, level: 1 };
+    const wall = { typeId: "wall" as const, level: 1 };
+    expect(WAVE_REPAIR_MAX_HP_RATIO).toBeGreaterThan(0);
+    expect(WALL_WAVE_REPAIR_MAX_HP_RATIO).toBeGreaterThan(WAVE_REPAIR_MAX_HP_RATIO);
+    expect(waveRepairAmount(archer)).toBe(towerMaxHp(archer) * WAVE_REPAIR_MAX_HP_RATIO);
+    expect(waveRepairAmount(wall)).toBe(towerMaxHp(wall) * WALL_WAVE_REPAIR_MAX_HP_RATIO);
+    expect(waveRepairAmount(wall)).toBeGreaterThan(waveRepairAmount(archer));
+    expect(waveRepairAmount({ typeId: "cannon", level: 1 })).toBeLessThan(
+      waveRepairAmount(wall),
+    );
   });
 });

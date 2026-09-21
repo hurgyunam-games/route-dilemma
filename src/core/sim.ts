@@ -11,6 +11,7 @@ import {
   isBlocked,
   placeTower,
   removeTower,
+  repairTowersAfterWave,
   sameTile,
   toggleTower,
   upgradeTower,
@@ -158,6 +159,9 @@ export {
   towerUpgradeCost,
   towerWorkDuration,
   UPGRADE_DURATION_SEC,
+  WAVE_REPAIR_MAX_HP_RATIO,
+  WALL_WAVE_REPAIR_MAX_HP_RATIO,
+  waveRepairAmount,
 } from "./towers";
 export type {
   TowerAttackId,
@@ -243,6 +247,8 @@ export type TowerShot = {
   readonly toY: number;
   readonly targetId: number;
   readonly damage: number;
+  readonly range: number;
+  readonly splashRadius: number;
 };
 
 export type SimState = {
@@ -541,6 +547,9 @@ function tickOnce(state: SimState, dt: number): SimState {
   let nextUnitId = state.nextUnitId;
   let units: Unit[] = [];
   const phaseChanged = clock.phase !== state.phase;
+  if (phaseChanged && state.phase === "enemy") {
+    grid = repairTowersAfterWave(grid);
+  }
   const wavePreviewTimeLeft =
     phaseChanged && clock.phase === "enemy" ? WAVE_PREVIEW_SEC : 0;
   let burstIndex = phaseChanged ? 0 : state.burstIndex;
@@ -716,7 +725,7 @@ function resolveOutcome(state: SimState, stage: StageWave): BattleOutcome {
   if (
     state.waveIndex >= state.waveCount - 1 &&
     state.burstIndex >= stage.bursts.length &&
-    !state.units.some((unit) => unit.kind === "enemy" && !isAmbush(unit))
+    !state.units.some((unit) => unit.kind === "enemy")
   ) {
     return "victory";
   }
@@ -1067,6 +1076,8 @@ function fireTowers(
       toY: target.y,
       targetId: target.id,
       damage: towerDps(tower) * TOWER_FIRE_INTERVAL_SEC,
+      range: towerRange(tower),
+      splashRadius: towerSplashRadius(tower),
     });
     shotId += 1;
     cooldown[key] = TOWER_FIRE_INTERVAL_SEC;
@@ -1096,9 +1107,7 @@ function applyProjectileHit(
   slowFactorById: Map<number, number>,
 ): void {
   applyDamage(hpById, target.id, target.hp, shot.damage);
-  const stats = { typeId: shot.typeId, level: 1 };
-  if (towerAttack(stats) === "splash") {
-    const radius = towerSplashRadius(stats);
+  if (shot.splashRadius > 0) {
     for (const unit of units) {
       if (unit.kind !== "enemy" || unit.id === target.id) {
         continue;
@@ -1107,12 +1116,13 @@ function applyProjectileHit(
       if (!(hp > 0)) {
         continue;
       }
-      if (Math.hypot(unit.x - target.x, unit.y - target.y) > radius) {
+      if (Math.hypot(unit.x - target.x, unit.y - target.y) > shot.splashRadius) {
         continue;
       }
       applyDamage(hpById, unit.id, unit.hp, shot.damage);
     }
   }
+  const stats = { typeId: shot.typeId, level: 1 };
   if (towerAttack(stats) === "slow") {
     const nextLeft = Math.max(slowLeftById.get(target.id) ?? 0, towerSlowSec(stats));
     slowLeftById.set(target.id, nextLeft);

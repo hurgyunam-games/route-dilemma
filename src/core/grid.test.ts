@@ -3,6 +3,7 @@ import {
   createGrid,
   damageObstacle,
   damageTower,
+  healTower,
   DEFAULT_GRID_COLS,
   DEFAULT_GRID_ROWS,
   fitGridToViewport,
@@ -17,12 +18,13 @@ import {
   viewportToTile,
   placeTower,
   removeTower,
+  repairTowersAfterWave,
   advanceTowerBuilds,
   upgradeTower,
   obstacleMaxHp,
   withTowers,
 } from "./grid";
-import { BUILD_DURATION_SEC, UPGRADE_DURATION_SEC } from "./towers";
+import { BUILD_DURATION_SEC, UPGRADE_DURATION_SEC, towerMaxHp, waveRepairAmount } from "./towers";
 
 describe("createGrid", () => {
   it("uses 12×8 by default", () => {
@@ -177,6 +179,39 @@ describe("damageTower", () => {
     const gone = damageTower(damaged, 2, 3, TOWER_MAX_HP);
     expect(hasTower(gone, 2, 3)).toBe(false);
     expect(tileKind(gone, 2, 3)).toBe("empty");
+  });
+});
+
+describe("healTower", () => {
+  it("raises HP and does not exceed max", () => {
+    const placed = placeTower(createGrid(12, 8), 2, 3, "archer", 0);
+    const damaged = damageTower(placed, 2, 3, 3);
+    const healed = healTower(damaged, 2, 3, 1);
+    expect(getTower(healed, 2, 3)?.hp).toBe(TOWER_MAX_HP - 2);
+    expect(healTower(placed, 2, 3, 5)).toBe(placed);
+    expect(healTower(damaged, 2, 3, 99)?.towers[0]?.hp).toBe(TOWER_MAX_HP);
+  });
+});
+
+describe("repairTowersAfterWave", () => {
+  it("heals remaining towers and restores walls more than attack towers", () => {
+    const wallKey = { typeId: "wall" as const, level: 1 };
+    const wallDmg = 10;
+    let grid = placeTower(createGrid(12, 8), 2, 3, "archer", 0);
+    grid = placeTower(grid, 4, 3, "wall", 0);
+    grid = damageTower(grid, 2, 3, 4);
+    grid = damageTower(grid, 4, 3, wallDmg);
+    const repaired = repairTowersAfterWave(grid);
+    const archer = getTower(repaired, 2, 3)!;
+    const wall = getTower(repaired, 4, 3)!;
+    expect(archer.hp).toBeCloseTo(TOWER_MAX_HP - 4 + waveRepairAmount(archer));
+    expect(wall.hp).toBeCloseTo(towerMaxHp(wallKey) - wallDmg + waveRepairAmount(wall));
+    expect(wall.hp - (towerMaxHp(wallKey) - wallDmg)).toBeGreaterThan(
+      archer.hp - (TOWER_MAX_HP - 4),
+    );
+    expect(repairTowersAfterWave(placeTower(createGrid(12, 8), 2, 3, "archer", 0)).towers[0]?.hp).toBe(
+      TOWER_MAX_HP,
+    );
   });
 });
 

@@ -18,10 +18,10 @@ import {
   stageWaveEnemyIds,
   tileKind,
   tick,
-  TOWER_ATTACK_LABELS,
   TOWER_CATALOG,
   TOWER_DEFS,
   TOWER_MAX_LEVEL,
+  TOWER_ROLE_LABELS,
   TOWER_TYPE_IDS,
   towerAttack,
   towerDps,
@@ -228,7 +228,7 @@ const buildSpecLines = (def: TowerDef): readonly string[] => {
     `비용 ${def.cost}`,
     `체력 ${def.hp}`,
     `사거리 ${def.range}`,
-    `공격 ${def.dps} · ${TOWER_ATTACK_LABELS[def.attack]}`,
+    `공격 ${def.dps} · ${TOWER_ROLE_LABELS[def.attack]}`,
   ];
 };
 
@@ -782,7 +782,7 @@ onUnmounted(() => {
             <template v-if="selectedTower.typeId !== 'wall'">
               · 사거리 {{ upgradePreview.current.range }}
               · 공격 {{ upgradePreview.current.dps }}
-              · {{ TOWER_ATTACK_LABELS[towerAttack(selectedTower)] }}
+              · {{ TOWER_ROLE_LABELS[towerAttack(selectedTower)] }}
             </template>
             <template v-else>
               · 공격 없음

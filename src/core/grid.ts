@@ -8,6 +8,7 @@ import {
   UPGRADE_DURATION_SEC,
   isTowerComplete,
   towerMaxHp,
+  waveRepairAmount,
   type TowerTypeId,
 } from "./towers";
 
@@ -138,6 +139,33 @@ export function hasObstacle(grid: Grid, x: number, y: number): boolean {
 
 export function isBlocked(grid: Grid, x: number, y: number): boolean {
   return hasTower(grid, x, y) || hasObstacle(grid, x, y);
+}
+
+/** Raise tower HP, capped at that tower's max. */
+export function healTower(grid: Grid, x: number, y: number, amount: number): Grid {
+  const tower = getTower(grid, x, y);
+  if (!tower || !(amount > 0)) {
+    return grid;
+  }
+  const hp = Math.min(towerMaxHp(tower), tower.hp + amount);
+  if (hp === tower.hp) {
+    return grid;
+  }
+  return {
+    ...grid,
+    towers: grid.towers.map((entry) =>
+      entry.x === x && entry.y === y ? { ...entry, hp } : entry,
+    ),
+  };
+}
+
+/** Restore a little HP on remaining towers after an enemy wave. Walls heal more. */
+export function repairTowersAfterWave(grid: Grid): Grid {
+  let next = grid;
+  for (const tower of grid.towers) {
+    next = healTower(next, tower.x, tower.y, waveRepairAmount(tower));
+  }
+  return next;
 }
 
 /** Reduce tower HP. At 0 or below the tower is removed. */

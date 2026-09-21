@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach } from "vitest";
-import { createGrid, getObstacle, getTower, hasObstacle, hasTower, placeTower, toggleTower, TOWER_MAX_HP, obstacleMaxHp, upgradeTower } from "./grid";
+import { createGrid, getObstacle, getTower, hasObstacle, hasTower, placeTower, toggleTower, TOWER_MAX_HP, obstacleMaxHp, upgradeTower, damageTower } from "./grid";
 import { createMapGrid } from "./maps";
 import { findPath } from "./path";
 import {
@@ -43,11 +43,14 @@ import {
   PHASE_TAIL_SEC,
   towerBuildCost,
   towerDps,
+  towerMaxHp,
   towerRange,
+  towerSplashRadius,
   towerUpgradeCost,
   TOWER_TYPE_IDS,
   UPGRADE_DURATION_SEC,
   BATTLE_WAVE_COUNT,
+  waveRepairAmount,
   type SimState,
 } from "./sim";
 
@@ -77,6 +80,18 @@ function wallColumn(grid: ReturnType<typeof createGrid>, x: number) {
   let next = grid;
   for (let y = 0; y < grid.rows; y += 1) {
     next = toggleTower(next, x, y);
+  }
+  return next;
+}
+
+function typeColumn(
+  grid: ReturnType<typeof createGrid>,
+  x: number,
+  typeId: "archer" | "wall",
+) {
+  let next = grid;
+  for (let y = 0; y < grid.rows; y += 1) {
+    next = placeTower(next, x, y, typeId, 0);
   }
   return next;
 }
@@ -270,6 +285,22 @@ describe("blocked path tower breaking", () => {
     expect(hp!).toBeLessThan(TOWER_MAX_HP);
   });
 
+  it("lets a wall outlast a same-level archer under the same attack", () => {
+    const archerTime = towerMaxHp({ typeId: "archer", level: 1 }) / UNIT_ATTACK_DPS;
+
+    let archerSim = createSim(createGrid(12, 8));
+    archerSim = { ...archerSim, grid: typeColumn(archerSim.grid, 1, "archer") };
+    const tile = { x: 1, y: archerSim.grid.start.y };
+    archerSim = tick(archerSim, archerTime + 0.05);
+    expect(hasTower(archerSim.grid, tile.x, tile.y)).toBe(false);
+
+    let wallSim = createSim(createGrid(12, 8));
+    wallSim = { ...wallSim, grid: typeColumn(wallSim.grid, 1, "wall") };
+    wallSim = tick(wallSim, archerTime + 0.05);
+    expect(hasTower(wallSim.grid, tile.x, tile.y)).toBe(true);
+    expect(getTower(wallSim.grid, tile.x, tile.y)!.hp).toBeGreaterThan(0);
+  });
+
   it("removes the tower at 0 HP and redraws the path", () => {
     let sim = createSim(createGrid(12, 8));
     sim = { ...sim, grid: wallColumn(sim.grid, 1) };
@@ -401,6 +432,94 @@ describe("phase clock", () => {
     expect(sim.grid.cols).toBe(12);
     expect(sim.grid.rows).toBe(8);
     expect(sim.grid.towers).toEqual(placed);
+  });
+});
+
+describe("wave end repair", () => {
+  const ARCHER = { x: 3, y: 1 } as const;
+  const WALL = { x: 3, y: 6 } as const;
+  const WALL_DMG = 10;
+
+  function isolatedDamaged(): ReturnType<typeof createSim> {
+    let grid = placeTower(createGrid(12, 8), ARCHER.x, ARCHER.y, "archer", 0);
+    grid = placeTower(grid, WALL.x, WALL.y, "wall", 0);
+    grid = damageTower(grid, ARCHER.x, ARCHER.y, 4);
+    grid = damageTower(grid, WALL.x, WALL.y, WALL_DMG);
+    const sim = createSim(grid);
+    return {
+      ...sim,
+      grid,
+      units: [],
+      burstIndex: 99,
+      spawnedInBurst: 0,
+      spawnCooldown: 1,
+      baseHp: 12,
+    };
+  }
+
+  it("restores some tower HP when the enemy wave ends", () => {
+    const sim = isolatedDamaged();
+    const before = getTower(sim.grid, ARCHER.x, ARCHER.y)!.hp;
+    const ended = advance(sim, STAGE_1.enemyPhaseSec);
+    expect(ended.phase).toBe("ally");
+    const after = getTower(ended.grid, ARCHER.x, ARCHER.y)!.hp;
+    expect(after).toBeGreaterThan(before);
+    expect(after).toBeCloseTo(before + waveRepairAmount({ typeId: "archer", level: 1 }));
+    expect(after).toBeLessThanOrEqual(towerMaxHp({ typeId: "archer", level: 1 }));
+  });
+
+  it("restores more HP on a wall than on an attack tower", () => {
+    const ended = advance(isolatedDamaged(), STAGE_1.enemyPhaseSec);
+    const archerGain =
+      getTower(ended.grid, ARCHER.x, ARCHER.y)!.hp - (TOWER_MAX_HP - 4);
+    const wallGain =
+      getTower(ended.grid, WALL.x, WALL.y)!.hp -
+      (towerMaxHp({ typeId: "wall", level: 1 }) - WALL_DMG);
+    expect(wallGain).toBeGreaterThan(archerGain);
+  });
+
+  it("does not raise HP above max", () => {
+    let grid = placeTower(createGrid(12, 8), ARCHER.x, ARCHER.y, "archer", 0);
+    const sim = {
+      ...createSim(grid),
+      grid,
+      units: [] as ReturnType<typeof createSim>["units"],
+      burstIndex: 99,
+      spawnedInBurst: 0,
+      spawnCooldown: 1,
+    };
+    const ended = advance(sim, STAGE_1.enemyPhaseSec);
+    expect(getTower(ended.grid, ARCHER.x, ARCHER.y)?.hp).toBe(TOWER_MAX_HP);
+  });
+
+  it("does not repair before the wave ends", () => {
+    const sim = isolatedDamaged();
+    const mid = tick(sim, 1.25);
+    expect(mid.phase).toBe("enemy");
+    expect(getTower(mid.grid, ARCHER.x, ARCHER.y)?.hp).toBe(TOWER_MAX_HP - 4);
+    expect(getTower(mid.grid, WALL.x, WALL.y)?.hp).toBe(
+      towerMaxHp({ typeId: "wall", level: 1 }) - WALL_DMG,
+    );
+  });
+
+  it("does not repair base HP when the wave ends", () => {
+    const sim = isolatedDamaged();
+    expect(sim.baseHp).toBeLessThan(BASE_MAX_HP);
+    const ended = advance(sim, STAGE_1.enemyPhaseSec);
+    expect(ended.phase).toBe("ally");
+    expect(ended.baseHp).toBe(sim.baseHp);
+  });
+
+  it("does not repair again when Ally Phase ends", () => {
+    const afterWave = advance(isolatedDamaged(), STAGE_1.enemyPhaseSec);
+    const damaged = {
+      ...afterWave,
+      grid: damageTower(afterWave.grid, ARCHER.x, ARCHER.y, 3),
+    };
+    const hp = getTower(damaged.grid, ARCHER.x, ARCHER.y)!.hp;
+    const nextEnemy = advance(damaged, STAGE_1.allyPhaseSec + 0.1);
+    expect(nextEnemy.phase).toBe("enemy");
+    expect(getTower(nextEnemy.grid, ARCHER.x, ARCHER.y)?.hp).toBeCloseTo(hp);
   });
 });
 
@@ -948,7 +1067,10 @@ describe("tower attacks", () => {
     sim = {
       ...sim,
       grid: placeTower(sim.grid, sim.grid.start.x, sim.grid.start.y + 1, "cannon", 0),
-      units: [first, { ...first, id: 99, x: first.x + 2, y: first.y }],
+      units: [
+        { ...first, speed: 0 },
+        { ...first, id: 99, x: first.x + 0.6, y: first.y, speed: 0 },
+      ],
       burstIndex: 99,
       spawnedInBurst: 99,
       nextUnitId: 100,
@@ -958,6 +1080,70 @@ describe("tower attacks", () => {
     expect(enemies).toHaveLength(2);
     expect(enemies[0]!.hp).toBeLessThan(first.hp);
     expect(enemies[1]!.hp).toBeLessThan(first.hp);
+  });
+
+  it("does not splash an enemy outside the blast or the cannon range", () => {
+    const range = towerRange({ typeId: "cannon", level: 1 });
+    const splash = towerSplashRadius({ typeId: "cannon", level: 1 });
+
+    let outsideBlast = createSim(createGrid(12, 8));
+    const blastPrimary = outsideBlast.units[0]!;
+    const cannon = {
+      x: outsideBlast.grid.start.x,
+      y: outsideBlast.grid.start.y + 1,
+    };
+    const farY = cannon.y + (range - 0.05);
+    outsideBlast = {
+      ...outsideBlast,
+      grid: placeTower(outsideBlast.grid, cannon.x, cannon.y, "cannon", 0),
+      units: [
+        { ...blastPrimary, speed: 0 },
+        { ...blastPrimary, id: 99, x: cannon.x, y: farY, speed: 0 },
+      ],
+      burstIndex: 99,
+      spawnedInBurst: 99,
+      nextUnitId: 100,
+    };
+    expect(Math.hypot(0, farY - blastPrimary.y)).toBeGreaterThan(splash);
+    expect(Math.abs(farY - cannon.y)).toBeLessThanOrEqual(range);
+    outsideBlast = tick(outsideBlast, 0.35);
+    expect(outsideBlast.units.find((unit) => unit.id === blastPrimary.id)!.hp).toBeLessThan(
+      blastPrimary.hp,
+    );
+    expect(outsideBlast.units.find((unit) => unit.id === 99)!.hp).toBe(blastPrimary.hp);
+
+    let outsideRange = createSim(createGrid(12, 8));
+    const rangePrimary = outsideRange.units[0]!;
+    const outX = rangePrimary.x + splash + 0.5;
+    outsideRange = {
+      ...outsideRange,
+      grid: placeTower(
+        outsideRange.grid,
+        outsideRange.grid.start.x,
+        outsideRange.grid.start.y + 1,
+        "cannon",
+        0,
+      ),
+      units: [
+        { ...rangePrimary, speed: 0 },
+        { ...rangePrimary, id: 98, x: outX, y: rangePrimary.y, speed: 0 },
+      ],
+      burstIndex: 99,
+      spawnedInBurst: 99,
+      nextUnitId: 100,
+    };
+    expect(outX - rangePrimary.x).toBeGreaterThan(splash);
+    expect(
+      Math.hypot(
+        outX - outsideRange.grid.start.x,
+        rangePrimary.y - (outsideRange.grid.start.y + 1),
+      ),
+    ).toBeGreaterThan(range);
+    outsideRange = tick(outsideRange, 0.35);
+    expect(outsideRange.units.find((unit) => unit.id === rangePrimary.id)!.hp).toBeLessThan(
+      rangePrimary.hp,
+    );
+    expect(outsideRange.units.find((unit) => unit.id === 98)!.hp).toBe(rangePrimary.hp);
   });
 
   it("lets an archer hit only one enemy even when two are close", () => {
@@ -1253,6 +1439,22 @@ describe("build cost and construction", () => {
     expect(findPath(sim.grid)?.some((tile) => tile.x === x && tile.y === y)).toBe(false);
   });
 
+  it("spends gold to start a wall without giving it an attack", () => {
+    const cost = towerBuildCost("wall");
+    let sim = { ...createSim(createGrid(12, 8)), gold: cost };
+    const result = simBeginBuild(sim, 3, 2, "wall");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    sim = result.state;
+    expect(sim.gold).toBe(0);
+    expect(getTower(sim.grid, 3, 2)?.typeId).toBe("wall");
+    expect(towerDps(getTower(sim.grid, 3, 2)!)).toBe(0);
+    sim = tick(sim, BUILD_DURATION_SEC + 0.25);
+    expect(sim.towerShots).toHaveLength(0);
+  });
+
   it("does not attack until construction finishes", () => {
     let sim = { ...createSim(createGrid(12, 8)), gold: 10 };
     const built = simBeginBuild(sim, sim.grid.start.x, sim.grid.start.y + 1, "archer");
@@ -1335,6 +1537,7 @@ describe("build cost and construction", () => {
     }
     sim = result.state;
     const after = getTower(sim.grid, x, y)!;
+    expect(sim.gold).toBe(20 - towerUpgradeCost(before));
     expect(after.level).toBe(2);
     expect(after.hp).toBeGreaterThan(before.hp);
     expect(towerDps(after)).toBe(0);
@@ -1509,7 +1712,7 @@ describe("battle outcome", () => {
       burstIndex: getStageWave(1).bursts.length,
       spawnedInBurst: 0,
       spawnCooldown: 1,
-      phaseTimeLeft: 0.05,
+      phaseTimeLeft: 0,
       units: [{ ...enemy, x: 5, y: started.grid.start.y }],
     };
     sim = tick(sim, 0.2);
@@ -1517,6 +1720,47 @@ describe("battle outcome", () => {
     expect(sim.outcome).toBe("playing");
     expect(sim.units.some((unit) => unit.kind === "ally")).toBe(false);
     expect(sim.units.some((unit) => unit.id === enemy.id)).toBe(true);
+  });
+
+  it("does not declare Victory when last-wave timer is up but a normal enemy remains", () => {
+    const started = createSim(createGrid(12, 8));
+    const enemy = started.units.find((unit) => unit.kind === "enemy")!;
+    let sim: ReturnType<typeof createSim> = {
+      ...lastWaveEmpty(started),
+      phaseTimeLeft: 0,
+      units: [{ ...enemy, behavior: "normal", x: 5, y: started.grid.start.y }],
+    };
+    sim = tick(sim, 0.05);
+    expect(sim.phaseTimeLeft).toBe(0);
+    expect(sim.outcome).toBe("playing");
+    expect(hudSnapshot(sim).outcome).toBe("playing");
+  });
+
+  it("does not declare Victory while an ambush enemy is still on the map", () => {
+    const started = createSim(createGrid(12, 8));
+    const enemy = started.units.find((unit) => unit.kind === "enemy")!;
+    let sim: ReturnType<typeof createSim> = {
+      ...lastWaveEmpty(started),
+      units: [{ ...enemy, behavior: "ambush", x: 3, y: 1 }],
+    };
+    sim = tick(sim, 0.05);
+    expect(sim.outcome).toBe("playing");
+    expect(sim.units.some((unit) => unit.behavior === "ambush")).toBe(true);
+  });
+
+  it("reports Victory only after ambush enemies are gone too", () => {
+    const started = createSim(createGrid(12, 8));
+    const enemy = started.units.find((unit) => unit.kind === "enemy")!;
+    let sim: ReturnType<typeof createSim> = {
+      ...lastWaveEmpty(started),
+      units: [{ ...enemy, behavior: "ambush", x: 3, y: 1 }],
+    };
+    sim = tick(sim, 0.05);
+    expect(sim.outcome).toBe("playing");
+    sim = tick({ ...sim, units: [] }, 0.05);
+    expect(sim.outcome).toBe("victory");
+    expect(hudSnapshot(sim).outcome).toBe("victory");
+    expect(sim.units.some((unit) => unit.kind === "enemy")).toBe(false);
   });
 
   it("does not declare Victory before the last wave is finished", () => {

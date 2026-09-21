@@ -58,6 +58,8 @@ const table = towerTable as {
   readonly buildDurationSec: number;
   readonly upgradeDurationSec: number;
   readonly maxLevel: number;
+  readonly waveRepairMaxHpRatio: number;
+  readonly wallWaveRepairMaxHpRatio: number;
   readonly types: readonly TowerTypeRow[];
 };
 
@@ -69,6 +71,8 @@ for (const row of table.types) {
 export const BUILD_DURATION_SEC = table.buildDurationSec;
 export const UPGRADE_DURATION_SEC = table.upgradeDurationSec;
 export const TOWER_MAX_LEVEL = table.maxLevel;
+export const WAVE_REPAIR_MAX_HP_RATIO = table.waveRepairMaxHpRatio;
+export const WALL_WAVE_REPAIR_MAX_HP_RATIO = table.wallWaveRepairMaxHpRatio;
 
 export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
   archer: toDef("archer"),
@@ -151,6 +155,13 @@ export function towerDps(tower: TowerStatsKey): number {
 
 export function towerMaxHp(tower: TowerStatsKey): number {
   return towerLevelStats(tower).hp;
+}
+
+/** HP restored when an enemy wave ends. Walls recover more than attack towers. */
+export function waveRepairAmount(tower: TowerStatsKey): number {
+  const ratio =
+    tower.typeId === "wall" ? WALL_WAVE_REPAIR_MAX_HP_RATIO : WAVE_REPAIR_MAX_HP_RATIO;
+  return towerMaxHp(tower) * ratio;
 }
 
 export function towerAttack(tower: TowerStatsKey): TowerAttackId {

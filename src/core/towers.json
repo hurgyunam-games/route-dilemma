@@ -2,6 +2,8 @@
   "buildDurationSec": 1.5,
   "upgradeDurationSec": 4,
   "maxLevel": 5,
+  "waveRepairMaxHpRatio": 0.15,
+  "wallWaveRepairMaxHpRatio": 0.4,
   "types": [
     {
       "id": "archer",
@@ -71,11 +73,11 @@
       "slowFactor": 1,
       "slowSec": 0,
       "levels": [
-        { "cost": 5, "hp": 8, "range": 0, "dps": 0 },
-        { "cost": 15, "hp": 16, "range": 0, "dps": 0 },
-        { "cost": 30, "hp": 28, "range": 0, "dps": 0 },
-        { "cost": 50, "hp": 48, "range": 0, "dps": 0 },
-        { "cost": 75, "hp": 72, "range": 0, "dps": 0 }
+        { "cost": 5, "hp": 20, "range": 0, "dps": 0 },
+        { "cost": 15, "hp": 32, "range": 0, "dps": 0 },
+        { "cost": 30, "hp": 48, "range": 0, "dps": 0 },
+        { "cost": 50, "hp": 68, "range": 0, "dps": 0 },
+        { "cost": 75, "hp": 96, "range": 0, "dps": 0 }
       ]
     }
   ]
