@@ -2,10 +2,10 @@
 
 import towerTable from "./towers.json";
 
-export const TOWER_TYPE_IDS = ["archer", "melee", "cannon", "mage", "wall"] as const;
+export const TOWER_TYPE_IDS = ["archer", "melee", "cannon", "mage", "wall", "research"] as const;
 export type TowerTypeId = (typeof TOWER_TYPE_IDS)[number];
 
-export const TOWER_ATTACK_IDS = ["single", "melee", "splash", "slow", "none"] as const;
+export const TOWER_ATTACK_IDS = ["single", "melee", "splash", "slow", "none", "research"] as const;
 export type TowerAttackId = (typeof TOWER_ATTACK_IDS)[number];
 
 export const TOWER_ATTACK_LABELS: Record<TowerAttackId, string> = {
@@ -14,6 +14,7 @@ export const TOWER_ATTACK_LABELS: Record<TowerAttackId, string> = {
   splash: "범위",
   slow: "감속",
   none: "없음",
+  research: "연구",
 };
 
 export const TOWER_ROLE_LABELS: Record<TowerAttackId, string> = {
@@ -22,6 +23,7 @@ export const TOWER_ROLE_LABELS: Record<TowerAttackId, string> = {
   splash: "범위 공격",
   slow: "감속 공격",
   none: "길 차단",
+  research: "연구 포인트",
 };
 
 export type TowerLevelStats = {
@@ -80,6 +82,7 @@ export const TOWER_DEFS: Record<TowerTypeId, TowerDef> = {
   cannon: toDef("cannon"),
   mage: toDef("mage"),
   wall: toDef("wall"),
+  research: toDef("research"),
 };
 
 export const TOWER_CATALOG: readonly TowerDef[] = TOWER_TYPE_IDS.map(
@@ -169,7 +172,8 @@ export function towerAttack(tower: TowerStatsKey): TowerAttackId {
 }
 
 export function towerFires(tower: TowerStatsKey): boolean {
-  return towerAttack(tower) !== "none" && towerDps(tower) > 0;
+  const attack = towerAttack(tower);
+  return attack !== "none" && attack !== "research" && towerDps(tower) > 0;
 }
 
 export type TowerRangeShape = "circle" | "square";

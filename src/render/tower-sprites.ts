@@ -134,6 +134,7 @@ export async function loadTowerFrames(): Promise<TowerAtlasMap> {
     cannon,
     mage,
     wall: wallAtlasFromShared(shared),
+    research: mage,
   };
 }
 

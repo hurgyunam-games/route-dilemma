@@ -41,6 +41,7 @@ describe("tower catalog", () => {
     expect(towerAttack({ typeId: "cannon", level: 1 })).toBe("splash");
     expect(towerAttack({ typeId: "mage", level: 1 })).toBe("slow");
     expect(towerAttack({ typeId: "wall", level: 1 })).toBe("none");
+    expect(towerAttack({ typeId: "research", level: 1 })).toBe("research");
     expect(TOWER_ATTACK_LABELS.melee).toBe("근접");
     expect(TOWER_ATTACK_LABELS.splash).toBe("범위");
     expect(TOWER_ATTACK_LABELS.none).toBe("없음");
@@ -50,6 +51,8 @@ describe("tower catalog", () => {
     expect(TOWER_ROLE_LABELS.splash).not.toBe(TOWER_ROLE_LABELS.single);
     expect(TOWER_ROLE_LABELS.splash).not.toBe(TOWER_ROLE_LABELS.melee);
     expect(TOWER_ROLE_LABELS.none).toBe("길 차단");
+    expect(TOWER_ROLE_LABELS.research).toBe("연구 포인트");
+    expect(TOWER_ATTACK_LABELS.research).toBe("연구");
     expect(towerSplashRadius({ typeId: "cannon", level: 1 })).toBeGreaterThan(2);
     expect(towerSplashRadius({ typeId: "archer", level: 1 })).toBe(0);
     expect(towerRange({ typeId: "melee", level: 1 })).toBe(1);
@@ -70,7 +73,7 @@ describe("tower catalog", () => {
       const lv1 = { typeId: id, level: 1 };
       const lv5 = { typeId: id, level: 5 };
       expect(towerMaxHp(lv5)).toBeGreaterThan(towerMaxHp(lv1));
-      if (id === "wall") {
+      if (id === "wall" || id === "research") {
         expect(towerRange(lv1)).toBe(0);
         expect(towerRange(lv5)).toBe(0);
         expect(towerDps(lv1)).toBe(0);
@@ -102,6 +105,7 @@ describe("tower catalog", () => {
       expect(wallHp).toBeGreaterThan(towerMaxHp({ typeId: "melee", level }));
     }
     expect(towerFires(wall)).toBe(false);
+    expect(towerFires({ typeId: "research", level: 1 })).toBe(false);
     expect(towerFires({ typeId: "archer", level: 1 })).toBe(true);
     expect(canUpgrade({ ...wall, buildTimeLeft: 0 })).toBe(true);
   });
@@ -142,6 +146,15 @@ describe("tower catalog", () => {
         typeId: "wall",
         level: 1,
         x: 4,
+        y: 2,
+        buildTimeLeft: 0,
+      }),
+    ).toBeNull();
+    expect(
+      towerRangePreview({
+        typeId: "research",
+        level: 1,
+        x: 5,
         y: 2,
         buildTimeLeft: 0,
       }),

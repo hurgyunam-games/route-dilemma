@@ -580,7 +580,9 @@ function applyOccupantVisual(
   atlas: OccupantAtlas,
 ): void {
   const show =
-    tower.typeId !== "wall" && (isTowerComplete(tower) || tower.level > 1);
+    tower.typeId !== "wall" &&
+    tower.typeId !== "research" &&
+    (isTowerComplete(tower) || tower.level > 1);
   const occupant = record.occupant;
   occupant.visible = show;
   if (!show) {
@@ -682,7 +684,7 @@ function applyTowerVisual(
     sprite.gotoAndStop(frame);
     return;
   }
-  if (tower.typeId === "cannon" || tower.typeId === "wall") {
+  if (tower.typeId === "cannon" || tower.typeId === "wall" || tower.typeId === "research") {
     if (firing && tower.typeId === "cannon") {
       sprite.loop = true;
       sprite.animationSpeed = TOWER_FIRE_ANIMATION_SPEED;

@@ -51,6 +51,14 @@ import {
   allyTypeAt,
   type AllyTypeId,
 } from "./allies";
+import {
+  accrueResearchPoints,
+  modifiedTowerDps,
+  modifiedTowerRange,
+  researchAllyGoldMul,
+  researchStartGoldBonus,
+  type ResearchBuffId,
+} from "./research";
 
 export {
   ALLY_GOLD,
@@ -171,6 +179,31 @@ export type {
   TowerRangeShape,
   TowerTypeId,
 } from "./towers";
+export {
+  accrueResearchPoints,
+  getResearchBuff,
+  hasResearchBuff,
+  isResearchBuffId,
+  isResearchTower,
+  modifiedTowerDps,
+  modifiedTowerRange,
+  researchAllyGoldMul,
+  researchDamageMul,
+  researchPointRate,
+  researchPointRateForLevel,
+  researchRangeAdd,
+  researchStartGoldBonus,
+  saveResearchPoints,
+  unlockResearchBuff,
+  RESEARCH_ALLY_GOLD_MUL,
+  RESEARCH_BUFF_IDS,
+  RESEARCH_BUFFS,
+  RESEARCH_DAMAGE_MUL,
+  RESEARCH_POINT_PER_SEC,
+  RESEARCH_RANGE_ADD,
+  RESEARCH_START_GOLD,
+} from "./research";
+export type { ResearchBuffDef, ResearchBuffId, ResearchProgress, UnlockResearchResult } from "./research";
 
 export const UNIT_SPEED_TILES_PER_SEC = 2.75;
 export const UNIT_ATTACK_DPS = 4;
@@ -272,6 +305,8 @@ export type SimState = {
   readonly spawnCooldown: number;
   readonly wavePreviewTimeLeft: number;
   readonly outcome: BattleOutcome;
+  readonly researchPoints: number;
+  readonly researchBuffs: readonly ResearchBuffId[];
 };
 
 export type HudSnapshot = {
@@ -287,6 +322,7 @@ export type HudSnapshot = {
   readonly waveCount: number;
   readonly wavePreviewTimeLeft: number;
   readonly outcome: BattleOutcome;
+  readonly researchPoints: number;
 };
 
 type StepResult = {
@@ -303,11 +339,19 @@ export function unitTile(unit: Pick<Unit, "x" | "y">): TileCoord {
   return { x: Math.round(unit.x), y: Math.round(unit.y) };
 }
 
-export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
+export function createSim(
+  grid: Grid = createGrid(),
+  stageId = 1,
+  research?: {
+    readonly points?: number;
+    readonly buffs?: readonly ResearchBuffId[];
+  },
+): SimState {
   const requested = Math.max(1, Math.round(stageId));
   const stage = getStageWave(requested);
   const first = stage.bursts[0]!;
   const lead = spawnDelay(first.units[0]!, 0, first.interval);
+  const buffs = research?.buffs ?? [];
   return {
     grid,
     units: [],
@@ -319,7 +363,7 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
     phase: "enemy",
     phaseTimeLeft: stage.enemyPhaseSec,
     timeScale: 1,
-    gold: startingGold(requested),
+    gold: startingGold(requested) + researchStartGoldBonus(buffs),
     baseHp: BASE_MAX_HP,
     stageId: requested,
     waveIndex: 0,
@@ -329,6 +373,8 @@ export function createSim(grid: Grid = createGrid(), stageId = 1): SimState {
     spawnCooldown: lead,
     wavePreviewTimeLeft: WAVE_PREVIEW_SEC,
     outcome: "playing",
+    researchPoints: Math.max(0, research?.points ?? 0),
+    researchBuffs: [...buffs],
   };
 }
 
@@ -357,6 +403,7 @@ export function hudSnapshot(state: SimState): HudSnapshot {
     waveCount: state.waveCount,
     wavePreviewTimeLeft: state.wavePreviewTimeLeft,
     outcome: state.outcome,
+    researchPoints: state.researchPoints,
   };
 }
 
@@ -514,15 +561,17 @@ function tickOnce(state: SimState, dt: number): SimState {
   if (state.phase === "enemy" && state.wavePreviewTimeLeft > 0) {
     const time = state.time + dt;
     const grid = advanceTowerBuilds(state.grid, dt);
+    const researchPoints = accrueResearchPoints(state.researchPoints, grid.towers, dt);
     const left = state.wavePreviewTimeLeft - dt;
     if (left > 1e-9) {
-      return { ...state, grid, time, wavePreviewTimeLeft: left };
+      return { ...state, grid, time, wavePreviewTimeLeft: left, researchPoints };
     }
     const started = beginEnemySpawns({
       ...state,
       grid,
       time,
       wavePreviewTimeLeft: 0,
+      researchPoints,
     });
     const leftover = Math.max(0, -left);
     if (leftover > 1e-9 && started.timeScale > 0 && started.outcome === "playing") {
@@ -572,7 +621,9 @@ function tickOnce(state: SimState, dt: number): SimState {
         continue;
       }
       if (moved.unit.kind === "ally") {
-        gold += allyGoldReward(moved.unit.allyType);
+        gold += Math.round(
+          allyGoldReward(moved.unit.allyType) * researchAllyGoldMul(state.researchBuffs),
+        );
       } else {
         baseHp = Math.max(0, baseHp - ENEMY_BASE_DAMAGE);
       }
@@ -580,6 +631,8 @@ function tickOnce(state: SimState, dt: number): SimState {
     }
     units.push(moved.unit);
   }
+
+  const researchPoints = accrueResearchPoints(state.researchPoints, grid.towers, dt);
 
   if (baseHp <= 0) {
     return {
@@ -596,6 +649,7 @@ function tickOnce(state: SimState, dt: number): SimState {
       spawnedInBurst,
       spawnCooldown,
       wavePreviewTimeLeft,
+      researchPoints,
       outcome: "defeat",
     };
   }
@@ -609,6 +663,7 @@ function tickOnce(state: SimState, dt: number): SimState {
     state.fireCooldown,
     dt,
     state.nextShotId,
+    state.researchBuffs,
   );
   units = fired.units;
 
@@ -651,6 +706,8 @@ function tickOnce(state: SimState, dt: number): SimState {
     spawnCooldown,
     wavePreviewTimeLeft,
     outcome: "playing",
+    researchPoints,
+    researchBuffs: state.researchBuffs,
   };
   return { ...next, outcome: resolveOutcome(next, stage) };
 }
@@ -1006,6 +1063,7 @@ function fireTowers(
   fireCooldown: Readonly<Record<string, number>>,
   dt: number,
   nextShotId: number,
+  buffs: readonly ResearchBuffId[],
 ): {
   units: Unit[];
   shots: TowerShot[];
@@ -1061,7 +1119,7 @@ function fireTowers(
     if (!isTowerComplete(tower) || left > 0 || !towerFires(tower)) {
       continue;
     }
-    const target = nearestEnemyInRange(tower, units, hpById);
+    const target = nearestEnemyInRange(tower, units, hpById, buffs);
     if (!target) {
       continue;
     }
@@ -1075,8 +1133,8 @@ function fireTowers(
       toX: target.x,
       toY: target.y,
       targetId: target.id,
-      damage: towerDps(tower) * TOWER_FIRE_INTERVAL_SEC,
-      range: towerRange(tower),
+      damage: modifiedTowerDps(towerDps(tower), buffs) * TOWER_FIRE_INTERVAL_SEC,
+      range: modifiedTowerRange(towerRange(tower), buffs),
       splashRadius: towerSplashRadius(tower),
     });
     shotId += 1;
@@ -1146,8 +1204,9 @@ function inAttackRange(
   tower: Tower,
   x: number,
   y: number,
+  buffs: readonly ResearchBuffId[] = [],
 ): boolean {
-  const range = towerRange(tower);
+  const range = modifiedTowerRange(towerRange(tower), buffs);
   if (!(range > 0)) {
     return false;
   }
@@ -1162,6 +1221,7 @@ function nearestEnemyInRange(
   tower: Tower,
   units: readonly Unit[],
   hpById: ReadonlyMap<number, number>,
+  buffs: readonly ResearchBuffId[],
 ): Unit | null {
   let best: Unit | null = null;
   let bestDist = Infinity;
@@ -1173,7 +1233,7 @@ function nearestEnemyInRange(
     if (!(hp > 0)) {
       continue;
     }
-    if (!inAttackRange(tower, unit.x, unit.y)) {
+    if (!inAttackRange(tower, unit.x, unit.y, buffs)) {
       continue;
     }
     const dist = Math.hypot(unit.x - tower.x, unit.y - tower.y);

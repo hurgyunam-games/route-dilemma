@@ -283,7 +283,7 @@ export function towerRoofFromTop(typeId: TowerTypeId, level: number): number {
   if (usesArcherKeep(typeId)) {
     return archerRoofInSprite(level);
   }
-  if (typeId === "mage") {
+  if (typeId === "mage" || typeId === "research") {
     return mageRoofInSprite(level);
   }
   return 0;
@@ -293,7 +293,7 @@ export function towerWallFromTop(typeId: TowerTypeId, level: number): number {
   if (usesArcherKeep(typeId)) {
     return archerWallTopInSprite(level);
   }
-  if (typeId === "mage") {
+  if (typeId === "mage" || typeId === "research") {
     return mageWallTopInSprite(level);
   }
   return 0;

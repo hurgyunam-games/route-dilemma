@@ -8,9 +8,11 @@ import {
   type GameMapDef,
   type MapId,
   type ObstacleKind,
+  type ResearchBuffId,
 } from "@/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import BestiaryOverlay from "@/ui/BestiaryOverlay.vue";
+import ResearchTreeOverlay from "@/ui/ResearchTreeOverlay.vue";
 
 const props = defineProps<{
   lastMapId: MapId | null;
@@ -23,10 +25,12 @@ const emit = defineEmits<{
   gallery: [];
   waves: [];
   enemies: [];
+  unlockResearch: [id: ResearchBuffId];
 }>();
 
 const showDevTools = import.meta.env.DEV;
 const bestiaryOpen = ref(false);
+const researchOpen = ref(false);
 const nowMs = ref(Date.now());
 let recaptureTimer = 0;
 
@@ -118,7 +122,17 @@ onUnmounted(() => {
         >
           도감
         </button>
+        <button
+          type="button"
+          class="gallery-link research-link"
+          @click="researchOpen = true"
+        >
+          연구 트리
+        </button>
       </div>
+      <p class="research-points">
+        연구 포인트 {{ Math.floor(progress.researchPoints) }}
+      </p>
       <div
         v-if="showDevTools"
         class="tool-links"
@@ -216,6 +230,13 @@ onUnmounted(() => {
       :unlocked-ids="progress.bestiaryUnlocked"
       @close="bestiaryOpen = false"
     />
+    <ResearchTreeOverlay
+      v-if="researchOpen"
+      :points="progress.researchPoints"
+      :unlocked="progress.researchBuffs"
+      @close="researchOpen = false"
+      @unlock="emit('unlockResearch', $event)"
+    />
   </div>
 </template>
 
@@ -294,6 +315,16 @@ onUnmounted(() => {
 .gallery-link:focus-visible {
   outline: 2px solid #e8b060;
   outline-offset: 3px;
+}
+
+.research-link {
+  box-shadow: inset 0 0 0 1px rgba(112, 200, 192, 0.55);
+}
+
+.research-points {
+  margin: 10px 0 0 !important;
+  color: #88d8d0 !important;
+  font-variant-numeric: tabular-nums;
 }
 
 .map-row {

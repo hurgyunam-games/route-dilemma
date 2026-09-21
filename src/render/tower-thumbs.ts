@@ -38,6 +38,10 @@ const PREVIEW: Record<TowerTypeId, KeepSpec> = {
     file: "tower-lv3.png",
     cols: 6,
   },
+  research: {
+    file: "mage-lv1.png",
+    cols: 4,
+  },
 };
 
 function makeCanvas(width: number, height: number): HTMLCanvasElement | null {
@@ -122,6 +126,15 @@ function paintFallback(typeId: TowerTypeId): string {
     fill(ctx, "#88a0e8", 40, 58, 7, 6);
     return canvas.toDataURL("image/png");
   }
+  if (typeId === "research") {
+    fill(ctx, "#3a4a6a", 18, 58, 34, 64);
+    fill(ctx, "#5a7aaa", 14, 48, 42, 14);
+    fill(ctx, "#88c0c8", 26, 22, 18, 28);
+    fill(ctx, "#e8d48a", 30, 14, 10, 10);
+    fill(ctx, "#2a1c48", 28, 98, 14, 24);
+    fill(ctx, "#c8e8e0", 32, 36, 6, 8);
+    return canvas.toDataURL("image/png");
+  }
   fill(ctx, "#6a7a8a", 8, 70, 54, 52);
   fill(ctx, "#8a8a78", 8, 58, 10, 16);
   fill(ctx, "#8a8a78", 24, 58, 10, 16);
@@ -160,6 +173,9 @@ function opaqueBounds(
     }
   }
   if (maxX < 0) {
+    return null;
+  }
+  if (maxX - minX + 1 < 24 || maxY - minY + 1 < 40) {
     return null;
   }
   return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
@@ -260,7 +276,7 @@ function compositeThumb(
   const ctx = canvas.getContext("2d")!;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(keep, 0, 0);
-  if (occupant && typeId !== "wall") {
+  if (occupant && typeId !== "wall" && typeId !== "research") {
     const size = occupantSize(keep.width, typeId);
     const destH = size * (occupant.height / Math.max(1, occupant.width));
     const destX = (keep.width - size) / 2;

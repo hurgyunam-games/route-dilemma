@@ -9,10 +9,11 @@ import {
 import { isMapId, type MapId } from "./maps";
 import { TOWER_MAX_LEVEL, TOWER_TYPE_IDS, type TowerTypeId } from "./towers";
 import type { Tower } from "./grid";
+import { isResearchBuffId, type ResearchBuffId } from "./research";
 import { version as npmVersion } from "../../package.json";
 
 /** Schema integer. Bump only when the save *shape* changes, then add a migrateStep. */
-export const CAMPAIGN_SAVE_VERSION = 3;
+export const CAMPAIGN_SAVE_VERSION = 4;
 
 /** Debug string written into saves. Comes from package.json. */
 export const APP_VERSION = npmVersion;
@@ -45,6 +46,8 @@ type CampaignSave = {
   readonly mapTowers: Record<string, unknown>;
   readonly mapRecaptureAt: Record<string, unknown>;
   readonly bestiaryUnlocked: readonly string[];
+  readonly researchPoints: number;
+  readonly researchBuffs: readonly ResearchBuffId[];
 };
 
 function isTowerTypeId(value: unknown): value is TowerTypeId {
@@ -137,6 +140,29 @@ function parseBestiaryUnlocked(value: unknown): readonly string[] {
   return next;
 }
 
+function parseResearchPoints(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return value;
+}
+
+function parseResearchBuffs(value: unknown): readonly ResearchBuffId[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const next: ResearchBuffId[] = [];
+  const seen = new Set<ResearchBuffId>();
+  for (const item of value) {
+    if (!isResearchBuffId(item) || seen.has(item)) {
+      continue;
+    }
+    seen.add(item);
+    next.push(item);
+  }
+  return next;
+}
+
 function asRawSave(value: unknown): RawSave | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -176,12 +202,22 @@ function migrateV2toV3(body: RawSave): RawSave {
   };
 }
 
+function migrateV3toV4(body: RawSave): RawSave {
+  return {
+    ...body,
+    researchPoints: typeof body.researchPoints === "number" ? body.researchPoints : 0,
+    researchBuffs: Array.isArray(body.researchBuffs) ? body.researchBuffs : [],
+  };
+}
+
 function migrateStep(body: RawSave, fromVersion: number): RawSave | "invalid" {
   switch (fromVersion) {
     case 1:
       return migrateV1toV2(body);
     case 2:
       return migrateV2toV3(body);
+    case 3:
+      return migrateV3toV4(body);
     default:
       return "invalid";
   }
@@ -211,6 +247,8 @@ function progressFromSave(body: RawSave): CampaignProgress | null {
     mapTowers: parseMapTowers(body.mapTowers),
     mapRecaptureAt: parseMapRecaptureAt(body.mapRecaptureAt),
     bestiaryUnlocked: parseBestiaryUnlocked(body.bestiaryUnlocked),
+    researchPoints: parseResearchPoints(body.researchPoints),
+    researchBuffs: parseResearchBuffs(body.researchBuffs),
   };
 }
 
@@ -232,6 +270,8 @@ export function serializeCampaign(progress: CampaignProgress): string {
       Object.entries(progress.mapRecaptureAt ?? {}).map(([id, at]) => [id, at]),
     ),
     bestiaryUnlocked: [...(progress.bestiaryUnlocked ?? [])],
+    researchPoints: parseResearchPoints(progress.researchPoints),
+    researchBuffs: [...(progress.researchBuffs ?? [])],
   };
   return JSON.stringify(save);
 }

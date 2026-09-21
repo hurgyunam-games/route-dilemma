@@ -79,6 +79,21 @@
         { "cost": 50, "hp": 68, "range": 0, "dps": 0 },
         { "cost": 75, "hp": 96, "range": 0, "dps": 0 }
       ]
+    },
+    {
+      "id": "research",
+      "name": "연구",
+      "attack": "research",
+      "splashRadius": 0,
+      "slowFactor": 1,
+      "slowSec": 0,
+      "levels": [
+        { "cost": 18, "hp": 8, "range": 0, "dps": 0 },
+        { "cost": 18, "hp": 10, "range": 0, "dps": 0 },
+        { "cost": 28, "hp": 12, "range": 0, "dps": 0 },
+        { "cost": 40, "hp": 14, "range": 0, "dps": 0 },
+        { "cost": 55, "hp": 16, "range": 0, "dps": 0 }
+      ]
     }
   ]
 }

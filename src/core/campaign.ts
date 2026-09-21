@@ -2,6 +2,7 @@
 
 import { type Tower } from "./grid";
 import { WORLD_MAP_COUNT, WORLD_MAPS, type GameMapDef, type MapId } from "./maps";
+import { type ResearchBuffId } from "./research";
 import { towerMaxHp } from "./towers";
 
 export type MapTowerMap = Readonly<Partial<Record<MapId, readonly Tower[]>>>;
@@ -17,6 +18,8 @@ export type CampaignProgress = {
   readonly mapTowers: MapTowerMap;
   readonly mapRecaptureAt: MapRecaptureMap;
   readonly bestiaryUnlocked: readonly string[];
+  readonly researchPoints: number;
+  readonly researchBuffs: readonly ResearchBuffId[];
 };
 
 export type CampaignMapStatus = {
@@ -32,7 +35,14 @@ export type CampaignMapStatus = {
 };
 
 export function createCampaign(): CampaignProgress {
-  return { clearedStage: 0, mapTowers: {}, mapRecaptureAt: {}, bestiaryUnlocked: [] };
+  return {
+    clearedStage: 0,
+    mapTowers: {},
+    mapRecaptureAt: {},
+    bestiaryUnlocked: [],
+    researchPoints: 0,
+    researchBuffs: [],
+  };
 }
 
 export function mapIdForStage(stageId: number): MapId {

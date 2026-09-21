@@ -14,8 +14,10 @@ import {
   startMapRecapture,
   towersForMap,
   unlockBestiaryEnemies,
+  unlockResearchBuff,
   type CampaignLoad,
   type MapId,
+  type ResearchBuffId,
   type Tower,
 } from "@/core";
 
@@ -130,6 +132,21 @@ const onUnlockBestiary = (enemyIds: readonly string[]): void => {
   commit(unlockBestiaryEnemies(campaign.value, enemyIds));
 };
 
+const onUnlockResearch = (buffId: ResearchBuffId): void => {
+  const result = unlockResearchBuff(campaign.value, buffId);
+  if (!result.ok) {
+    return;
+  }
+  commit(result.progress);
+};
+
+const onSaveResearch = (points: number): void => {
+  if (campaign.value.researchPoints === points) {
+    return;
+  }
+  commit({ ...campaign.value, researchPoints: points });
+};
+
 onMounted(() => {
   if (!import.meta.env.DEV) {
     return;
@@ -165,11 +182,14 @@ onUnmounted(() => {
     :stage-id="selectedStageId"
     :towers="towersForMap(campaign, selectedMapId)"
     :bestiary-unlocked="campaign.bestiaryUnlocked"
+    :research-points="campaign.researchPoints"
+    :research-buffs="campaign.researchBuffs"
     @leave="leaveBattle"
     @victory="onVictory"
     @defeat="onDefeat"
     @save-towers="onSaveTowers"
     @unlock-bestiary="onUnlockBestiary"
+    @save-research="onSaveResearch"
   />
   <WorldMapView
     v-else
@@ -180,5 +200,6 @@ onUnmounted(() => {
     @gallery="openTool('gallery')"
     @waves="openTool('waves')"
     @enemies="openTool('enemies')"
+    @unlock-research="onUnlockResearch"
   />
 </template>

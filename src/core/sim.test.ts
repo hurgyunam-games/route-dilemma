@@ -51,6 +51,8 @@ import {
   UPGRADE_DURATION_SEC,
   BATTLE_WAVE_COUNT,
   waveRepairAmount,
+  RESEARCH_POINT_PER_SEC,
+  RESEARCH_START_GOLD,
   type SimState,
 } from "./sim";
 
@@ -2117,4 +2119,63 @@ describe("wave preview", () => {
     expect(unitTile(skipped.units[0]!)).toEqual(skipped.grid.start);
   });
 });
+
+describe("research tower and global buffs", () => {
+  it("does not place a research tower when gold is short", () => {
+    const cost = towerBuildCost("research");
+    const sim = { ...createSim(createGrid(12, 8)), gold: cost - 1 };
+    const result = simBeginBuild(sim, 3, 2, "research");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toContain("골드가 부족합니다");
+      expect(result.reason).toContain(`필요 ${cost}`);
+    }
+    expect(hasTower(sim.grid, 3, 2)).toBe(false);
+  });
+
+  it("spends gold to start a research tower that never fires", () => {
+    const cost = towerBuildCost("research");
+    let sim = { ...createSim(createGrid(12, 8)), gold: cost };
+    const result = simBeginBuild(sim, 3, 2, "research");
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      return;
+    }
+    sim = result.state;
+    expect(sim.gold).toBe(0);
+    expect(getTower(sim.grid, 3, 2)?.typeId).toBe("research");
+    expect(towerDps(getTower(sim.grid, 3, 2)!)).toBe(0);
+    sim = tick(sim, BUILD_DURATION_SEC + 0.5);
+    expect(getTower(sim.grid, 3, 2)?.buildTimeLeft).toBe(0);
+    expect(sim.towerShots).toHaveLength(0);
+  });
+
+  it("does not raise research points without a finished research tower", () => {
+    let sim = tick(createSim(createGrid(12, 8)), 4);
+    expect(sim.researchPoints).toBe(0);
+    const building = placeTower(createGrid(12, 8), 3, 2, "research", BUILD_DURATION_SEC);
+    sim = tick(createSim(building), 0.5);
+    expect(sim.researchPoints).toBe(0);
+    expect(hudSnapshot(sim).researchPoints).toBe(0);
+  });
+
+  it("raises research points over time after the research tower finishes", () => {
+    const grid = placeTower(createGrid(12, 8), 3, 2, "research", 0);
+    let sim = createSim(grid);
+    expect(sim.researchPoints).toBe(0);
+    sim = tick(sim, 4);
+    expect(sim.researchPoints).toBeCloseTo(RESEARCH_POINT_PER_SEC * 4);
+    expect(hudSnapshot(sim).researchPoints).toBeCloseTo(RESEARCH_POINT_PER_SEC * 4);
+    expect(sim.towerShots).toHaveLength(0);
+  });
+
+  it("applies chosen research buffs on every map", () => {
+    const plains = createSim(createGrid(), 1, { buffs: ["startGold"] });
+    const marsh = createSim(createMapGrid(5), 5, { buffs: ["startGold"] });
+    expect(plains.gold).toBe(START_GOLD + RESEARCH_START_GOLD);
+    expect(marsh.gold).toBe(startingGold(5) + RESEARCH_START_GOLD);
+    expect(createSim(createGrid(), 1).gold).toBe(START_GOLD);
+  });
+});
+
 

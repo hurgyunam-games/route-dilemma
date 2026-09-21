@@ -218,4 +218,16 @@ describe("campaign defeat penalty", () => {
     expect(saveMapTowers(progress, 1, []).bestiaryUnlocked).toEqual(["slime-10"]);
     expect(recordDefeat(progress, 1, [], 1_000, () => 0.5).bestiaryUnlocked).toEqual(["slime-10"]);
   });
+
+  it("keeps research points and buffs when stages and towers change", () => {
+    const progress = {
+      ...createCampaign(),
+      researchPoints: 11,
+      researchBuffs: ["startGold"] as const,
+    };
+    expect(recordVictory(progress, 1).researchPoints).toBe(11);
+    expect(recordVictory(progress, 1).researchBuffs).toEqual(["startGold"]);
+    expect(saveMapTowers(progress, 1, []).researchBuffs).toEqual(["startGold"]);
+    expect(recordDefeat(progress, 1, [], 1_000, () => 0.5).researchPoints).toBe(11);
+  });
 });

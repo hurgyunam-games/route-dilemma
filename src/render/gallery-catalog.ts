@@ -457,7 +457,7 @@ function towerItems(): GalleryItem[] {
         label: `${TOWER_DEFS[typeId].name} Lv${level}`,
         typeId,
         level,
-        hasOccupant: typeId !== "wall",
+        hasOccupant: typeId !== "wall" && typeId !== "research",
       };
     }),
   );

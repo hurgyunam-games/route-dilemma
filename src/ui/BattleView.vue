@@ -25,13 +25,17 @@ import {
   TOWER_TYPE_IDS,
   towerAttack,
   towerDps,
+  towerFires,
   towerMaxHp,
   towerRange,
   towerRangePreview,
   towerUpgradeCost,
   wavePreviewRoster,
+  modifiedTowerRange,
+  researchPointRateForLevel,
   type HudSnapshot,
   type MapId,
+  type ResearchBuffId,
   type TimeScale,
   type Tower,
   type TowerDef,
@@ -66,6 +70,8 @@ const props = defineProps<{
   stageId: number;
   towers: readonly Tower[];
   bestiaryUnlocked?: readonly string[];
+  researchPoints?: number;
+  researchBuffs?: readonly ResearchBuffId[];
 }>();
 
 const emit = defineEmits<{
@@ -74,16 +80,24 @@ const emit = defineEmits<{
   defeat: [towers: readonly Tower[]];
   saveTowers: [towers: readonly Tower[]];
   unlockBestiary: [enemyIds: readonly string[]];
+  saveResearch: [points: number];
 }>();
 
 const makeBattle = () =>
-  setTimeScale(createSim(createBattleGrid(props.mapId, props.towers), props.stageId), 0);
+  setTimeScale(
+    createSim(createBattleGrid(props.mapId, props.towers), props.stageId, {
+      points: props.researchPoints ?? 0,
+      buffs: props.researchBuffs ?? [],
+    }),
+    0,
+  );
 
 const hostRef = ref<HTMLElement | null>(null);
 let sim = makeBattle();
 let reportedVictory = false;
 let reportedDefeat = false;
 let lastTowerSave = JSON.stringify(sim.grid.towers);
+let lastResearchSave = sim.researchPoints;
 const hud = ref<HudSnapshot>(hudSnapshot(sim));
 const shop = ref<Shop | null>(null);
 const shopError = ref("");
@@ -115,6 +129,7 @@ const phaseLabel = computed(() =>
 );
 const phaseTimeLabel = computed(() => `${hud.value.phaseTimeLeft.toFixed(1)}s`);
 const goldLabel = computed(() => `골드 ${hud.value.gold}`);
+const researchLabel = computed(() => `연구 ${Math.floor(hud.value.researchPoints)}`);
 const baseHpLabel = computed(() => `본진 HP ${hud.value.baseHp}`);
 const leftoverLabel = computed(() =>
   hud.value.leftoverAllies > 0 ? `남은 아군 ${hud.value.leftoverAllies}` : "",
@@ -200,7 +215,14 @@ const rangePreview = computed(() => {
   if (!tower) {
     return null;
   }
-  return towerRangePreview(tower);
+  const preview = towerRangePreview(tower);
+  if (!preview) {
+    return null;
+  }
+  return {
+    ...preview,
+    range: modifiedTowerRange(preview.range, props.researchBuffs ?? []),
+  };
 });
 
 const selectedTile = computed(() => {
@@ -221,6 +243,14 @@ const buildThumbStyle = (typeId: TowerTypeId) => ({
 });
 
 const buildSpecLines = (def: TowerDef): readonly string[] => {
+  if (def.id === "research") {
+    return [
+      `비용 ${def.cost}`,
+      `체력 ${def.hp}`,
+      "공격 없음 · 연구 포인트 생산",
+      `완성 후 초당 연구 ${researchPointRateForLevel(1)}`,
+    ];
+  }
   if (def.attack === "none") {
     return [`비용 ${def.cost}`, `체력 ${def.hp}`, "공격 없음 · 길 차단"];
   }
@@ -283,6 +313,20 @@ const saveTowersIfChanged = (): void => {
   emit("saveTowers", sim.grid.towers);
 };
 
+const saveResearchIfChanged = (force = false): void => {
+  if (
+    !force &&
+    Math.floor(sim.researchPoints) === Math.floor(lastResearchSave)
+  ) {
+    return;
+  }
+  if (sim.researchPoints === lastResearchSave) {
+    return;
+  }
+  lastResearchSave = sim.researchPoints;
+  emit("saveResearch", sim.researchPoints);
+};
+
 const maybeUnlockPreview = (): void => {
   if (sim.phase !== "enemy" || !(sim.wavePreviewTimeLeft > 0) || sim.outcome !== "playing") {
     return;
@@ -317,6 +361,7 @@ const pushHud = (): void => {
   if (hud.value.outcome !== "defeat") {
     saveTowersIfChanged();
   }
+  saveResearchIfChanged();
   if (shop.value?.mode === "upgrade" && !getTower(sim.grid, shop.value.x, shop.value.y)) {
     closeShop();
   }
@@ -353,13 +398,22 @@ const onRestart = (): void => {
   if (hud.value.outcome === "defeat") {
     return;
   }
-  sim = makeBattle();
+  const earnedPoints = sim.researchPoints;
+  emit("saveResearch", earnedPoints);
+  sim = setTimeScale(
+    createSim(createBattleGrid(props.mapId, props.towers), props.stageId, {
+      points: earnedPoints,
+      buffs: props.researchBuffs ?? [],
+    }),
+    0,
+  );
   reportedVictory = false;
   reportedDefeat = false;
   unlockedWaveKey = "";
   newBestiaryIds.value = [];
   bestiaryFocusId.value = null;
   lastTowerSave = JSON.stringify(sim.grid.towers);
+  lastResearchSave = sim.researchPoints;
   leakPulse.value = 0;
   rewardPulse.value = 0;
   goldGain.value = 0;
@@ -374,6 +428,7 @@ const onLeaveWorldMap = (): void => {
   if (hud.value.outcome !== "defeat") {
     saveTowersIfChanged();
   }
+  saveResearchIfChanged(true);
   emit("leave");
 };
 
@@ -567,6 +622,9 @@ onUnmounted(() => {
               v-if="goldGain > 0"
               class="gold-gain"
             >+{{ goldGain }}</span>
+          </p>
+          <p class="research">
+            {{ researchLabel }}
           </p>
           <p
             class="base-hp"
@@ -779,10 +837,13 @@ onUnmounted(() => {
           <p class="type-stat">
             레벨 {{ upgradePreview.current.level }}
             · 체력 {{ upgradePreview.current.hp }}
-            <template v-if="selectedTower.typeId !== 'wall'">
+            <template v-if="towerFires(selectedTower)">
               · 사거리 {{ upgradePreview.current.range }}
               · 공격 {{ upgradePreview.current.dps }}
               · {{ TOWER_ROLE_LABELS[towerAttack(selectedTower)] }}
+            </template>
+            <template v-else-if="selectedTower.typeId === 'research'">
+              · 공격 없음 · 초당 연구 {{ researchPointRateForLevel(selectedTower.level) }}
             </template>
             <template v-else>
               · 공격 없음
@@ -794,9 +855,12 @@ onUnmounted(() => {
           >
             다음: 레벨 {{ upgradePreview.next.level }}
             · 체력 {{ upgradePreview.next.hp }}
-            <template v-if="selectedTower.typeId !== 'wall'">
+            <template v-if="towerFires(selectedTower)">
               · 사거리 {{ upgradePreview.next.range }}
               · 공격 {{ upgradePreview.next.dps }}
+            </template>
+            <template v-else-if="selectedTower.typeId === 'research'">
+              · 초당 연구 {{ researchPointRateForLevel(upgradePreview.next.level) }}
             </template>
             · 비용 {{ upgradePreview.cost }}
           </p>
@@ -905,6 +969,7 @@ onUnmounted(() => {
 
 .phase-bar,
 .gold,
+.research,
 .base-hp,
 .leftover,
 .loop-hint,
@@ -941,10 +1006,16 @@ onUnmounted(() => {
 }
 
 .gold,
+.research,
 .base-hp,
 .leftover,
 .meta {
   font-variant-numeric: tabular-nums;
+}
+
+.research {
+  color: #88d8d0;
+  box-shadow: inset 0 0 0 1px rgba(112, 200, 192, 0.4);
 }
 
 .meta {
@@ -1084,7 +1155,7 @@ onUnmounted(() => {
 }
 
 .shop-panel {
-  width: min(560px, calc(100% - 32px));
+  width: min(620px, calc(100% - 32px));
   padding: 16px 18px 18px;
   border-radius: 10px;
   background: rgba(28, 18, 14, 0.96);
@@ -1134,7 +1205,7 @@ onUnmounted(() => {
 
 .type-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(88px, 1fr));
   gap: 8px;
 }
 
@@ -1143,6 +1214,8 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 8px 4px 10px;
   border: 0;
@@ -1174,6 +1247,10 @@ onUnmounted(() => {
   box-shadow: inset 0 0 0 2px #a8a090;
 }
 
+.type-card.research {
+  box-shadow: inset 0 0 0 2px #70c8c0;
+}
+
 .type-card.hovered,
 .type-card:focus-visible {
   background: rgba(56, 38, 28, 0.95);
@@ -1181,9 +1258,10 @@ onUnmounted(() => {
 
 .type-thumb {
   display: block;
-  width: 100%;
-  max-width: 72px;
+  width: 56px;
+  max-width: 100%;
   height: 104px;
+  flex-shrink: 0;
   border-radius: 6px;
   background-color: #1a1412;
   background-position: center bottom;

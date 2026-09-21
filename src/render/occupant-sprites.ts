@@ -72,6 +72,7 @@ const OCCUPANT_FILES: Record<TowerTypeId, readonly OccupantFiles[]> = {
     },
   ],
   wall: [],
+  research: [],
 };
 
 function blankOccupant(): OccupantSheets {
@@ -108,7 +109,7 @@ export async function loadOccupantFrames(): Promise<OccupantAtlas> {
     Promise.all(OCCUPANT_FILES.cannon.map(loadOccupantVariant)),
     Promise.all(OCCUPANT_FILES.mage.map(loadOccupantVariant)),
   ]);
-  return { archer, melee, cannon, mage, wall: [blankOccupant()] };
+  return { archer, melee, cannon, mage, wall: [blankOccupant()], research: [blankOccupant()] };
 }
 
 export function occupantVariantIndex(level: number, count: number): number {
