@@ -229,7 +229,7 @@ export const PHASE_DURATION_SEC = getStageWave(1).enemyPhaseSec;
 export const SPAWN_INTERVAL_SEC = getStageWave(1).bursts[0]!.interval;
 export const WAVE_SIZE = getStageWave(1).bursts[0]!.units.length;
 export const BATTLE_WAVE_COUNT = 3;
-/** Seconds the incoming-enemy banner stays up before the first spawn. */
+/** Positive while the incoming-enemy banner waits for the player to confirm. */
 export const WAVE_PREVIEW_SEC = 2.4;
 
 export type Phase = "enemy" | "ally";
@@ -379,12 +379,17 @@ export function createSim(
   };
 }
 
-/** Finish the incoming banner and spawn the first enemy, matching pre-preview createSim. */
-export function skipWavePreview(state: SimState): SimState {
+/** Dismiss the incoming banner and spawn the first enemy of this assault. */
+export function confirmWavePreview(state: SimState): SimState {
   if (!(state.wavePreviewTimeLeft > 0) || state.phase !== "enemy") {
     return state;
   }
   return beginEnemySpawns({ ...state, wavePreviewTimeLeft: 0 });
+}
+
+/** Finish the incoming banner and spawn the first enemy, matching pre-preview createSim. */
+export function skipWavePreview(state: SimState): SimState {
+  return confirmWavePreview(state);
 }
 
 export function hudSnapshot(state: SimState): HudSnapshot {
@@ -539,8 +544,10 @@ export function tick(state: SimState, dt: number): SimState {
   if (state.outcome !== "playing") {
     return state;
   }
-  const previewing = state.phase === "enemy" && state.wavePreviewTimeLeft > 0;
-  const scaled = previewing && !(state.timeScale > 0) ? dt : dt * state.timeScale;
+  if (state.phase === "enemy" && state.wavePreviewTimeLeft > 0) {
+    return state;
+  }
+  const scaled = dt * state.timeScale;
   if (!(scaled > 0)) {
     return state;
   }
@@ -550,6 +557,9 @@ export function tick(state: SimState, dt: number): SimState {
     const stepped = Math.min(0.05, remaining);
     current = tickOnce(current, stepped);
     remaining -= stepped;
+    if (current.phase === "enemy" && current.wavePreviewTimeLeft > 0) {
+      break;
+    }
   }
   return current;
 }
@@ -560,25 +570,7 @@ function tickOnce(state: SimState, dt: number): SimState {
   }
 
   if (state.phase === "enemy" && state.wavePreviewTimeLeft > 0) {
-    const time = state.time + dt;
-    const grid = advanceTowerBuilds(state.grid, dt);
-    const researchPoints = accrueResearchPoints(state.researchPoints, grid.towers, dt);
-    const left = state.wavePreviewTimeLeft - dt;
-    if (left > 1e-9) {
-      return { ...state, grid, time, wavePreviewTimeLeft: left, researchPoints };
-    }
-    const started = beginEnemySpawns({
-      ...state,
-      grid,
-      time,
-      wavePreviewTimeLeft: 0,
-      researchPoints,
-    });
-    const leftover = Math.max(0, -left);
-    if (leftover > 1e-9 && started.timeScale > 0 && started.outcome === "playing") {
-      return tickOnce(started, leftover);
-    }
-    return started;
+    return state;
   }
 
   const time = state.time + dt;

@@ -12,6 +12,7 @@ import {
   START_GOLD_PER_STAGE,
   startingGold,
   BUILD_DURATION_SEC,
+  confirmWavePreview,
   createSim as createLiveSim,
   skipWavePreview,
   WAVE_PREVIEW_SEC,
@@ -2082,34 +2083,29 @@ describe("ambush enemies", () => {
 });
 
 describe("wave preview", () => {
-  it("holds the first spawn until the incoming banner ends", () => {
+  it("holds the first spawn until the player confirms the banner", () => {
     const sim = createLiveSim();
     expect(sim.units).toHaveLength(0);
     expect(sim.wavePreviewTimeLeft).toBe(WAVE_PREVIEW_SEC);
     expect(hudSnapshot(sim).wavePreviewTimeLeft).toBe(WAVE_PREVIEW_SEC);
 
-    const mid = liveTick(sim, 1);
-    expect(mid.units).toHaveLength(0);
-    expect(mid.wavePreviewTimeLeft).toBeCloseTo(WAVE_PREVIEW_SEC - 1, 5);
-    expect(mid.phaseTimeLeft).toBeCloseTo(sim.phaseTimeLeft, 5);
-    expect(mid.phase).toBe("enemy");
+    const waited = liveTick(sim, 5);
+    expect(waited).toBe(sim);
+    expect(waited.phase).toBe("enemy");
 
-    const done = liveTick(setTimeScale(mid, 0), mid.wavePreviewTimeLeft);
+    const paused = setTimeScale(sim, 0);
+    const stillHolding = liveTick(paused, WAVE_PREVIEW_SEC);
+    expect(stillHolding).toBe(paused);
+    expect(stillHolding.units).toHaveLength(0);
+
+    const done = confirmWavePreview(paused);
+    expect(done.timeScale).toBe(0);
     expect(done.wavePreviewTimeLeft).toBe(0);
     expect(done.units).toHaveLength(1);
     expect(done.units[0]!.kind).toBe("enemy");
     expect(unitTile(done.units[0]!)).toEqual(done.grid.start);
-    expect(done.phaseTimeLeft).toBeCloseTo(sim.phaseTimeLeft, 4);
-  });
-
-  it("still counts the banner down while the battle is paused", () => {
-    const paused = setTimeScale(createLiveSim(), 0);
-    const done = liveTick(paused, WAVE_PREVIEW_SEC);
-    expect(done.timeScale).toBe(0);
-    expect(done.wavePreviewTimeLeft).toBe(0);
-    expect(done.units).toHaveLength(1);
-    expect(unitTile(done.units[0]!)).toEqual(done.grid.start);
-    expect(done.phaseTimeLeft).toBeCloseTo(paused.phaseTimeLeft, 5);
+    expect(done.phaseTimeLeft).toBeCloseTo(sim.phaseTimeLeft, 5);
+    expect(confirmWavePreview(done)).toBe(done);
   });
 
   it("matches the old immediate spawn after skipWavePreview", () => {

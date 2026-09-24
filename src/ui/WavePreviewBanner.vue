@@ -13,6 +13,7 @@ defineProps<{
 
 const emit = defineEmits<{
   select: [enemyId: string];
+  confirm: [];
 }>();
 
 const walkThumbs = ref<Partial<Record<EnemyTypeId, string>>>({});
@@ -58,8 +59,13 @@ const spriteArtStyle = (sprite: EnemyTypeId, hue = 0): CSSProperties => {
 const hasWalkSheet = (sprite: EnemyTypeId): boolean =>
   !walkThumbs.value[sprite] && Boolean(enemyWalkPreview(sprite).url);
 
-const entryLabel = (entry: WavePreviewEntry): string =>
-  entry.isNew ? `${entry.name} NEW` : entry.name;
+const entryLabel = (entry: WavePreviewEntry): string => {
+  const name = entry.isNew ? `${entry.name} NEW` : entry.name;
+  if (!entry.warningTitle || !entry.warningMessage) {
+    return name;
+  }
+  return `${name}. ${entry.warningTitle}. ${entry.warningMessage}`;
+};
 </script>
 
 <template>
@@ -78,7 +84,11 @@ const entryLabel = (entry: WavePreviewEntry): string =>
         <button
           type="button"
           class="entry"
-          :class="{ fresh: entry.isNew }"
+          :class="{
+            fresh: entry.isNew,
+            breaker: entry.behavior === 'breaker',
+            ambush: entry.behavior === 'ambush',
+          }"
           :aria-label="entryLabel(entry)"
           @click="emit('select', entry.id)"
         >
@@ -95,9 +105,23 @@ const entryLabel = (entry: WavePreviewEntry): string =>
             >NEW</span>
           </span>
           <span class="name">{{ entry.name }}</span>
+          <span
+            v-if="entry.warningTitle"
+            class="tip"
+          >
+            <strong>{{ entry.warningTitle }}</strong>
+            <span>{{ entry.warningMessage }}</span>
+          </span>
         </button>
       </li>
     </ul>
+    <button
+      type="button"
+      class="confirm"
+      @click="emit('confirm')"
+    >
+      확인
+    </button>
   </div>
 </template>
 
@@ -155,6 +179,85 @@ const entryLabel = (entry: WavePreviewEntry): string =>
 
 .entry.fresh {
   box-shadow: inset 0 0 0 2px #e8b060;
+}
+
+.entry.breaker {
+  box-shadow: inset 0 0 0 2px #ff6b3d;
+}
+
+.entry.ambush {
+  box-shadow: inset 0 0 0 2px #b07cff;
+}
+
+.entry:hover,
+.entry:focus-visible {
+  z-index: 2;
+}
+
+.confirm {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #e8b060;
+  color: #2a1810;
+  font: inherit;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.confirm:hover,
+.confirm:focus-visible {
+  background: #f2c98a;
+}
+
+.tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  z-index: 3;
+  width: 168px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(18, 10, 8, 0.98);
+  box-shadow: inset 0 0 0 1px rgba(247, 239, 230, 0.28);
+  color: #f7efe6;
+  font: 600 12px/1.35 "Segoe UI", sans-serif;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.entry.breaker .tip {
+  box-shadow: inset 0 0 0 1px #ff6b3d;
+}
+
+.entry.ambush .tip {
+  box-shadow: inset 0 0 0 1px #b07cff;
+}
+
+.entry:hover .tip,
+.entry:focus .tip,
+.entry:focus-visible .tip {
+  display: block;
+}
+
+.tip strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.entry.breaker .tip strong {
+  color: #ffb199;
+}
+
+.entry.ambush .tip strong {
+  color: #d7c2ff;
 }
 
 .thumb {

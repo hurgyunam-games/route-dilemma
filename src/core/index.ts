@@ -77,12 +77,17 @@ export type { CampaignMapStatus, CampaignProgress } from "./campaign";
 export {
   BESTIARY_LOCKED_NAME,
   ENEMY_ROLE_LABELS,
+  behaviorWarning,
+  behaviorWarningsForEnemies,
+  behaviorWarningsForUnits,
   bestiaryEntries,
   isBestiaryEnemyUnlocked,
+  isSpecialBehavior,
+  markBehaviorWarnings,
   unlockBestiaryEnemies,
   wavePreviewRoster,
 } from "./bestiary";
-export type { BestiaryEntry, WavePreviewEntry } from "./bestiary";
+export type { BehaviorWarning, BestiaryEntry, SpecialBehaviorId, WavePreviewEntry } from "./bestiary";
 export {
   APP_VERSION,
   CAMPAIGN_SAVE_VERSION,
@@ -110,6 +115,7 @@ export {
   BUILD_DURATION_SEC,
   canUpgrade,
   CATCH_RANGE_TILES,
+  confirmWavePreview,
   createSim,
   skipWavePreview,
   DEFAULT_TOWER_TYPE,

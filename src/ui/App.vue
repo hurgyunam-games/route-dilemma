@@ -13,6 +13,7 @@ import {
   saveMapTowers,
   startMapRecapture,
   towersForMap,
+  markBehaviorWarnings,
   unlockBestiaryEnemies,
   unlockResearchBuff,
   type CampaignLoad,
@@ -132,6 +133,10 @@ const onUnlockBestiary = (enemyIds: readonly string[]): void => {
   commit(unlockBestiaryEnemies(campaign.value, enemyIds));
 };
 
+const onWarnBehaviors = (behaviors: readonly string[]): void => {
+  commit(markBehaviorWarnings(campaign.value, behaviors));
+};
+
 const onUnlockResearch = (buffId: ResearchBuffId): void => {
   const result = unlockResearchBuff(campaign.value, buffId);
   if (!result.ok) {
@@ -182,6 +187,7 @@ onUnmounted(() => {
     :stage-id="selectedStageId"
     :towers="towersForMap(campaign, selectedMapId)"
     :bestiary-unlocked="campaign.bestiaryUnlocked"
+    :warned-behaviors="campaign.warnedBehaviors"
     :research-points="campaign.researchPoints"
     :research-buffs="campaign.researchBuffs"
     @leave="leaveBattle"
@@ -189,6 +195,7 @@ onUnmounted(() => {
     @defeat="onDefeat"
     @save-towers="onSaveTowers"
     @unlock-bestiary="onUnlockBestiary"
+    @warn-behaviors="onWarnBehaviors"
     @save-research="onSaveResearch"
   />
   <WorldMapView

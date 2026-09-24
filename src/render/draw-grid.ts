@@ -364,32 +364,68 @@ function drawUnitHp(
   const left = layout.originX + (unit.x + 0.5) * layout.tileSize - width / 2;
   const headY = sprite.y - sprite.anchor.y * Math.abs(sprite.height);
   const top = headY - height - gap;
-  if (unit.kind === "enemy" && unit.behavior === "breaker") {
-    const mark = Math.max(4, Math.round(layout.tileSize * 0.12));
-    const cx = left + width / 2;
-    const cy = top - mark * 0.35;
-    graphics
-      .poly([cx, cy - mark * 0.55, cx + mark * 0.55, cy + mark * 0.35, cx - mark * 0.55, cy + mark * 0.35])
-      .fill({ color: 0xff6b3d, alpha: 0.95 });
-  }
-  if (unit.kind === "enemy" && unit.behavior === "ambush") {
-    const mark = Math.max(4, Math.round(layout.tileSize * 0.12));
-    const cx = left + width / 2;
-    const cy = top - mark * 0.3;
-    graphics
-      .poly([
-        cx,
-        cy - mark * 0.55,
-        cx + mark * 0.5,
-        cy,
-        cx,
-        cy + mark * 0.55,
-        cx - mark * 0.5,
-        cy,
-      ])
-      .fill({ color: 0xb07cff, alpha: 0.95 });
+  if (unit.kind === "enemy" && (unit.behavior === "breaker" || unit.behavior === "ambush")) {
+    const icon = Math.max(16, Math.round(layout.tileSize * 0.46));
+    const radius = icon * 0.5;
+    const minY = layout.originY + radius + 1;
+    const maxY = layout.originY + layout.height - radius - 1;
+    const cy = Math.min(maxY, Math.max(minY, top - radius - 1));
+    drawBehaviorIcon(graphics, left + width / 2, cy, icon, unit.behavior);
   }
   drawHpBar(graphics, left, top, width, height, unit.hp, UNIT_MAX_HP);
+}
+
+function drawBehaviorIcon(
+  graphics: Graphics,
+  cx: number,
+  cy: number,
+  size: number,
+  behavior: "breaker" | "ambush",
+): void {
+  const radius = size * 0.5;
+  const stroke = Math.max(1.5, size * 0.08);
+  if (behavior === "breaker") {
+    graphics.circle(cx, cy, radius).fill({ color: 0x3a160e, alpha: 0.96 });
+    graphics.circle(cx, cy, radius).stroke({ width: stroke, color: 0xff6b3d });
+    const brickW = size * 0.58;
+    const brickH = size * 0.15;
+    graphics.roundRect(cx - brickW / 2, cy - brickH * 1.2, brickW, brickH, 1).fill({ color: 0xf3d2b4 });
+    graphics.roundRect(cx - brickW / 2, cy + brickH * 0.2, brickW, brickH, 1).fill({ color: 0xe4bf9c });
+    graphics
+      .poly([
+        cx - size * 0.05,
+        cy - size * 0.26,
+        cx + size * 0.07,
+        cy - size * 0.05,
+        cx - size * 0.01,
+        cy - size * 0.01,
+        cx + size * 0.09,
+        cy + size * 0.26,
+        cx - size * 0.03,
+        cy + size * 0.05,
+        cx + size * 0.03,
+        cy,
+      ])
+      .fill({ color: 0xff6b3d });
+    return;
+  }
+  graphics.circle(cx, cy, radius).fill({ color: 0x241433, alpha: 0.96 });
+  graphics.circle(cx, cy, radius).stroke({ width: stroke, color: 0xb07cff });
+  for (const offset of [-0.2, 0, 0.2]) {
+    const x = cx + size * offset;
+    graphics
+      .poly([
+        x - size * 0.045,
+        cy - size * 0.26,
+        x + size * 0.055,
+        cy - size * 0.26,
+        x + size * 0.1,
+        cy + size * 0.26,
+        x,
+        cy + size * 0.26,
+      ])
+      .fill({ color: 0xf6eeff });
+  }
 }
 
 function shotPixel(

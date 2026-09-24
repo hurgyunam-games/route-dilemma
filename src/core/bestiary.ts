@@ -9,6 +9,102 @@ import {
   type EnemyTypeId,
 } from "./enemies";
 
+export const SPECIAL_BEHAVIOR_IDS = ["breaker", "ambush"] as const;
+export type SpecialBehaviorId = (typeof SPECIAL_BEHAVIOR_IDS)[number];
+
+export type BehaviorWarning = {
+  readonly behavior: SpecialBehaviorId;
+  readonly title: string;
+  readonly message: string;
+};
+
+const BEHAVIOR_WARNINGS: Record<SpecialBehaviorId, Omit<BehaviorWarning, "behavior">> = {
+  breaker: {
+    title: "벽뚫기",
+    message: "돌진 적은 길을 따라가지 않고, 앞을 막는 타워를 부수며 직진합니다.",
+  },
+  ambush: {
+    title: "약탈",
+    message: "약탈 적은 타워가 닿지 않는 곳에 숨었다가, 아군 수송을 공격합니다.",
+  },
+};
+
+export function isSpecialBehavior(value: string): value is SpecialBehaviorId {
+  return (SPECIAL_BEHAVIOR_IDS as readonly string[]).includes(value);
+}
+
+export function behaviorWarning(behavior: string): BehaviorWarning | null {
+  if (!isSpecialBehavior(behavior)) {
+    return null;
+  }
+  return { behavior, ...BEHAVIOR_WARNINGS[behavior] };
+}
+
+function warningsForBehaviors(
+  behaviors: readonly string[],
+  warned: readonly string[],
+): readonly BehaviorWarning[] {
+  const seen = new Set(warned);
+  const warnings: BehaviorWarning[] = [];
+  for (const behavior of behaviors) {
+    const warning = behaviorWarning(behavior);
+    if (!warning || seen.has(warning.behavior)) {
+      continue;
+    }
+    seen.add(warning.behavior);
+    warnings.push(warning);
+  }
+  return warnings;
+}
+
+/** First-time warnings for special behaviors in this assault, in roster order. */
+export function behaviorWarningsForEnemies(
+  enemyIds: readonly string[],
+  warned: readonly string[] = [],
+): readonly BehaviorWarning[] {
+  const behaviors: string[] = [];
+  for (const id of enemyIds) {
+    const enemy = tryGetEnemy(id);
+    if (enemy) {
+      behaviors.push(enemy.behavior);
+    }
+  }
+  return warningsForBehaviors(behaviors, warned);
+}
+
+/** First-time warnings for enemies that just appeared on the map. */
+export function behaviorWarningsForUnits(
+  units: readonly { readonly kind: string; readonly behavior: string }[],
+  warned: readonly string[] = [],
+): readonly BehaviorWarning[] {
+  return warningsForBehaviors(
+    units.filter((unit) => unit.kind === "enemy").map((unit) => unit.behavior),
+    warned,
+  );
+}
+
+export function markBehaviorWarnings(
+  progress: CampaignProgress,
+  behaviors: readonly string[],
+): CampaignProgress {
+  const have = new Set(progress.warnedBehaviors);
+  const added: SpecialBehaviorId[] = [];
+  for (const behavior of behaviors) {
+    if (!isSpecialBehavior(behavior) || have.has(behavior)) {
+      continue;
+    }
+    have.add(behavior);
+    added.push(behavior);
+  }
+  if (added.length === 0) {
+    return progress;
+  }
+  return {
+    ...progress,
+    warnedBehaviors: [...progress.warnedBehaviors, ...added],
+  };
+}
+
 export const BESTIARY_LOCKED_NAME = "???";
 
 export const ENEMY_ROLE_LABELS: Record<EnemyBehaviorId, string> = {
@@ -83,7 +179,10 @@ export type WavePreviewEntry = {
   readonly name: string;
   readonly sprite: EnemyTypeId;
   readonly hue: number;
+  readonly behavior: EnemyBehaviorId;
   readonly isNew: boolean;
+  readonly warningTitle: string | null;
+  readonly warningMessage: string | null;
 };
 
 export function wavePreviewRoster(
@@ -102,12 +201,16 @@ export function wavePreviewRoster(
       continue;
     }
     seen.add(id);
+    const warning = behaviorWarning(enemy.behavior);
     roster.push({
       id: enemy.id,
       name: enemy.name,
       sprite: enemy.sprite,
       hue: enemy.hue,
+      behavior: enemy.behavior,
       isNew: !known.has(enemy.id),
+      warningTitle: warning?.title ?? null,
+      warningMessage: warning?.message ?? null,
     });
   }
   return roster;

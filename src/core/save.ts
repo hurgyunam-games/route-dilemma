@@ -9,11 +9,12 @@ import {
 import { isMapId, type MapId } from "./maps";
 import { TOWER_MAX_LEVEL, TOWER_TYPE_IDS, type TowerTypeId } from "./towers";
 import type { Tower } from "./grid";
+import { isSpecialBehavior, type SpecialBehaviorId } from "./bestiary";
 import { isResearchBuffId, type ResearchBuffId } from "./research";
 import { version as npmVersion } from "../../package.json";
 
 /** Schema integer. Bump only when the save *shape* changes, then add a migrateStep. */
-export const CAMPAIGN_SAVE_VERSION = 4;
+export const CAMPAIGN_SAVE_VERSION = 5;
 
 /** Debug string written into saves. Comes from package.json. */
 export const APP_VERSION = npmVersion;
@@ -46,6 +47,7 @@ type CampaignSave = {
   readonly mapTowers: Record<string, unknown>;
   readonly mapRecaptureAt: Record<string, unknown>;
   readonly bestiaryUnlocked: readonly string[];
+  readonly warnedBehaviors: readonly SpecialBehaviorId[];
   readonly researchPoints: number;
   readonly researchBuffs: readonly ResearchBuffId[];
 };
@@ -140,6 +142,22 @@ function parseBestiaryUnlocked(value: unknown): readonly string[] {
   return next;
 }
 
+function parseWarnedBehaviors(value: unknown): readonly SpecialBehaviorId[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const next: SpecialBehaviorId[] = [];
+  const seen = new Set<SpecialBehaviorId>();
+  for (const item of value) {
+    if (typeof item !== "string" || !isSpecialBehavior(item) || seen.has(item)) {
+      continue;
+    }
+    seen.add(item);
+    next.push(item);
+  }
+  return next;
+}
+
 function parseResearchPoints(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
     return 0;
@@ -210,6 +228,13 @@ function migrateV3toV4(body: RawSave): RawSave {
   };
 }
 
+function migrateV4toV5(body: RawSave): RawSave {
+  return {
+    ...body,
+    warnedBehaviors: Array.isArray(body.warnedBehaviors) ? body.warnedBehaviors : [],
+  };
+}
+
 function migrateStep(body: RawSave, fromVersion: number): RawSave | "invalid" {
   switch (fromVersion) {
     case 1:
@@ -218,6 +243,8 @@ function migrateStep(body: RawSave, fromVersion: number): RawSave | "invalid" {
       return migrateV2toV3(body);
     case 3:
       return migrateV3toV4(body);
+    case 4:
+      return migrateV4toV5(body);
     default:
       return "invalid";
   }
@@ -247,6 +274,7 @@ function progressFromSave(body: RawSave): CampaignProgress | null {
     mapTowers: parseMapTowers(body.mapTowers),
     mapRecaptureAt: parseMapRecaptureAt(body.mapRecaptureAt),
     bestiaryUnlocked: parseBestiaryUnlocked(body.bestiaryUnlocked),
+    warnedBehaviors: parseWarnedBehaviors(body.warnedBehaviors),
     researchPoints: parseResearchPoints(body.researchPoints),
     researchBuffs: parseResearchBuffs(body.researchBuffs),
   };
@@ -270,6 +298,7 @@ export function serializeCampaign(progress: CampaignProgress): string {
       Object.entries(progress.mapRecaptureAt ?? {}).map(([id, at]) => [id, at]),
     ),
     bestiaryUnlocked: [...(progress.bestiaryUnlocked ?? [])],
+    warnedBehaviors: parseWarnedBehaviors(progress.warnedBehaviors),
     researchPoints: parseResearchPoints(progress.researchPoints),
     researchBuffs: [...(progress.researchBuffs ?? [])],
   };

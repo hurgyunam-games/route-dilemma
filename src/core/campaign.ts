@@ -1,5 +1,6 @@
 /** Campaign stages loop the five world maps; each map keeps its towers. */
 
+import type { EnemyBehaviorId } from "./enemies";
 import { type Tower } from "./grid";
 import { WORLD_MAP_COUNT, WORLD_MAPS, type GameMapDef, type MapId } from "./maps";
 import { type ResearchBuffId } from "./research";
@@ -18,6 +19,7 @@ export type CampaignProgress = {
   readonly mapTowers: MapTowerMap;
   readonly mapRecaptureAt: MapRecaptureMap;
   readonly bestiaryUnlocked: readonly string[];
+  readonly warnedBehaviors: readonly EnemyBehaviorId[];
   readonly researchPoints: number;
   readonly researchBuffs: readonly ResearchBuffId[];
 };
@@ -40,6 +42,7 @@ export function createCampaign(): CampaignProgress {
     mapTowers: {},
     mapRecaptureAt: {},
     bestiaryUnlocked: [],
+    warnedBehaviors: [],
     researchPoints: 0,
     researchBuffs: [],
   };

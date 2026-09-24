@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   BESTIARY_LOCKED_NAME,
   ENEMY_ROLE_LABELS,
+  behaviorWarningsForEnemies,
+  behaviorWarningsForUnits,
   bestiaryEntries,
   isBestiaryEnemyUnlocked,
+  markBehaviorWarnings,
   unlockBestiaryEnemies,
   wavePreviewRoster,
 } from "./bestiary";
@@ -61,11 +64,54 @@ describe("bestiary", () => {
     expect(roster[0]?.isNew).toBe(false);
     expect(roster[1]?.isNew).toBe(true);
     expect(roster[1]?.name).toBe(second.name);
+    expect(roster.every((entry) => entry.behavior === "normal" ? entry.warningTitle === null : true)).toBe(true);
+
+    const special = wavePreviewRoster(["wisp", "goblin-ambush"], []);
+    expect(special.map((entry) => entry.warningTitle)).toEqual(["벽뚫기", "약탈"]);
+    expect(special[0]?.warningMessage).toContain("타워");
+    expect(special[1]?.warningMessage).toContain("아군");
 
     const entries = bestiaryEntries(opened.bestiaryUnlocked, [second.id, first.id]);
     expect(entries.find((entry) => entry.id === first.id)?.unlocked).toBe(true);
     expect(entries.find((entry) => entry.id === first.id)?.isNew).toBe(true);
     expect(entries.find((entry) => entry.id === second.id)?.unlocked).toBe(false);
     expect(entries.find((entry) => entry.id === second.id)?.isNew).toBe(false);
+  });
+
+  it("warns once for each new special behavior, in roster order", () => {
+    const fresh = behaviorWarningsForEnemies(["slime", "wisp", "goblin-ambush", "wasp"]);
+    expect(fresh.map((warning) => warning.behavior)).toEqual(["breaker", "ambush"]);
+    expect(fresh[0]?.title).toBe("벽뚫기");
+    expect(fresh[1]?.title).toBe("약탈");
+
+    const again = behaviorWarningsForEnemies(
+      ["drake", "wolf-ambush"],
+      fresh.map((warning) => warning.behavior),
+    );
+    expect(again).toEqual([]);
+
+    const marked = markBehaviorWarnings(createCampaign(), ["breaker", "normal", "breaker"]);
+    expect(marked.warnedBehaviors).toEqual(["breaker"]);
+    expect(markBehaviorWarnings(marked, ["breaker"])).toBe(marked);
+    expect(behaviorWarningsForEnemies(["wisp", "goblin-ambush"], marked.warnedBehaviors)).toEqual([
+      expect.objectContaining({ behavior: "ambush", title: "약탈" }),
+    ]);
+  });
+
+  it("warns from enemies that just spawned, not from normals already on the map", () => {
+    const warnings = behaviorWarningsForUnits(
+      [
+        { kind: "enemy", behavior: "normal" },
+        { kind: "ally", behavior: "breaker" },
+        { kind: "enemy", behavior: "breaker" },
+        { kind: "enemy", behavior: "breaker" },
+        { kind: "enemy", behavior: "ambush" },
+      ],
+      [],
+    );
+    expect(warnings.map((warning) => warning.behavior)).toEqual(["breaker", "ambush"]);
+    expect(behaviorWarningsForUnits([{ kind: "enemy", behavior: "breaker" }], ["breaker"])).toEqual(
+      [],
+    );
   });
 });

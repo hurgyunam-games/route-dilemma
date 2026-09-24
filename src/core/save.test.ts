@@ -80,14 +80,14 @@ describe("campaign save", () => {
     expect(loaded.status).toBe("newer");
     expect(loaded.saveVersion).toBe(CAMPAIGN_SAVE_VERSION + 1);
     expect(loaded.progress).toEqual(createCampaign());
-    expect(persistCampaign(store, { clearedStage: 1, mapTowers: {}, mapRecaptureAt: {}, bestiaryUnlocked: [], researchPoints: 0, researchBuffs: [] })).toBe(false);
+    expect(persistCampaign(store, { clearedStage: 1, mapTowers: {}, mapRecaptureAt: {}, bestiaryUnlocked: [], warnedBehaviors: [], researchPoints: 0, researchBuffs: [] })).toBe(false);
     expect(JSON.parse(store.data[CAMPAIGN_STORAGE_KEY]!).clearedStage).toBe(9);
   });
 
   it("copies a legacy maze-td key onto the route-dilemma key", () => {
     const plains = placeTower(createMapGrid(1), 2, 3, "wall", 0);
     const legacy = serializeCampaign(
-      saveMapTowers({ clearedStage: 3, mapTowers: {}, mapRecaptureAt: {}, bestiaryUnlocked: [], researchPoints: 0, researchBuffs: [] }, 1, plains.towers),
+      saveMapTowers({ clearedStage: 3, mapTowers: {}, mapRecaptureAt: {}, bestiaryUnlocked: [], warnedBehaviors: [], researchPoints: 0, researchBuffs: [] }, 1, plains.towers),
     );
     const store = memoryStore({
       [LEGACY_CAMPAIGN_STORAGE_KEYS[0]]: legacy,
@@ -116,6 +116,7 @@ describe("campaign save", () => {
     expect(loaded.progress.bestiaryUnlocked).toEqual([]);
     expect(loaded.progress.researchPoints).toBe(0);
     expect(loaded.progress.researchBuffs).toEqual([]);
+    expect(loaded.progress.warnedBehaviors).toEqual([]);
   });
 
   it("round-trips defeat tower damage and recapture time", () => {
@@ -146,6 +147,7 @@ describe("campaign save", () => {
     expect(loaded.progress.bestiaryUnlocked).toEqual([]);
     expect(loaded.progress.researchPoints).toBe(0);
     expect(loaded.progress.researchBuffs).toEqual([]);
+    expect(loaded.progress.warnedBehaviors).toEqual([]);
   });
 
   it("round-trips bestiary unlock ids", () => {
@@ -172,6 +174,33 @@ describe("campaign save", () => {
     expect(loaded.progress.bestiaryUnlocked).toEqual(["slime-10"]);
     expect(loaded.progress.researchPoints).toBe(0);
     expect(loaded.progress.researchBuffs).toEqual([]);
+    expect(loaded.progress.warnedBehaviors).toEqual([]);
+  });
+
+  it("migrates schema 4 saves with no behavior warnings", () => {
+    const v4 = JSON.stringify({
+      version: 4,
+      clearedStage: 4,
+      mapTowers: {},
+      mapRecaptureAt: {},
+      bestiaryUnlocked: ["slime"],
+      researchPoints: 3,
+      researchBuffs: ["damage"],
+    });
+    const loaded = parseCampaignSave(v4);
+    expect(loaded.status).toBe("migrated");
+    expect(loaded.progress.warnedBehaviors).toEqual([]);
+    expect(loaded.progress.researchPoints).toBe(3);
+    expect(loaded.progress.bestiaryUnlocked).toEqual(["slime"]);
+  });
+
+  it("round-trips behavior warnings", () => {
+    const progress = { ...createCampaign(), warnedBehaviors: ["breaker", "ambush"] as const };
+    const store = memoryStore();
+    expect(persistCampaign(store, progress)).toBe(true);
+    const loaded = loadCampaign(store);
+    expect(loaded.status).toBe("ok");
+    expect(loaded.progress.warnedBehaviors).toEqual(["breaker", "ambush"]);
   });
 
   it("round-trips research points and chosen buffs", () => {

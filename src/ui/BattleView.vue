@@ -2,9 +2,11 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { Application } from "pixi.js";
 import {
+  behaviorWarningsForUnits,
   canUpgrade,
   campaignCycle,
   combatCues,
+  confirmWavePreview,
   createBattleGrid,
   createSim,
   getGameMap,
@@ -33,6 +35,7 @@ import {
   wavePreviewRoster,
   modifiedTowerRange,
   researchPointRateForLevel,
+  type BehaviorWarning,
   type HudSnapshot,
   type MapId,
   type ResearchBuffId,
@@ -70,6 +73,7 @@ const props = defineProps<{
   stageId: number;
   towers: readonly Tower[];
   bestiaryUnlocked?: readonly string[];
+  warnedBehaviors?: readonly string[];
   researchPoints?: number;
   researchBuffs?: readonly ResearchBuffId[];
 }>();
@@ -80,6 +84,7 @@ const emit = defineEmits<{
   defeat: [towers: readonly Tower[]];
   saveTowers: [towers: readonly Tower[]];
   unlockBestiary: [enemyIds: readonly string[]];
+  warnBehaviors: [behaviors: readonly string[]];
   saveResearch: [points: number];
 }>();
 
@@ -106,6 +111,8 @@ const hoveredBuildType = ref<TowerTypeId | null>(null);
 const bestiaryOpen = ref(false);
 const bestiaryFocusId = ref<string | null>(null);
 const previewKnownIds = ref<readonly string[]>([...(props.bestiaryUnlocked ?? [])]);
+const warnedLocal = ref<readonly string[]>([...(props.warnedBehaviors ?? [])]);
+const behaviorToasts = ref<readonly BehaviorWarning[]>([]);
 const newBestiaryIds = ref<readonly string[]>([]);
 let unlockedWaveKey = "";
 const buildThumbs = ref<Record<TowerTypeId, string>>(
@@ -123,6 +130,8 @@ let raf = 0;
 let lastTs = 0;
 let goldGainTimer = 0;
 let hpHitTimer = 0;
+let behaviorToastTimer = 0;
+const BEHAVIOR_TOAST_MS = 4500;
 
 const phaseLabel = computed(() =>
   hud.value.phase === "enemy" ? "Enemy Phase" : "Ally Phase",
@@ -327,6 +336,16 @@ const saveResearchIfChanged = (force = false): void => {
   emit("saveResearch", sim.researchPoints);
 };
 
+const confirmPreview = (): void => {
+  const next = confirmWavePreview(sim);
+  if (next === sim) {
+    return;
+  }
+  sim = next;
+  pushHud();
+  pushView();
+};
+
 const maybeUnlockPreview = (): void => {
   if (sim.phase !== "enemy" || !(sim.wavePreviewTimeLeft > 0) || sim.outcome !== "playing") {
     return;
@@ -345,6 +364,29 @@ const maybeUnlockPreview = (): void => {
   if (ids.length > 0) {
     emit("unlockBestiary", ids);
   }
+};
+
+const maybeWarnSpawns = (before: typeof sim, after: typeof sim): void => {
+  if (after.outcome !== "playing") {
+    return;
+  }
+  const previous = new Set(before.units.map((unit) => unit.id));
+  const spawned = after.units.filter((unit) => !previous.has(unit.id));
+  const warnings = behaviorWarningsForUnits(spawned, warnedLocal.value);
+  if (warnings.length === 0) {
+    return;
+  }
+  warnedLocal.value = [...warnedLocal.value, ...warnings.map((warning) => warning.behavior)];
+  const shown = new Set(behaviorToasts.value.map((toast) => toast.behavior));
+  behaviorToasts.value = [
+    ...behaviorToasts.value,
+    ...warnings.filter((warning) => !shown.has(warning.behavior)),
+  ];
+  window.clearTimeout(behaviorToastTimer);
+  behaviorToastTimer = window.setTimeout(() => {
+    behaviorToasts.value = [];
+  }, BEHAVIOR_TOAST_MS);
+  emit("warnBehaviors", warnings.map((warning) => warning.behavior));
 };
 
 const pushHud = (): void => {
@@ -535,6 +577,7 @@ onMounted(async () => {
     if (dt > 0) {
       const prev = sim;
       sim = tick(sim, dt);
+      maybeWarnSpawns(prev, sim);
       const cues = combatCues(prev, sim);
       if (cues.leak) {
         leakPulse.value += 1;
@@ -576,6 +619,7 @@ onUnmounted(() => {
   cancelAnimationFrame(raf);
   window.clearTimeout(goldGainTimer);
   window.clearTimeout(hpHitTimer);
+  window.clearTimeout(behaviorToastTimer);
   if (app) {
     destroyGameApp(app);
     app = null;
@@ -677,7 +721,23 @@ onUnmounted(() => {
       v-if="showWavePreview"
       :roster="previewRoster"
       @select="openBestiaryEnemy"
+      @confirm="confirmPreview"
     />
+    <div
+      v-if="behaviorToasts.length > 0 && hud.outcome === 'playing'"
+      class="behavior-toast"
+      role="status"
+      aria-live="assertive"
+    >
+      <p
+        v-for="toast in behaviorToasts"
+        :key="toast.behavior"
+        class="behavior-toast-item"
+      >
+        <strong>{{ toast.title }}</strong>
+        <span>{{ toast.message }}</span>
+      </p>
+    </div>
     <div
       v-if="hud.outcome !== 'playing'"
       class="outcome-overlay"
@@ -1381,6 +1441,37 @@ onUnmounted(() => {
 .detail-btn.active {
   color: #f7efe6;
   box-shadow: inset 0 0 0 1px rgba(126, 200, 255, 0.85);
+}
+
+.behavior-toast {
+  position: absolute;
+  top: max(46%, 300px);
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(420px, calc(100% - 32px));
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.behavior-toast-item {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(28, 18, 14, 0.94);
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 96, 0.55);
+  color: #f7efe6;
+  font: 700 15px/1.45 "Segoe UI", sans-serif;
+  text-align: center;
+}
+
+.behavior-toast-item strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #f0c36a;
+  font-size: 18px;
 }
 
 .outcome-overlay {
