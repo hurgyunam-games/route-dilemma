@@ -140,6 +140,7 @@ export type {
   WaveBurst,
   WaveBurstRow,
   WaveSpawn,
+  WaveSpawnDraft,
   WaveSpawnRef,
   WaveTable,
 } from "./waves";

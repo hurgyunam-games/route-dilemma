@@ -39,20 +39,14 @@ describe("stage wave table", () => {
     const catalog = getEnemyCatalog();
     setEnemyTable({
       enemies: catalog.map((enemy) =>
-        enemy.id === "slime-10" ? { ...enemy, hue: 77 } : enemy,
+        enemy.id === "slime" ? { ...enemy, hue: 77 } : enemy,
       ),
     });
     expect(getStageWave(1).bursts[0]?.units[0]?.hue).toBe(77);
   });
 
   it("lists unique catalog ids for a stage assault in spawn order", () => {
-    expect(stageWaveEnemyIds(1)).toEqual([
-      "slime-10",
-      "slime-14",
-      "goblin-14",
-      "wisp-16",
-      "goblin-14-ambush",
-    ]);
+    expect(stageWaveEnemyIds(1)).toEqual(["slime", "goblin", "wisp", "goblin-ambush"]);
   });
 
   it("defines 20 fixed stages in order", () => {
@@ -164,7 +158,7 @@ describe("wave table edit", () => {
     }
     expect(parsed.table.stages).toHaveLength(STAGE_COUNT);
     expect(parsed.table.stages[0]?.id).toBe(1);
-    expect(parsed.table.stages[0]?.bursts[0]?.units[0]).toEqual({ enemyId: "slime-10", delay: 0 });
+    expect(parsed.table.stages[0]?.bursts[0]?.units[0]).toEqual({ enemyId: "slime", delay: 0 });
   });
 
   it("expands legacy count/types bursts into catalog enemy ids", () => {
@@ -193,10 +187,10 @@ describe("wave table edit", () => {
       return;
     }
     expect(parsed.table.stages[0]?.bursts[0]?.units).toEqual([
-      { enemyId: "slime-12", delay: 0 },
-      { enemyId: "goblin-12", delay: 0.8 },
-      { enemyId: "slime-12", delay: 0.8 },
-      { enemyId: "goblin-12", delay: 0.8 },
+      { enemyId: "slime", delay: 0 },
+      { enemyId: "goblin", delay: 0.8 },
+      { enemyId: "slime", delay: 0.8 },
+      { enemyId: "goblin", delay: 0.8 },
     ]);
   });
 
@@ -213,7 +207,7 @@ describe("wave table edit", () => {
             {
               interval: 1.2,
               restAfter: 2,
-              units: [{ enemyId: "slime-10" }, { enemyId: "goblin-14" }, { enemyId: "wolf-20" }],
+              units: [{ enemyId: "slime" }, { enemyId: "goblin" }, { enemyId: "wolf" }],
             },
           ],
         })),
@@ -240,17 +234,17 @@ describe("wave table edit", () => {
               interval: 0.8,
               restAfter: 1.5,
               units: [
-                { enemyId: "slime-10", delay: 0 },
-                { enemyId: "goblin-14", delay: 0.2 },
-                { enemyId: "wolf-20", delay: 2 },
+                { enemyId: "slime", delay: 0 },
+                { enemyId: "goblin", delay: 0.2 },
+                { enemyId: "wolf", delay: 2 },
               ],
             },
             {
               interval: 0.8,
               restAfter: 0,
               units: [
-                { enemyId: "slime-10", delay: 0.5 },
-                { enemyId: "goblin-14", delay: 0.1 },
+                { enemyId: "slime", delay: 0.5 },
+                { enemyId: "goblin", delay: 0.1 },
               ],
             },
           ],
@@ -282,9 +276,9 @@ describe("wave table edit", () => {
           interval: 0.8,
           restAfter: 1,
           units: [
-            { enemyId: "slime-10", delay: 0 },
-            { enemyId: "wolf-20", delay: 0.8 },
-            { enemyId: "goblin-14", delay: 0.4 },
+            { enemyId: "slime", delay: 0 },
+            { enemyId: "wolf", delay: 0.8 },
+            { enemyId: "goblin", delay: 0.4 },
           ],
         },
       ],
@@ -294,22 +288,22 @@ describe("wave table edit", () => {
       0,
     );
     expect(moved[0]?.units.map((spawn) => spawn.enemyId)).toEqual([
-      "goblin-14",
-      "slime-10",
-      "wolf-20",
+      "goblin",
+      "slime",
+      "wolf",
     ]);
   });
 
   it("inserts a palette enemy into a burst", () => {
     const inserted = insertWaveSpawn(
-      [{ interval: 0.8, restAfter: 1, units: [{ enemyId: "slime-10", delay: 0 }] }],
+      [{ interval: 0.8, restAfter: 1, units: [{ enemyId: "slime", delay: 0 }] }],
       0,
       0,
-      { enemyId: "goblin-14" },
+      { enemyId: "goblin" },
     );
-    expect(inserted[0]?.units.map((spawn) => spawn.enemyId)).toEqual(["goblin-14", "slime-10"]);
+    expect(inserted[0]?.units.map((spawn) => spawn.enemyId)).toEqual(["goblin", "slime"]);
     expect(inserted[0]?.units.map((spawn) => spawn.delay)).toEqual([0, 0]);
-    const appended = insertWaveSpawn(inserted, 0, 2, { enemyId: "wolf-20" });
+    const appended = insertWaveSpawn(inserted, 0, 2, { enemyId: "wolf" });
     expect(appended[0]?.units.map((spawn) => spawn.delay)).toEqual([0, 0, 0.8]);
   });
 
@@ -331,7 +325,7 @@ describe("wave table edit", () => {
               bursts: [
                 {
                   ...row.bursts[0]!,
-                  units: [{ enemyId: "slime-10", delay: -1 }],
+                  units: [{ enemyId: "slime", delay: -1 }],
                 },
               ],
             }

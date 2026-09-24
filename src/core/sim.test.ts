@@ -1317,8 +1317,8 @@ describe("per-enemy spawn delay", () => {
 
   it("spawns the first enemy immediately when its delay is 0", () => {
     patchStage1([
-      { enemyId: "slime-10", delay: 0 },
-      { enemyId: "slime-10", delay: 0.4 },
+      { enemyId: "slime", delay: 0 },
+      { enemyId: "slime", delay: 0.4 },
     ]);
     const sim = createSim(createGrid(12, 8));
     expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(1);
@@ -1326,8 +1326,8 @@ describe("per-enemy spawn delay", () => {
 
   it("waits the first enemy delay before anyone leaves Start", () => {
     patchStage1([
-      { enemyId: "slime-10", delay: 0.6 },
-      { enemyId: "slime-10", delay: 0.2 },
+      { enemyId: "slime", delay: 0.6 },
+      { enemyId: "slime", delay: 0.2 },
     ]);
     let sim = createSim(createGrid(12, 8));
     expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(0);
@@ -1339,9 +1339,9 @@ describe("per-enemy spawn delay", () => {
 
   it("spaces later enemies by each unit delay, not the burst interval", () => {
     patchStage1([
-      { enemyId: "slime-10", delay: 0 },
-      { enemyId: "slime-10", delay: 0.5 },
-      { enemyId: "slime-10", delay: 1.2 },
+      { enemyId: "slime", delay: 0 },
+      { enemyId: "slime", delay: 0.5 },
+      { enemyId: "slime", delay: 1.2 },
     ]);
     let sim = createSim(createGrid(12, 8));
     expect(sim.units.filter((unit) => unit.kind === "enemy")).toHaveLength(1);
@@ -1370,16 +1370,16 @@ describe("per-enemy spawn delay", () => {
               interval: 0.8,
               restAfter: 1,
               units: [
-                { enemyId: "slime-10", delay: 0 },
-                { enemyId: "slime-10", delay: 0.5 },
+                { enemyId: "slime", delay: 0 },
+                { enemyId: "slime", delay: 0.5 },
               ],
             },
             {
               interval: 0.8,
               restAfter: 0,
               units: [
-                { enemyId: "slime-10", delay: 0 },
-                { enemyId: "slime-10", delay: 0.5 },
+                { enemyId: "slime", delay: 0 },
+                { enemyId: "slime", delay: 0.5 },
               ],
             },
           ],

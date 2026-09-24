@@ -106,7 +106,13 @@ export function tryGetEnemy(id: string): EnemyDef | null {
 }
 
 export function findEnemyIdForStats(sprite: EnemyTypeId, hp: number): string | null {
-  return liveTable.enemies.find((enemy) => enemy.sprite === sprite && enemy.hp === hp)?.id ?? null;
+  const matches = liveTable.enemies.filter((enemy) => enemy.sprite === sprite);
+  return (
+    matches.find((enemy) => enemy.hp === hp)?.id ??
+    matches.find((enemy) => enemy.behavior === DEFAULT_ENEMY_BEHAVIOR)?.id ??
+    matches[0]?.id ??
+    null
+  );
 }
 
 export function cloneEnemyTable(table: EnemyTable): EnemyTable {
@@ -121,7 +127,7 @@ export function defaultEnemy(id: string, from?: EnemyDef): EnemyDef {
   }
   return {
     id,
-    name: "슬라임 10",
+    name: "슬라임",
     sprite: "slime",
     hp: 10,
     hue: 0,

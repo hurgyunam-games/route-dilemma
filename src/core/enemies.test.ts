@@ -19,7 +19,10 @@ describe("enemy catalog", () => {
   it("loads unique enemies with known sprites", () => {
     const catalog = getEnemyCatalog();
     expect(catalog.length).toBeGreaterThan(0);
-    expect(getEnemy("slime-10")).toMatchObject({ sprite: "slime", hp: 10 });
+    expect(getEnemy("slime")).toMatchObject({ sprite: "slime", hp: 10, behavior: "normal" });
+    const looks = catalog.map((enemy) => `${enemy.sprite}:${enemy.behavior}`);
+    expect(new Set(looks).size).toBe(looks.length);
+    expect(catalog.some((enemy) => /\d/.test(enemy.name))).toBe(false);
     expect(new Set(catalog.map((enemy) => enemy.id)).size).toBe(catalog.length);
   });
 
@@ -112,7 +115,7 @@ describe("enemy catalog", () => {
       return;
     }
     expect(breaker.table.enemies[0]?.behavior).toBe("breaker");
-    expect(getEnemy("wisp-16").behavior).toBe("breaker");
+    expect(getEnemy("wisp").behavior).toBe("breaker");
   });
 
   it("lets any sprite use breaker or ambush as a type attribute", () => {
@@ -164,6 +167,6 @@ describe("enemy catalog", () => {
       return;
     }
     expect(ambush.table.enemies[0]?.behavior).toBe("ambush");
-    expect(getEnemy("goblin-14-ambush").behavior).toBe("ambush");
+    expect(getEnemy("goblin-ambush").behavior).toBe("ambush");
   });
 });

@@ -31,6 +31,7 @@ import {
   type EnemyTypeId,
   type StageWaveRow,
   type WaveBurstRow,
+  type WaveSpawnDraft,
   type WaveSpawnRef,
   type WaveTable,
 } from "@/core";
@@ -267,8 +268,7 @@ const removeBurst = (burstIndex: number): void => {
   });
 };
 
-const paletteSpawn = (): WaveSpawnRef => {
-  const burst = stage.value?.bursts[selectedBurst.value];
+const paletteSpawn = (burst: WaveBurstRow | undefined): WaveSpawnRef => {
   const delay = burst ? burst.interval : 0.8;
   if (selectedPalette.value && tryGetEnemy(selectedPalette.value)) {
     return { enemyId: selectedPalette.value, delay };
@@ -276,14 +276,15 @@ const paletteSpawn = (): WaveSpawnRef => {
   return defaultWaveSpawn(delay);
 };
 
-const addSpawn = (burstIndex: number, spawn: WaveSpawnRef = paletteSpawn()): void => {
+const addSpawn = (burstIndex: number, spawn?: WaveSpawnDraft): void => {
   const current = stage.value;
   if (!current) {
     return;
   }
+  const burst = current.bursts[burstIndex];
   selectedBurst.value = burstIndex;
   updateStage({
-    bursts: insertWaveSpawn(current.bursts, burstIndex, current.bursts[burstIndex]?.units.length ?? 0, spawn),
+    bursts: insertWaveSpawn(current.bursts, burstIndex, burst?.units.length ?? 0, spawn ?? paletteSpawn(burst)),
   });
 };
 

@@ -2,74 +2,74 @@
   "stages": [
     {
       "id": 1,
-      "enemyPhaseSec": 20.8,
+      "enemyPhaseSec": 18.6,
       "allyPhaseSec": 6.8,
       "allyCount": 3,
       "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.8,
-          "restAfter": 3,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "slime-10"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-10"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-10"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-10"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-10"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-10"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-10"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-10"
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "slime"
             }
           ]
         },
         {
-          "interval": 0.8,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "slime-14"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-14"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "slime-14"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wisp-16"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "slime-14"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-14"
-            },
-            {
-              "enemyId": "slime-14"
-            },
-            {
-              "enemyId": "wisp-16"
-            },
-            {
-              "enemyId": "slime-14"
-            },
-            {
-              "enemyId": "goblin-14-ambush"
+              "enemyId": "goblin-ambush"
             }
           ]
         }
@@ -77,86 +77,83 @@
     },
     {
       "id": 2,
-      "enemyPhaseSec": 23.5,
+      "enemyPhaseSec": 20.9,
       "allyPhaseSec": 6.8,
       "allyCount": 3,
       "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.8,
-          "restAfter": 3,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "slime-12"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-12"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-12"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-12"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-12"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-12"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "slime-12"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-12"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "slime-12"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-12"
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "goblin"
             }
           ]
         },
         {
           "interval": 0.75,
-          "restAfter": 2,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "goblin-16"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wisp-16"
+              "enemyId": "goblin-ambush"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wisp-16"
+              "enemyId": "goblin-ambush"
             },
             {
-              "enemyId": "goblin-16"
-            },
-            {
-              "enemyId": "goblin-16"
-            },
-            {
-              "enemyId": "goblin-14-ambush"
-            },
-            {
-              "enemyId": "wisp-16"
+              "enemyId": "goblin"
             }
           ]
         }
@@ -164,92 +161,92 @@
     },
     {
       "id": 3,
-      "enemyPhaseSec": 24.5,
-      "allyPhaseSec": 6.7,
+      "enemyPhaseSec": 23.1,
+      "allyPhaseSec": 6.8,
       "allyCount": 3,
-      "allyInterval": 0.85,
+      "allyInterval": 0.9,
       "bursts": [
         {
           "interval": 0.75,
-          "restAfter": 3,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "goblin-16"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "goblin-16"
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "slime"
             }
           ]
         },
         {
           "interval": 0.75,
-          "restAfter": 2,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "goblin-18"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wisp-16"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wisp-16"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-20-ambush"
-            },
-            {
-              "enemyId": "wisp-16"
+              "enemyId": "wolf"
             }
           ]
         }
@@ -258,97 +255,100 @@
     {
       "id": 4,
       "enemyPhaseSec": 25.4,
-      "allyPhaseSec": 6.7,
+      "allyPhaseSec": 6.8,
       "allyCount": 3,
-      "allyInterval": 0.85,
+      "allyInterval": 0.9,
       "bursts": [
         {
           "interval": 0.75,
-          "restAfter": 3,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "goblin-18"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "goblin-18"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-18"
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
             }
           ]
         },
         {
-          "interval": 0.7,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wasp-22"
-            },
-            {
-              "enemyId": "wolf-20"
-            },
-            {
-              "enemyId": "wolf-20-ambush"
+              "enemyId": "goblin"
             }
           ]
         }
@@ -356,98 +356,110 @@
     },
     {
       "id": 5,
-      "enemyPhaseSec": 24.8,
-      "allyPhaseSec": 6.7,
+      "enemyPhaseSec": 27.6,
+      "allyPhaseSec": 6.8,
       "allyCount": 3,
-      "allyInterval": 0.85,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.7,
-          "restAfter": 3,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
             }
           ]
         },
         {
-          "interval": 0.7,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-22"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "beast-22"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-22"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-22"
-            },
-            {
-              "enemyId": "wolf-20-ambush"
+              "enemyId": "goblin"
             }
           ]
         }
@@ -455,128 +467,119 @@
     },
     {
       "id": 6,
-      "enemyPhaseSec": 31.4,
-      "allyPhaseSec": 6.6,
+      "enemyPhaseSec": 29.9,
+      "allyPhaseSec": 6.8,
       "allyCount": 3,
-      "allyInterval": 0.8,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.7,
-          "restAfter": 2.5,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "goblin-20"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "goblin-20"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-20"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "goblin-20"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "goblin-20"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "goblin-20"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-20"
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf"
             }
           ]
         },
         {
-          "interval": 0.7,
-          "restAfter": 2.5,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "wolf-24"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-24"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wolf-24"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-24"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wolf-24"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-24"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-24"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-24"
-            }
-          ]
-        },
-        {
-          "interval": 0.65,
-          "restAfter": 2,
-          "units": [
-            {
-              "enemyId": "beast-26"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "beast-26"
-            },
-            {
-              "enemyId": "beast-26"
-            },
-            {
-              "enemyId": "wasp-22"
-            },
-            {
-              "enemyId": "beast-26"
-            },
-            {
-              "enemyId": "beast-26"
-            },
-            {
-              "enemyId": "wolf-26-ambush"
-            },
-            {
-              "enemyId": "wasp-22"
+              "enemyId": "wolf"
             }
           ]
         }
@@ -584,110 +587,128 @@
     },
     {
       "id": 7,
-      "enemyPhaseSec": 26.4,
-      "allyPhaseSec": 6.6,
+      "enemyPhaseSec": 32.1,
+      "allyPhaseSec": 6.8,
       "allyCount": 3,
-      "allyInterval": 0.8,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.7,
-          "restAfter": 2.5,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "wolf-22"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-22"
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "slime"
             }
           ]
         },
         {
-          "interval": 0.65,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "wolf-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wolf-26-ambush"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wasp-22"
+              "enemyId": "beast"
             }
           ]
         }
@@ -695,110 +716,137 @@
     },
     {
       "id": 8,
-      "enemyPhaseSec": 25.7,
-      "allyPhaseSec": 6.6,
+      "enemyPhaseSec": 34.4,
+      "allyPhaseSec": 6.8,
       "allyCount": 3,
-      "allyInterval": 0.8,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.65,
-          "restAfter": 2.5,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "beast-24"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-24"
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
             }
           ]
         },
         {
-          "interval": 0.65,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "beast-28"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-28"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-28"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "cavalry-28"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-28"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wolf-26-ambush"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wasp"
+            },
+            {
+              "enemyId": "wolf-ambush"
             }
           ]
         }
@@ -806,116 +854,146 @@
     },
     {
       "id": 9,
-      "enemyPhaseSec": 26.3,
-      "allyPhaseSec": 7.4,
-      "allyCount": 4,
-      "allyInterval": 0.8,
+      "enemyPhaseSec": 36.6,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.65,
-          "restAfter": 2.5,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "wolf-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
             }
           ]
         },
         {
-          "interval": 0.6,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "beast-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "wolf-32-ambush"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wasp"
+            },
+            {
+              "enemyId": "wolf-ambush"
+            },
+            {
+              "enemyId": "wisp"
             }
           ]
         }
@@ -923,122 +1001,155 @@
     },
     {
       "id": 10,
-      "enemyPhaseSec": 26.7,
-      "allyPhaseSec": 7.3,
-      "allyCount": 4,
-      "allyInterval": 0.75,
+      "enemyPhaseSec": 38.9,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.6,
-          "restAfter": 2.5,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "beast-28"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-28"
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
             }
           ]
         },
         {
-          "interval": 0.6,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "wisp"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-32-ambush"
+              "enemyId": "wolf-ambush"
+            },
+            {
+              "enemyId": "wisp"
+            },
+            {
+              "enemyId": "wolf"
             }
           ]
         }
@@ -1046,146 +1157,164 @@
     },
     {
       "id": 11,
-      "enemyPhaseSec": 30.8,
-      "allyPhaseSec": 7.3,
-      "allyCount": 4,
-      "allyInterval": 0.75,
+      "enemyPhaseSec": 41.1,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.6,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "wolf-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-26"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-26"
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
             }
           ]
         },
         {
-          "interval": 0.6,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "beast-30"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-30"
-            }
-          ]
-        },
-        {
-          "interval": 0.55,
-          "restAfter": 2,
-          "units": [
-            {
-              "enemyId": "cavalry-34"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-34"
-            },
-            {
-              "enemyId": "drake-26"
-            },
-            {
-              "enemyId": "cavalry-34"
-            },
-            {
-              "enemyId": "wolf-32-ambush"
+              "enemyId": "beast"
             }
           ]
         }
@@ -1193,152 +1322,173 @@
     },
     {
       "id": 12,
-      "enemyPhaseSec": 31.2,
-      "allyPhaseSec": 7.3,
-      "allyCount": 4,
-      "allyInterval": 0.75,
+      "enemyPhaseSec": 43.4,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.6,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "beast-30"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-30"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-30"
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
             }
           ]
         },
         {
-          "interval": 0.55,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-34"
-            }
-          ]
-        },
-        {
-          "interval": 0.55,
-          "restAfter": 2,
-          "units": [
-            {
-              "enemyId": "wolf-32"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "drake-26"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-32"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "drake-26"
-            },
-            {
-              "enemyId": "wolf-32"
-            },
-            {
-              "enemyId": "wolf-32-ambush"
+              "enemyId": "wasp"
             }
           ]
         }
@@ -1346,122 +1496,182 @@
     },
     {
       "id": 13,
-      "enemyPhaseSec": 24.6,
-      "allyPhaseSec": 7.1,
-      "allyCount": 4,
-      "allyInterval": 0.7,
+      "enemyPhaseSec": 45.6,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.55,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
             }
           ]
         },
         {
-          "interval": 0.55,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wisp-34"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wasp-34"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "drake-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wisp-34"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-32-ambush"
+              "enemyId": "wasp"
+            },
+            {
+              "enemyId": "wolf-ambush"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "drake"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wasp"
+            },
+            {
+              "enemyId": "wolf-ambush"
             }
           ]
         }
@@ -1469,128 +1679,191 @@
     },
     {
       "id": 14,
-      "enemyPhaseSec": 24.9,
-      "allyPhaseSec": 7.1,
-      "allyCount": 4,
-      "allyInterval": 0.7,
+      "enemyPhaseSec": 47.9,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.55,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "beast-34"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-34"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-34"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-34"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-34"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-34"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-34"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-34"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-34"
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
             }
           ]
         },
         {
-          "interval": 0.5,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wasp-34"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "drake-34"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "wisp-34"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wasp-34"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-42-ambush"
+              "enemyId": "wasp"
+            },
+            {
+              "enemyId": "wolf-ambush"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "drake"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wasp"
+            },
+            {
+              "enemyId": "wolf-ambush"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "drake"
             }
           ]
         }
@@ -1598,158 +1871,200 @@
     },
     {
       "id": 15,
-      "enemyPhaseSec": 30.3,
-      "allyPhaseSec": 7.1,
-      "allyCount": 4,
-      "allyInterval": 0.7,
+      "enemyPhaseSec": 50.1,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.55,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "wolf-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "slime"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-32"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-32"
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "slime"
             }
           ]
         },
         {
-          "interval": 0.5,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
-            }
-          ]
-        },
-        {
-          "interval": 0.5,
-          "restAfter": 2,
-          "units": [
-            {
-              "enemyId": "beast-36"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "drake-34"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wisp-34"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "wolf-32-ambush"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "wasp-34"
+              "enemyId": "beast"
             }
           ]
         }
@@ -1757,164 +2072,209 @@
     },
     {
       "id": 16,
-      "enemyPhaseSec": 30.5,
-      "allyPhaseSec": 7.1,
-      "allyCount": 4,
-      "allyInterval": 0.7,
+      "enemyPhaseSec": 52.4,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.5,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-36"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-36"
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
             }
           ]
         },
         {
-          "interval": 0.5,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-40"
-            }
-          ]
-        },
-        {
-          "interval": 0.5,
-          "restAfter": 2,
-          "units": [
-            {
-              "enemyId": "cavalry-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-38"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "drake-34"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "wolf-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wisp-34"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "wolf-42-ambush"
+              "enemyId": "drake"
+            },
+            {
+              "enemyId": "beast"
             }
           ]
         }
@@ -1922,134 +2282,218 @@
     },
     {
       "id": 17,
-      "enemyPhaseSec": 24.6,
-      "allyPhaseSec": 7,
-      "allyCount": 4,
-      "allyInterval": 0.65,
+      "enemyPhaseSec": 54.6,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.5,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
             }
           ]
         },
         {
-          "interval": 0.48,
-          "restAfter": 2,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wisp-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "wasp-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "drake-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wisp-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-42-ambush"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wasp-42"
+              "enemyId": "wasp"
+            },
+            {
+              "enemyId": "cavalry"
+            },
+            {
+              "enemyId": "drake"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf-ambush"
+            },
+            {
+              "enemyId": "wasp"
+            },
+            {
+              "enemyId": "cavalry"
+            },
+            {
+              "enemyId": "drake"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "wolf-ambush"
+            },
+            {
+              "enemyId": "wasp"
             }
           ]
         }
@@ -2057,170 +2501,227 @@
     },
     {
       "id": 18,
-      "enemyPhaseSec": 29.8,
-      "allyPhaseSec": 7,
-      "allyCount": 4,
-      "allyInterval": 0.65,
+      "enemyPhaseSec": 56.9,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.48,
-          "restAfter": 1.8,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-38"
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
             }
           ]
         },
         {
-          "interval": 0.48,
-          "restAfter": 1.8,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-42"
-            }
-          ]
-        },
-        {
-          "interval": 0.45,
-          "restAfter": 2,
-          "units": [
-            {
-              "enemyId": "cavalry-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "drake-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wisp-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wasp-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-42-ambush"
+              "enemyId": "cavalry"
             }
           ]
         }
@@ -2228,176 +2729,236 @@
     },
     {
       "id": 19,
-      "enemyPhaseSec": 29.8,
-      "allyPhaseSec": 7,
-      "allyCount": 4,
-      "allyInterval": 0.65,
+      "enemyPhaseSec": 59.1,
+      "allyPhaseSec": 6.8,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.45,
-          "restAfter": 1.8,
+          "interval": 0.75,
+          "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-40"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-40"
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
             }
           ]
         },
         {
-          "interval": 0.45,
-          "restAfter": 1.8,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-44"
-            }
-          ]
-        },
-        {
-          "interval": 0.45,
-          "restAfter": 2,
-          "units": [
-            {
-              "enemyId": "wolf-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "wolf-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "drake-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wolf-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-42"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "wisp-42"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "wolf-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "wolf-42-ambush"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wasp-42"
+              "enemyId": "cavalry"
+            },
+            {
+              "enemyId": "drake"
             }
           ]
         }
@@ -2405,194 +2966,245 @@
     },
     {
       "id": 20,
-      "enemyPhaseSec": 31,
+      "enemyPhaseSec": 61.4,
       "allyPhaseSec": 6.8,
-      "allyCount": 4,
-      "allyInterval": 0.6,
+      "allyCount": 3,
+      "allyInterval": 0.9,
       "bursts": [
         {
-          "interval": 0.45,
+          "interval": 0.75,
           "restAfter": 1.6,
           "units": [
             {
-              "enemyId": "beast-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "wolf"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-42"
+              "enemyId": "goblin"
             },
             {
-              "enemyId": "cavalry-42"
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "beast"
+            },
+            {
+              "enemyId": "goblin"
+            },
+            {
+              "enemyId": "wolf"
+            },
+            {
+              "enemyId": "wolf"
             }
           ]
         },
         {
-          "interval": 0.42,
-          "restAfter": 1.6,
+          "interval": 0.75,
+          "restAfter": 0,
           "units": [
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-46"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "cavalry-46"
-            }
-          ]
-        },
-        {
-          "interval": 0.42,
-          "restAfter": 2,
-          "units": [
-            {
-              "enemyId": "cavalry-44"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "wolf-44"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "beast-44"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "drake-42"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "wolf-44"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "beast-44"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "wisp-42"
+              "enemyId": "wolf-ambush"
             },
             {
-              "enemyId": "beast-44"
+              "enemyId": "wasp"
             },
             {
-              "enemyId": "cavalry-44"
+              "enemyId": "cavalry"
             },
             {
-              "enemyId": "wolf-44"
+              "enemyId": "drake"
             },
             {
-              "enemyId": "wasp-42"
+              "enemyId": "beast"
             },
             {
-              "enemyId": "cavalry-44"
-            },
-            {
-              "enemyId": "wolf-42-ambush"
+              "enemyId": "wolf-ambush"
             }
           ]
         }

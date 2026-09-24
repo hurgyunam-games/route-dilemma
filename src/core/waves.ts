@@ -27,6 +27,12 @@ export type WaveSpawnRef = {
   readonly delay: number;
 };
 
+/** Editor input. Omitted delay uses the burst interval, or 0 for the first unit. */
+export type WaveSpawnDraft = {
+  readonly enemyId: string;
+  readonly delay?: number;
+};
+
 export type WaveSpawn = WaveSpawnRef & {
   readonly type: EnemyTypeId;
   readonly hp: number;
@@ -138,7 +144,7 @@ export function stageWaveEnemyIds(stageId: number): readonly string[] {
 
 export function defaultWaveSpawn(delay = 0): WaveSpawnRef {
   const first = getEnemyCatalog()[0];
-  return { enemyId: first?.id ?? "slime-10", delay };
+  return { enemyId: first?.id ?? "slime", delay };
 }
 
 export function defaultWaveBurst(): WaveBurstRow {
@@ -211,7 +217,7 @@ export function insertWaveSpawn(
   bursts: readonly WaveBurstRow[],
   burstIndex: number,
   index: number,
-  spawn: { readonly enemyId: string; readonly delay?: number },
+  spawn: WaveSpawnDraft,
 ): readonly WaveBurstRow[] {
   const burst = bursts[burstIndex];
   if (!burst || burst.units.length >= MAX_WAVE_SPAWNS_PER_BURST) {
