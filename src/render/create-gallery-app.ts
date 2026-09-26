@@ -21,6 +21,7 @@ import {
 import { loadAllyFrames, type AllyAtlas } from "@/render/ally-sprites";
 import { arrowUniformScale, loadArrowFrames } from "@/render/arrow-sprites";
 import { loadEnemyFrames, type EnemyAtlas } from "@/render/enemy-sprites";
+import { createLevelBadgeText, drawLevelMarks } from "@/render/draw-grid";
 import { loadFloorTexture } from "@/render/floor-tile";
 import {
   galleryItemsFor,
@@ -72,9 +73,33 @@ const OCCUPANT_IDLE_SPEED = 0.1;
 const ENEMY_ANIMATION_SPEED = 0.14;
 const START_ANIMATION_SPEED = 0.1;
 const BASE_ANIMATION_SPEED = 0.14;
-const GALLERY_COLS = 8;
 const SLOT_TILE_ROWS = 2;
 const VIEW_PADDING = 20;
+
+/** 세로로 쌓이면 칸이 작아지므로, 칸이 가장 커지는 열 수를 고른다. 같으면 더 넓은 쪽. */
+function galleryColumnCount(
+  itemCount: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): number {
+  const count = Math.max(1, itemCount);
+  const innerWidth = Math.max(0, viewportWidth - VIEW_PADDING * 2);
+  const innerHeight = Math.max(0, viewportHeight - VIEW_PADDING * 2);
+  if (innerWidth <= 0 || innerHeight <= 0) {
+    return Math.min(count, 12);
+  }
+  let bestCols = 1;
+  let bestTile = -1;
+  for (let cols = 1; cols <= count; cols += 1) {
+    const rows = Math.ceil(count / cols) * SLOT_TILE_ROWS;
+    const tile = Math.min(innerWidth / cols, innerHeight / rows);
+    if (tile > bestTile + 1e-4 || (Math.abs(tile - bestTile) <= 1e-4 && cols > bestCols)) {
+      bestTile = tile;
+      bestCols = cols;
+    }
+  }
+  return bestCols;
+}
 
 export type GalleryViewState = {
   readonly selectedId: string | null;
@@ -490,9 +515,13 @@ export async function createGalleryApp(
   const graphics = new Graphics();
   const spriteLayer = new Container();
   spriteLayer.sortableChildren = true;
+  const markGraphics = new Graphics();
+  markGraphics.eventMode = "none";
+  const badgeLayer = new Container();
+  badgeLayer.eventMode = "none";
   const labelLayer = new Container();
   labelLayer.eventMode = "none";
-  container.addChild(floor, graphics, spriteLayer, labelLayer);
+  container.addChild(floor, graphics, spriteLayer, markGraphics, badgeLayer, labelLayer);
   app.stage.addChild(container);
   app.stage.eventMode = "static";
   app.stage.cursor = "pointer";
@@ -502,23 +531,36 @@ export async function createGalleryApp(
   let lastLayout: GridLayout | null = null;
   let lastCols = 0;
   let lastRows = 0;
+  let columnCount = 12;
+  const badgeLabels = new Map<string, Text>();
+
+  const currentColumnCount = (): number =>
+    galleryColumnCount(
+      galleryItemsFor(state.group).length,
+      app.screen.width,
+      app.screen.height,
+    );
 
   const rebuildSlots = (): void => {
+    columnCount = currentColumnCount();
     spriteLayer.removeChildren().forEach((child) => child.destroy());
     labelLayer.removeChildren().forEach((child) => child.destroy());
     const items = galleryItemsFor(state.group);
     slots = items.map((item, index) => {
-      const col = index % GALLERY_COLS;
-      const slotRow = Math.floor(index / GALLERY_COLS);
+      const col = index % columnCount;
+      const slotRow = Math.floor(index / columnCount);
       const groundY = slotRow * SLOT_TILE_ROWS + 1;
       return createSlot(item, col, groundY, assets, spriteLayer, labelLayer);
     });
   };
 
   const sync = (): void => {
+    if (currentColumnCount() !== columnCount) {
+      rebuildSlots();
+    }
     const items = galleryItemsFor(state.group);
-    const slotRows = Math.max(1, Math.ceil(items.length / GALLERY_COLS));
-    const cols = GALLERY_COLS;
+    const cols = columnCount;
+    const slotRows = Math.max(1, Math.ceil(items.length / cols));
     const rows = slotRows * SLOT_TILE_ROWS;
     lastCols = cols;
     lastRows = rows;
@@ -533,6 +575,10 @@ export async function createGalleryApp(
     if (layout.tileSize <= 0) {
       floor.visible = false;
       graphics.clear();
+      markGraphics.clear();
+      for (const label of badgeLabels.values()) {
+        label.visible = false;
+      }
       onLayout(0);
       return;
     }
@@ -545,6 +591,8 @@ export async function createGalleryApp(
       layout.tileSize / floorTexture.height,
     );
     drawBoard(graphics, layout, cols, rows, slots, state.selectedId);
+    markGraphics.clear();
+    const liveBadges = new Set<string>();
     for (const slot of slots) {
       layoutSlot(slot, layout, assets);
       if (slot.tower) {
@@ -564,6 +612,31 @@ export async function createGalleryApp(
       }
       if (slot.sprite) {
         slot.sprite.zIndex = slot.groundY;
+      }
+      if (slot.item.group === "tower") {
+        liveBadges.add(slot.item.id);
+        let badge = badgeLabels.get(slot.item.id);
+        if (!badge) {
+          badge = createLevelBadgeText();
+          badgeLayer.addChild(badge);
+          badgeLabels.set(slot.item.id, badge);
+        }
+        drawLevelMarks(
+          markGraphics,
+          badge,
+          layout,
+          slot.col,
+          slot.groundY,
+          slot.item.typeId,
+          slot.item.level,
+          1,
+        );
+      }
+    }
+    for (const [id, label] of badgeLabels) {
+      if (!liveBadges.has(id)) {
+        label.destroy();
+        badgeLabels.delete(id);
       }
     }
     onLayout(layout.tileSize);

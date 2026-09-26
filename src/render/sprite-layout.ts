@@ -1,5 +1,6 @@
 import {
   ENEMY_TYPE_IDS,
+  TOWER_TYPE_IDS,
   type EnemyTypeId,
   type GridLayout,
   type Obstacle,
@@ -49,6 +50,8 @@ export type SpriteLayout = {
   allyWidthInTile: number;
   allyAnchorY: number;
   allyFootInTile: number;
+  /** 레벨 배지 중심이 칸 위쪽 경계에서 몇 타일 위에 있는지. 클수록 위. 레벨순. */
+  levelMarkAboveTile: Record<TowerTypeId, number[]>;
 };
 
 /** 배틀·갤러리가 같이 읽는 배치 값. 갤러리에서 고친 이름과 이 필드명이 같다. */
@@ -122,7 +125,15 @@ export const spriteLayout: SpriteLayout = {
   },
   allyWidthInTile: 1.35,
   allyAnchorY: 86 / 96,
-  allyFootInTile:1.11,
+  allyFootInTile: 1.11,
+  levelMarkAboveTile: {
+    archer: [0.45, 0.72, 0.45, 0.45, 0.72],
+    melee: [0.45, 0.72, 0.45, 0.45, 0.72],
+    wall: [0.45, 0.45, 0.45, 0.45, 0.72],
+    cannon: [0.72, 0.72, 0.72, 0.72, 0.72],
+    mage: [0.72, 0.72, 0.72, 0.72, 0.72],
+    research: [0.72, 0.72, 0.72, 0.72, 0.72],
+  },
 };
 
 const SPRITE_LAYOUT_DEFAULTS: SpriteLayout = cloneSpriteLayout(spriteLayout);
@@ -140,6 +151,9 @@ function cloneSpriteLayout(src: SpriteLayout): SpriteLayout {
     enemyAnchorY: { ...src.enemyAnchorY },
     enemyFootInTile: { ...src.enemyFootInTile },
     enemyXInTile: { ...src.enemyXInTile },
+    levelMarkAboveTile: Object.fromEntries(
+      TOWER_TYPE_IDS.map((id) => [id, [...src.levelMarkAboveTile[id]]]),
+    ) as Record<TowerTypeId, number[]>,
   };
 }
 
@@ -182,6 +196,13 @@ function copySpriteLayout(from: SpriteLayout, to: SpriteLayout): void {
   to.allyWidthInTile = from.allyWidthInTile;
   to.allyAnchorY = from.allyAnchorY;
   to.allyFootInTile = from.allyFootInTile;
+  for (const id of TOWER_TYPE_IDS) {
+    to.levelMarkAboveTile[id].splice(
+      0,
+      to.levelMarkAboveTile[id].length,
+      ...from.levelMarkAboveTile[id],
+    );
+  }
 }
 
 export function resetSpriteLayout(): void {
@@ -244,6 +265,9 @@ ${enemyBlock(s.enemyXInTile)}
   allyWidthInTile: ${fmt(s.allyWidthInTile)},
   allyAnchorY: ${fmt(s.allyAnchorY)},
   allyFootInTile: ${fmt(s.allyFootInTile)},
+  levelMarkAboveTile: {
+${TOWER_TYPE_IDS.map((id) => `    ${id}: [${s.levelMarkAboveTile[id].map(fmt).join(", ")}],`).join("\n")}
+  },
 };`;
 }
 
@@ -273,6 +297,13 @@ export function mageRoofInSprite(level: number): number {
 export function mageWallTopInSprite(level: number): number {
   const index = Math.min(spriteLayout.mageWallTopInSprite.length, Math.max(1, level)) - 1;
   return spriteLayout.mageWallTopInSprite[index] ?? 0;
+}
+
+/** 레벨 배지 중심이 그 칸의 위쪽 경계에서 위로 몇 타일인지. */
+export function levelMarkAboveTile(typeId: TowerTypeId, level: number): number {
+  const rows = spriteLayout.levelMarkAboveTile[typeId];
+  const index = Math.min(rows.length, Math.max(1, Math.round(level))) - 1;
+  return rows[index] ?? 0;
 }
 
 export function usesArcherKeep(typeId: TowerTypeId): boolean {

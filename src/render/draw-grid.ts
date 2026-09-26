@@ -29,6 +29,7 @@ import {
   type TileCoord,
   type Tower,
   type TowerShot,
+  type TowerTypeId,
   type Unit,
   type UnitKind,
 } from "@/core";
@@ -55,6 +56,7 @@ import {
   layoutTowerRoofSprite,
   layoutTowerSprite,
   layoutTowerWallSprite,
+  levelMarkAboveTile,
   spriteLayout,
   towerRoofFromTop,
   towerWallFromTop,
@@ -78,6 +80,8 @@ const START_ANIMATION_SPEED = 0.1;
 const BASE_ANIMATION_SPEED = 0.14;
 /** HP bar sits this fraction of a tile above the floor (on the dirt, under the occupant). */
 const TOWER_HP_Y_IN_TILE = 0.08;
+/** How long the newest level star stays enlarged after an upgrade finishes. */
+const LEVEL_MARK_POP_MS = 460;
 const ENEMY_ANIMATION_SPEED = 0.14;
 const ENEMY_ATTACK_ANIMATION_SPEED = 0.18;
 const ENEMY_DEATH_ANIMATION_SPEED = 0.16;
@@ -266,30 +270,59 @@ function drawTowerHp(
   drawHpBar(graphics, left, top, width, height, hp, maxHp);
 }
 
-function drawLevelPips(
+function levelMarkPopScale(now: number, popUntil: number): number {
+  const t = 1 - (popUntil - now) / LEVEL_MARK_POP_MS;
+  if (t <= 0 || t >= 1) {
+    return 1;
+  }
+  const peak = 1.8;
+  if (t < 0.3) {
+    return 1 + (peak - 1) * (t / 0.3);
+  }
+  const settle = (t - 0.3) / 0.7;
+  return peak + (1 - peak) * (1 - (1 - settle) * (1 - settle));
+}
+
+export function createLevelBadgeText(): Text {
+  const label = new Text({
+    text: "1",
+    style: {
+      fontFamily: "Segoe UI, sans-serif",
+      fontWeight: "800",
+      fill: 0x2a1c10,
+      align: "center",
+    },
+  });
+  label.anchor.set(0.5);
+  label.eventMode = "none";
+  return label;
+}
+
+export function drawLevelMarks(
   graphics: Graphics,
+  label: Text,
   layout: GridLayout,
   x: number,
   y: number,
+  typeId: TowerTypeId,
   level: number,
+  popScale: number,
 ): void {
-  const size = Math.max(4, Math.round(layout.tileSize * 0.1));
-  const gap = Math.max(2, Math.round(layout.tileSize * 0.04));
-  const total = level * size + (level - 1) * gap;
-  const startX =
-    layout.originX + (x + 0.5) * layout.tileSize - total / 2;
-  const hpHeight = Math.max(4, Math.round(layout.tileSize * 0.1));
-  const top =
-    layout.originY +
-    (y + 1 - TOWER_HP_Y_IN_TILE) * layout.tileSize -
-    hpHeight -
-    size -
-    Math.max(2, Math.round(layout.tileSize * 0.03));
-  for (let i = 0; i < level; i += 1) {
-    graphics
-      .rect(startX + i * (size + gap), top, size, size)
-      .fill({ color: 0xe8b060, alpha: 0.95 });
-  }
+  const tile = layout.tileSize;
+  const baseRadius = Math.max(8, tile * 0.2);
+  const radius = baseRadius * popScale;
+  const cx = layout.originX + (x + 0.5) * tile;
+  const baseCy =
+    layout.originY + y * layout.tileSize - levelMarkAboveTile(typeId, level) * tile;
+  const cy = baseCy - (popScale - 1) * baseRadius;
+  graphics.circle(cx, cy, radius * 1.12).fill({ color: 0x2a1c10, alpha: 0.94 });
+  graphics.circle(cx, cy, radius).fill({ color: 0xf4d35e });
+  const digit = Math.min(5, Math.max(1, Math.round(level)));
+  label.text = String(digit);
+  label.style.fontSize = Math.max(11, Math.round(baseRadius * 1.35));
+  label.scale.set(popScale);
+  label.position.set(cx, cy + baseRadius * 0.02);
+  label.visible = true;
 }
 
 function drawConstruction(
@@ -801,6 +834,8 @@ export function createGridView(
   const towers = new Map<string, TowerSprite>();
   const obstacles = new Map<string, Sprite>();
   const buildLabels = new Map<string, Text>();
+  const badgeLabels = new Map<string, Text>();
+  const levelMarks = new Map<string, { completeLevel: number; popUntil: number }>();
   const unitSprites = new Map<number, UnitSprite>();
   const arrowSprites: Sprite[] = [];
   const cannonSprites: Sprite[] = [];
@@ -852,6 +887,9 @@ export function createGridView(
     arrowLayer,
     hpGraphics,
   );
+  const badgeLayer = new Container();
+  badgeLayer.eventMode = "none";
+  container.addChild(badgeLayer);
 
   const hideTowers = (): void => {
     for (const record of towers.values()) {
@@ -864,6 +902,9 @@ export function createGridView(
       sprite.visible = false;
     }
     for (const label of buildLabels.values()) {
+      label.visible = false;
+    }
+    for (const label of badgeLabels.values()) {
       label.visible = false;
     }
     for (const sprite of arrowSprites) {
@@ -979,6 +1020,7 @@ export function createGridView(
     const liveTowers = new Set<string>();
     const liveObstacles = new Set<string>();
     const liveBuilding = new Set<string>();
+    const liveBadges = new Set<string>();
     forEachTile(grid, (x, y) => {
       const kind = tileKind(grid, x, y);
       const selected = selectedTile?.x === x && selectedTile?.y === y;
@@ -1097,7 +1139,35 @@ export function createGridView(
         true,
       );
       if (isTowerComplete(tower)) {
-        drawLevelPips(hpGraphics, layout, x, y, tower.level);
+        let mark = levelMarks.get(key);
+        if (!mark) {
+          mark = { completeLevel: tower.level, popUntil: 0 };
+          levelMarks.set(key, mark);
+        } else if (tower.level > mark.completeLevel) {
+          mark.popUntil = now + LEVEL_MARK_POP_MS;
+          mark.completeLevel = tower.level;
+        } else if (tower.level < mark.completeLevel) {
+          mark.completeLevel = tower.level;
+          mark.popUntil = 0;
+        }
+        const popping = now < mark.popUntil;
+        liveBadges.add(key);
+        let badge = badgeLabels.get(key);
+        if (!badge) {
+          badge = createLevelBadgeText();
+          badgeLayer.addChild(badge);
+          badgeLabels.set(key, badge);
+        }
+        drawLevelMarks(
+          hpGraphics,
+          badge,
+          layout,
+          x,
+          y,
+          tower.typeId,
+          tower.level,
+          popping ? levelMarkPopScale(now, mark.popUntil) : 1,
+        );
       } else {
         liveBuilding.add(key);
         const progress = 1 - tower.buildTimeLeft / towerWorkDuration(tower);
@@ -1229,6 +1299,7 @@ export function createGridView(
         record.roof.destroy();
         record.wall.destroy();
         towers.delete(key);
+        levelMarks.delete(key);
       }
     }
     for (const [key, sprite] of obstacles) {
@@ -1241,6 +1312,12 @@ export function createGridView(
       if (!liveBuilding.has(key)) {
         label.destroy();
         buildLabels.delete(key);
+      }
+    }
+    for (const [key, label] of badgeLabels) {
+      if (!liveBadges.has(key)) {
+        label.destroy();
+        badgeLabels.delete(key);
       }
     }
     for (const [id, record] of unitSprites) {

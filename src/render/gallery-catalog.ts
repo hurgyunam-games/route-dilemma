@@ -122,9 +122,26 @@ function knob(
   };
 }
 
+function levelMarkKnob(typeId: TowerTypeId, levelIndex: number): LayoutKnob {
+  return knob({
+    id: "levelMark",
+    source: `levelMarkAboveTile.${typeId}[${levelIndex}]`,
+    label: "배지 높이",
+    hint: "칸 위쪽 경계 기준. 클수록 위로. 이 종류·이 레벨만.",
+    axis: "y",
+    screenSign: 1,
+    get: () => spriteLayout.levelMarkAboveTile[typeId][levelIndex] ?? 0,
+    set: (value) => {
+      const rows = spriteLayout.levelMarkAboveTile[typeId];
+      rows[levelIndex] = value;
+    },
+  });
+}
+
 export function knobsForItem(item: GalleryItem): LayoutKnob[] {
   if (item.group === "tower") {
     const levelIndex = item.level - 1;
+    const star = levelMarkKnob(item.typeId, levelIndex);
     const shared: LayoutKnob[] = [
       knob({
         id: "towerFoot",
@@ -153,6 +170,7 @@ export function knobsForItem(item: GalleryItem): LayoutKnob[] {
     ];
     if (item.typeId === "archer" || item.typeId === "melee") {
       return [
+        star,
         knob({
           id: "archerDeck",
           source: `archerDeckInSprite[${levelIndex}]`,
@@ -206,6 +224,7 @@ export function knobsForItem(item: GalleryItem): LayoutKnob[] {
     }
     if (item.typeId === "cannon") {
       return [
+        star,
         knob({
           id: "cannonDeck",
           source: "cannonDeckInSprite",
@@ -235,6 +254,7 @@ export function knobsForItem(item: GalleryItem): LayoutKnob[] {
     }
     if (item.typeId === "mage") {
       return [
+        star,
         knob({
           id: "mageDeck",
           source: "mageDeckInSprite",
@@ -286,7 +306,7 @@ export function knobsForItem(item: GalleryItem): LayoutKnob[] {
         ...shared,
       ];
     }
-    return shared;
+    return [star, ...shared];
   }
   if (item.group === "enemy") {
     const type = item.enemyType;
