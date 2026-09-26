@@ -47,6 +47,8 @@ export type EnemyDef = {
   /** Degrees 0–359. Same sprite, different tint. */
   readonly hue: number;
   readonly behavior: EnemyBehaviorId;
+  /** Short fantasy note shown in the bestiary. */
+  readonly story: string;
 };
 
 export function normalizeHue(value: number): number {
@@ -132,6 +134,7 @@ export function defaultEnemy(id: string, from?: EnemyDef): EnemyDef {
     hp: 10,
     hue: 0,
     behavior: DEFAULT_ENEMY_BEHAVIOR,
+    story: "",
   };
 }
 
@@ -188,7 +191,8 @@ export function serializeEnemyTable(table: EnemyTable = liveTable): string {
     .map((enemy) => {
       const behavior =
         enemy.behavior === DEFAULT_ENEMY_BEHAVIOR ? "" : `, "behavior": "${enemy.behavior}"`;
-      return `    { "id": "${enemy.id}", "name": ${JSON.stringify(enemy.name)}, "sprite": "${enemy.sprite}", "hp": ${enemy.hp}, "hue": ${enemy.hue}${behavior} }`;
+      const story = enemy.story ? `, "story": ${JSON.stringify(enemy.story)}` : "";
+      return `    { "id": "${enemy.id}", "name": ${JSON.stringify(enemy.name)}, "sprite": "${enemy.sprite}", "hp": ${enemy.hp}, "hue": ${enemy.hue}${behavior}${story} }`;
     })
     .join(",\n");
   return `{\n  "enemies": [\n${rows}\n  ]\n}\n`;
@@ -212,6 +216,7 @@ function parseEnemyDef(input: unknown, index: number): EnemyDef {
     hp: asPositiveInt(row.hp, `Enemy ${id} hp`),
     hue: asHue(row.hue, id),
     behavior: parseBehavior(row.behavior, id),
+    story: parseStory(row.story, id),
   };
 }
 
@@ -247,6 +252,20 @@ function asHue(value: unknown, id: string): number {
     throw new Error(`Enemy ${id} hue must be a number`);
   }
   return normalizeHue(value);
+}
+
+function parseStory(value: unknown, id: string): string {
+  if (value === undefined) {
+    return "";
+  }
+  if (typeof value !== "string") {
+    throw new Error(`Enemy ${id} story must be a string`);
+  }
+  const story = value.trim();
+  if (story.length > 120) {
+    throw new Error(`Enemy ${id} story is too long`);
+  }
+  return story;
 }
 
 function parseBehavior(value: unknown, id: string): EnemyBehaviorId {

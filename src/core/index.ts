@@ -76,7 +76,6 @@ export {
 export type { CampaignMapStatus, CampaignProgress } from "./campaign";
 export {
   BESTIARY_LOCKED_NAME,
-  ENEMY_ROLE_LABELS,
   behaviorWarning,
   behaviorWarningsForEnemies,
   behaviorWarningsForUnits,

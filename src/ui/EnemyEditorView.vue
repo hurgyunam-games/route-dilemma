@@ -104,6 +104,14 @@ const readNumber = (event: Event): number | null => {
   return Number.isFinite(value) ? value : null;
 };
 
+const setStory = (event: Event): void => {
+  const target = event.target;
+  if (!(target instanceof HTMLTextAreaElement)) {
+    return;
+  }
+  updateEnemy({ story: target.value.trim() });
+};
+
 const setName = (event: Event): void => {
   const target = event.target;
   if (!(target instanceof HTMLInputElement)) {
@@ -486,6 +494,14 @@ const openWaves = (): void => {
               @change="setHp"
             >
           </label>
+          <label class="story-field">
+            설명
+            <textarea
+              rows="3"
+              :value="enemy.story"
+              @change="setStory"
+            />
+          </label>
           <label class="hue-field">
             색조
             <span class="hue-row">
@@ -744,7 +760,8 @@ button:disabled {
 }
 
 .fields input,
-.fields select {
+.fields select,
+.fields textarea {
   box-sizing: border-box;
   width: 100%;
   padding: 6px 8px;
@@ -753,6 +770,17 @@ button:disabled {
   background: #1a1412;
   color: #f7efe6;
   font: 700 14px/1.2 "Segoe UI", sans-serif;
+}
+
+.story-field {
+  grid-column: 1 / -1;
+}
+
+.story-field textarea {
+  min-height: 4.5em;
+  resize: vertical;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .hue-field {

@@ -46,7 +46,7 @@ describe("stage wave table", () => {
   });
 
   it("lists unique catalog ids for a stage assault in spawn order", () => {
-    expect(stageWaveEnemyIds(1)).toEqual(["slime", "goblin", "wisp", "goblin-ambush"]);
+    expect(stageWaveEnemyIds(1)).toEqual(["slime", "goblin", "wisp"]);
   });
 
   it("defines 20 fixed stages in order", () => {
@@ -85,15 +85,16 @@ describe("stage wave table", () => {
       "wisp",
     ]);
     expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "breaker")).toBe(true);
-    expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "ambush")).toBe(true);
+    expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "ambush")).toBe(false);
     expect(first.bursts[1]?.units.some((spawn) => spawn.behavior === "normal")).toBe(true);
     for (let id = 1; id <= STAGE_COUNT; id += 1) {
+      const mapId = ((id - 1) % WORLD_MAP_COUNT) + 1;
       expect(
         getStageWave(id).bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "breaker")),
       ).toBe(true);
       expect(
         getStageWave(id).bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "ambush")),
-      ).toBe(true);
+      ).toBe(mapId !== 1);
     }
   });
 
@@ -344,7 +345,7 @@ describe("wave table edit", () => {
     setEnemyTable({
       enemies: [
         ...cloneEnemyTable({ enemies: [...getEnemyCatalog()] }).enemies,
-        { id: "cavalry-99", name: "기병 99", sprite: "cavalry", hp: 99, hue: 0, behavior: "normal" },
+        { id: "cavalry-99", name: "기병 99", sprite: "cavalry", hp: 99, hue: 0, behavior: "normal", story: "" },
       ],
     });
     setWaveTable({

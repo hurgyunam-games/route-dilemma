@@ -1,4 +1,5 @@
 import { describe, expect, it, afterEach } from "vitest";
+import { SPECIAL_BEHAVIOR_IDS } from "./bestiary";
 import { createGrid, getObstacle, getTower, hasObstacle, hasTower, placeTower, toggleTower, TOWER_MAX_HP, obstacleMaxHp, upgradeTower, damageTower } from "./grid";
 import { createMapGrid } from "./maps";
 import { findPath } from "./path";
@@ -12,6 +13,7 @@ import {
   START_GOLD_PER_STAGE,
   startingGold,
   BUILD_DURATION_SEC,
+  BEHAVIOR_INTRO_SEC,
   confirmWavePreview,
   createSim as createLiveSim,
   skipWavePreview,
@@ -58,7 +60,10 @@ import {
 } from "./sim";
 
 const createSim = (...args: Parameters<typeof createLiveSim>): SimState =>
-  skipWavePreview(createLiveSim(...args));
+  skipWavePreview({
+    ...createLiveSim(...args),
+    introducedBehaviors: [...SPECIAL_BEHAVIOR_IDS],
+  });
 
 const tick = (state: SimState, dt: number): SimState => {
   if (state.outcome !== "playing") {
@@ -2016,7 +2021,7 @@ function tileInTowerRange(grid: ReturnType<typeof createGrid>, x: number, y: num
 
 describe("ambush enemies", () => {
   it("mixes ambush units into the stage wave with normal and breaker enemies", () => {
-    const stage = getStageWave(1);
+    const stage = getStageWave(2);
     expect(stage.bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "ambush"))).toBe(
       true,
     );
@@ -2079,6 +2084,92 @@ describe("ambush enemies", () => {
     } else {
       expect(sim.units.some((row) => row.behavior === "ambush")).toBe(false);
     }
+  });
+});
+
+function freshBattle(stageId = 1): SimState {
+  return skipWavePreview(createLiveSim(createGrid(12, 8), stageId));
+}
+
+function advanceUntil(
+  sim: SimState,
+  ready: (state: SimState) => boolean,
+  seconds = 40,
+): SimState {
+  let current = sim;
+  let left = seconds;
+  while (!ready(current) && left > 0) {
+    current = liveTick(current, 0.05);
+    left -= 0.05;
+  }
+  return current;
+}
+
+describe("first special behavior intro", () => {
+  it("holds spawns before the first breaker so the warning has an empty gap", () => {
+    const sim = advanceUntil(freshBattle(1), (state) => state.behaviorIntroTimeLeft > 0);
+    expect(sim.behaviorIntroTimeLeft).toBe(BEHAVIOR_INTRO_SEC);
+    expect(sim.introducedBehaviors).toEqual(["breaker"]);
+    expect(sim.units.some((unit) => unit.behavior === "breaker")).toBe(false);
+
+    const held = liveTick(sim, 0.5);
+    expect(held.behaviorIntroTimeLeft).toBeCloseTo(BEHAVIOR_INTRO_SEC - 0.5, 5);
+    expect(held.burstIndex).toBe(sim.burstIndex);
+    expect(held.spawnedInBurst).toBe(sim.spawnedInBurst);
+    expect(held.phaseTimeLeft).toBeCloseTo(sim.phaseTimeLeft, 5);
+    expect(held.units.some((unit) => unit.behavior === "breaker")).toBe(false);
+
+    const released = liveTick(sim, BEHAVIOR_INTRO_SEC);
+    expect(released.behaviorIntroTimeLeft).toBe(0);
+    expect(released.units.some((unit) => unit.behavior === "breaker")).toBe(true);
+  });
+
+  it("holds again before the first ambush and does not repeat either gap", () => {
+    let sim = advanceUntil(freshBattle(2), (state) => state.behaviorIntroTimeLeft > 0);
+    expect(sim.introducedBehaviors).toEqual(["breaker"]);
+    sim = liveTick(sim, BEHAVIOR_INTRO_SEC);
+    expect(sim.units.some((unit) => unit.behavior === "breaker")).toBe(true);
+
+    sim = advanceUntil(sim, (state) => state.behaviorIntroTimeLeft > 0);
+    expect(sim.introducedBehaviors).toEqual(["breaker", "ambush"]);
+    expect(sim.units.some((unit) => unit.behavior === "ambush")).toBe(false);
+    const spawned = sim.spawnedInBurst;
+    const burst = sim.burstIndex;
+    sim = liveTick(sim, 0.4);
+    expect(sim.spawnedInBurst).toBe(spawned);
+    expect(sim.burstIndex).toBe(burst);
+
+    sim = liveTick(sim, BEHAVIOR_INTRO_SEC);
+    expect(sim.units.some((unit) => unit.behavior === "ambush")).toBe(true);
+    expect(sim.behaviorIntroTimeLeft).toBe(0);
+
+    let sawIntro = false;
+    for (let left = 0; left < 20; left += 0.05) {
+      sim = liveTick(sim, 0.05);
+      if (sim.behaviorIntroTimeLeft > 0) {
+        sawIntro = true;
+      }
+    }
+    expect(sawIntro).toBe(false);
+  });
+
+  it("skips the gap after that behavior was already explained", () => {
+    let sim = skipWavePreview(
+      createLiveSim(createGrid(12, 8), 2, { warnedBehaviors: ["breaker", "ambush"] }),
+    );
+    let sawIntro = false;
+    let sawSpecial = false;
+    for (let left = 0; left < 25; left += 0.05) {
+      sim = liveTick(sim, 0.05);
+      if (sim.behaviorIntroTimeLeft > 0) {
+        sawIntro = true;
+      }
+      if (sim.units.some((unit) => unit.behavior === "breaker" || unit.behavior === "ambush")) {
+        sawSpecial = true;
+      }
+    }
+    expect(sawIntro).toBe(false);
+    expect(sawSpecial).toBe(true);
   });
 });
 

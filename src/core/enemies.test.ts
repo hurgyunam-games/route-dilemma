@@ -169,4 +169,14 @@ describe("enemy catalog", () => {
     expect(ambush.table.enemies[0]?.behavior).toBe("ambush");
     expect(getEnemy("goblin-ambush").behavior).toBe("ambush");
   });
+
+  it("keeps a short story, and special enemies say why they fight that way", () => {
+    const catalog = getEnemyCatalog();
+    expect(catalog.every((enemy) => enemy.story.length > 0 && enemy.story.length <= 120)).toBe(true);
+    expect(getEnemy("wisp").story).toContain("그래서");
+    expect(getEnemy("wasp").story).toContain("그래서");
+    expect(getEnemy("drake").story).toContain("그래서");
+    expect(getEnemy("goblin-ambush").story).toContain("그래서");
+    expect(getEnemy("wolf-ambush").story).toMatch(/보니/);
+  });
 });

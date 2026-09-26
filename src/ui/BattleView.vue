@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import type { Application } from "pixi.js";
 import {
+  behaviorWarning,
   behaviorWarningsForUnits,
   canUpgrade,
   campaignCycle,
@@ -93,6 +94,7 @@ const makeBattle = () =>
     createSim(createBattleGrid(props.mapId, props.towers), props.stageId, {
       points: props.researchPoints ?? 0,
       buffs: props.researchBuffs ?? [],
+      warnedBehaviors: props.warnedBehaviors ?? [],
     }),
     0,
   );
@@ -366,13 +368,7 @@ const maybeUnlockPreview = (): void => {
   }
 };
 
-const maybeWarnSpawns = (before: typeof sim, after: typeof sim): void => {
-  if (after.outcome !== "playing") {
-    return;
-  }
-  const previous = new Set(before.units.map((unit) => unit.id));
-  const spawned = after.units.filter((unit) => !previous.has(unit.id));
-  const warnings = behaviorWarningsForUnits(spawned, warnedLocal.value);
+const showBehaviorWarnings = (warnings: readonly BehaviorWarning[]): void => {
   if (warnings.length === 0) {
     return;
   }
@@ -387,6 +383,36 @@ const maybeWarnSpawns = (before: typeof sim, after: typeof sim): void => {
     behaviorToasts.value = [];
   }, BEHAVIOR_TOAST_MS);
   emit("warnBehaviors", warnings.map((warning) => warning.behavior));
+};
+
+const maybeWarnIntro = (before: typeof sim, after: typeof sim): void => {
+  if (after.outcome !== "playing" || !(after.behaviorIntroTimeLeft > 0)) {
+    return;
+  }
+  if (before.behaviorIntroTimeLeft > 0) {
+    return;
+  }
+  const known = new Set(before.introducedBehaviors);
+  const warnings: BehaviorWarning[] = [];
+  for (const behavior of after.introducedBehaviors) {
+    if (known.has(behavior)) {
+      continue;
+    }
+    const warning = behaviorWarning(behavior);
+    if (warning) {
+      warnings.push(warning);
+    }
+  }
+  showBehaviorWarnings(warnings);
+};
+
+const maybeWarnSpawns = (before: typeof sim, after: typeof sim): void => {
+  if (after.outcome !== "playing") {
+    return;
+  }
+  const previous = new Set(before.units.map((unit) => unit.id));
+  const spawned = after.units.filter((unit) => !previous.has(unit.id));
+  showBehaviorWarnings(behaviorWarningsForUnits(spawned, warnedLocal.value));
 };
 
 const pushHud = (): void => {
@@ -446,6 +472,7 @@ const onRestart = (): void => {
     createSim(createBattleGrid(props.mapId, props.towers), props.stageId, {
       points: earnedPoints,
       buffs: props.researchBuffs ?? [],
+      warnedBehaviors: warnedLocal.value,
     }),
     0,
   );
@@ -577,6 +604,7 @@ onMounted(async () => {
     if (dt > 0) {
       const prev = sim;
       sim = tick(sim, dt);
+      maybeWarnIntro(prev, sim);
       maybeWarnSpawns(prev, sim);
       const cues = combatCues(prev, sim);
       if (cues.leak) {

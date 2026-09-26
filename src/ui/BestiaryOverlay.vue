@@ -172,7 +172,12 @@ const scrollFocusedIntoView = async (): Promise<void> => {
             </span>
             <h3>{{ selected.name }}</h3>
             <p>행동 {{ selected.behaviorLabel }}</p>
-            <p>{{ selected.role }}</p>
+            <p
+              v-if="selected.story"
+              class="story"
+            >
+              {{ selected.story }}
+            </p>
           </template>
           <template v-else-if="selected">
             <span
@@ -361,6 +366,13 @@ const scrollFocusedIntoView = async (): Promise<void> => {
 .bestiary-detail p {
   color: #d8cfc6;
   font-weight: 600;
+}
+
+.story {
+  max-width: 28em;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #f0e6d8;
 }
 
 .hint {

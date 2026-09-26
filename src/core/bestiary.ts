@@ -5,7 +5,6 @@ import {
   ENEMY_BEHAVIOR_LABELS,
   getEnemyCatalog,
   tryGetEnemy,
-  type EnemyBehaviorId,
   type EnemyTypeId,
 } from "./enemies";
 
@@ -107,12 +106,6 @@ export function markBehaviorWarnings(
 
 export const BESTIARY_LOCKED_NAME = "???";
 
-export const ENEMY_ROLE_LABELS: Record<EnemyBehaviorId, string> = {
-  normal: "길을 따라 본진으로 향한다",
-  breaker: "타워를 부수며 앞으로 돌진한다",
-  ambush: "사각에 숨어 아군을 노린다",
-};
-
 export type BestiaryEntry = {
   readonly id: string;
   readonly unlocked: boolean;
@@ -121,7 +114,7 @@ export type BestiaryEntry = {
   readonly sprite: EnemyTypeId;
   readonly hue: number;
   readonly behaviorLabel: string | null;
-  readonly role: string | null;
+  readonly story: string | null;
 };
 
 export function isBestiaryEnemyUnlocked(
@@ -147,7 +140,7 @@ export function bestiaryEntries(
       sprite: enemy.sprite,
       hue: open ? enemy.hue : 0,
       behaviorLabel: open ? ENEMY_BEHAVIOR_LABELS[enemy.behavior] : null,
-      role: open ? ENEMY_ROLE_LABELS[enemy.behavior] : null,
+      story: open ? enemy.story : null,
     };
   });
 }

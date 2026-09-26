@@ -1,14 +1,14 @@
 {
   "enemies": [
-    { "id": "slime", "name": "슬라임", "sprite": "slime", "hp": 10 },
-    { "id": "goblin", "name": "고블린", "sprite": "goblin", "hp": 16 },
-    { "id": "wolf", "name": "늑대", "sprite": "wolf", "hp": 24 },
-    { "id": "beast", "name": "비스트", "sprite": "beast", "hp": 36 },
-    { "id": "cavalry", "name": "기병", "sprite": "cavalry", "hp": 50 },
-    { "id": "wisp", "name": "돌진 위습", "sprite": "wisp", "hp": 18, "behavior": "breaker" },
-    { "id": "wasp", "name": "돌진 말벌", "sprite": "wasp", "hp": 28, "behavior": "breaker" },
-    { "id": "drake", "name": "돌진 비룡기수", "sprite": "drake", "hp": 42, "behavior": "breaker" },
-    { "id": "goblin-ambush", "name": "약탈 고블린", "sprite": "goblin", "hp": 16, "hue": 280, "behavior": "ambush" },
-    { "id": "wolf-ambush", "name": "약탈 늑대", "sprite": "wolf", "hp": 24, "hue": 280, "behavior": "ambush" }
+    { "id": "slime", "name": "슬라임", "sprite": "slime", "hp": 10, "story": "길가에 고인 마나가 굴러다니기 시작했다. 따뜻한 본진 쪽으로만 흘러간다." },
+    { "id": "goblin", "name": "고블린", "sprite": "goblin", "hp": 16, "story": "옛 군량 냄새를 기억한다. 무리가 낸 길을 따라 본진 창고로 간다." },
+    { "id": "wolf", "name": "늑대", "sprite": "wolf", "hp": 24, "story": "전쟁 냄새에 이끌려 내려왔다. 앞선 발자국만 따라 달린다." },
+    { "id": "beast", "name": "비스트", "sprite": "beast", "hp": 36, "story": "부서진 우리에서 풀려난 짐승이다. 열린 길이 보이면 그쪽으로만 달린다." },
+    { "id": "cavalry", "name": "기병", "sprite": "cavalry", "hp": 50, "story": "대열이 무너진 뒤에도 돌격 나팔만 기억한다. 길이 있으면 그 길로 말을 몬다." },
+    { "id": "wisp", "name": "돌진 위습", "sprite": "wisp", "hp": 18, "behavior": "breaker", "story": "본진의 등불이 꺼지면 자신도 사라진다고 믿는다. 그래서 길을 돌지 않고 앞의 탑을 태우며 곧장 날아든다." },
+    { "id": "wasp", "name": "돌진 말벌", "sprite": "wasp", "hp": 28, "behavior": "breaker", "story": "여왕이 본진 너머에 있다고 배운 정찰벌이다. 그래서 돌아가는 법을 잊고, 막는 탑은 벌집으로 부순다." },
+    { "id": "drake", "name": "돌진 비룡기수", "sprite": "drake", "hp": 42, "behavior": "breaker", "story": "한번 꼽은 창은 굽히지 않기로 서약했다. 그래서 성벽이든 탑이든, 직선 위의 것은 모두 돌파한다." },
+    { "id": "goblin-ambush", "name": "약탈 고블린", "sprite": "goblin", "hp": 16, "hue": 280, "behavior": "ambush", "story": "정면에서 지면 부족에게 돌아갈 면목이 없다. 그래서 화살 밖에 숨었다가, 금이 실린 아군만 노린다." },
+    { "id": "wolf-ambush", "name": "약탈 늑대", "sprite": "wolf", "hp": 24, "hue": 280, "behavior": "ambush", "story": "무리에게 길목을 빼앗긴 외톨이다. 사람 길을 피하다 보니, 사각에서 짐꾼만 덮치게 되었다." }
   ]
 }

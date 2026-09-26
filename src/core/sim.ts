@@ -44,6 +44,7 @@ import {
   type StageWave,
   type WaveBurst,
 } from "./waves";
+import { isSpecialBehavior } from "./bestiary";
 import { DEFAULT_ENEMY_BEHAVIOR, type EnemyBehaviorId } from "./enemies";
 import {
   DEFAULT_ALLY_TYPE,
@@ -231,6 +232,8 @@ export const WAVE_SIZE = getStageWave(1).bursts[0]!.units.length;
 export const BATTLE_WAVE_COUNT = 3;
 /** Positive while the incoming-enemy banner waits for the player to confirm. */
 export const WAVE_PREVIEW_SEC = 2.4;
+/** Quiet gap before the first breaker or ambush, so the warning shows with no new enemies. */
+export const BEHAVIOR_INTRO_SEC = 2;
 
 export type Phase = "enemy" | "ally";
 export type UnitKind = Phase;
@@ -305,6 +308,8 @@ export type SimState = {
   readonly spawnedInBurst: number;
   readonly spawnCooldown: number;
   readonly wavePreviewTimeLeft: number;
+  readonly introducedBehaviors: readonly string[];
+  readonly behaviorIntroTimeLeft: number;
   readonly outcome: BattleOutcome;
   readonly researchPoints: number;
   readonly researchBuffs: readonly ResearchBuffId[];
@@ -346,6 +351,7 @@ export function createSim(
   research?: {
     readonly points?: number;
     readonly buffs?: readonly ResearchBuffId[];
+    readonly warnedBehaviors?: readonly string[];
   },
 ): SimState {
   const requested = Math.max(1, Math.round(stageId));
@@ -373,6 +379,8 @@ export function createSim(
     spawnedInBurst: 0,
     spawnCooldown: lead,
     wavePreviewTimeLeft: WAVE_PREVIEW_SEC,
+    introducedBehaviors: introducedBehaviors(research?.warnedBehaviors),
+    behaviorIntroTimeLeft: 0,
     outcome: "playing",
     researchPoints: Math.max(0, research?.points ?? 0),
     researchBuffs: [...buffs],
@@ -575,14 +583,20 @@ function tickOnce(state: SimState, dt: number): SimState {
 
   const time = state.time + dt;
   const stage = getStageWave(state.stageId);
-  const clock = tickPhaseClock(
-    state.phase,
-    state.phaseTimeLeft,
-    dt,
-    stage,
-    state.waveIndex,
-    state.waveCount,
-  );
+  const introWasActive = state.behaviorIntroTimeLeft > 0;
+  const behaviorIntroTimeLeft = introWasActive
+    ? Math.max(0, state.behaviorIntroTimeLeft - dt)
+    : 0;
+  const clock = introWasActive
+    ? { phase: state.phase, phaseTimeLeft: state.phaseTimeLeft, waveIndex: state.waveIndex }
+    : tickPhaseClock(
+        state.phase,
+        state.phaseTimeLeft,
+        dt,
+        stage,
+        state.waveIndex,
+        state.waveCount,
+      );
   let grid = advanceTowerBuilds(state.grid, dt);
   let gold = state.gold;
   let baseHp = state.baseHp;
@@ -598,7 +612,11 @@ function tickOnce(state: SimState, dt: number): SimState {
   let spawnedInBurst = phaseChanged ? 0 : state.spawnedInBurst;
   let spawnCooldown = phaseChanged
     ? enemyPhaseLead(clock.phase, stage)
-    : state.spawnCooldown - dt;
+    : introWasActive
+      ? state.spawnCooldown
+      : state.spawnCooldown - dt;
+  let introducedBehaviors = state.introducedBehaviors;
+  let introTimeLeft = behaviorIntroTimeLeft;
   const retained = retainUnits(state.units, state.phase, clock.phase);
   const ambushCtx: AmbushContext = {
     allies: retained.filter((unit) => unit.kind === "ally"),
@@ -642,6 +660,8 @@ function tickOnce(state: SimState, dt: number): SimState {
       spawnedInBurst,
       spawnCooldown,
       wavePreviewTimeLeft,
+      introducedBehaviors,
+      behaviorIntroTimeLeft: introTimeLeft,
       researchPoints,
       outcome: "defeat",
     };
@@ -660,7 +680,26 @@ function tickOnce(state: SimState, dt: number): SimState {
   );
   units = fired.units;
 
-  if (!(wavePreviewTimeLeft > 0)) {
+  if (
+    introTimeLeft === 0 &&
+    clock.phase === "enemy" &&
+    !(wavePreviewTimeLeft > 0) &&
+    spawnCooldown <= 0 &&
+    !kindOccupiesStart(units, grid.start, "enemy")
+  ) {
+    const upcoming = peekNextEnemySpawn(stage, burstIndex, spawnedInBurst);
+    if (
+      upcoming &&
+      isSpecialBehavior(upcoming.behavior) &&
+      !introducedBehaviors.includes(upcoming.behavior)
+    ) {
+      introducedBehaviors = [...introducedBehaviors, upcoming.behavior];
+      introTimeLeft = BEHAVIOR_INTRO_SEC;
+      spawnCooldown = 0;
+    }
+  }
+
+  if (!(wavePreviewTimeLeft > 0) && !(introTimeLeft > 0)) {
     const spawned = trySpawnWave(
       units,
       nextUnitId,
@@ -698,11 +737,35 @@ function tickOnce(state: SimState, dt: number): SimState {
     spawnedInBurst,
     spawnCooldown,
     wavePreviewTimeLeft,
+    introducedBehaviors,
+    behaviorIntroTimeLeft: introTimeLeft,
     outcome: "playing",
     researchPoints,
     researchBuffs: state.researchBuffs,
   };
   return { ...next, outcome: resolveOutcome(next, stage) };
+}
+
+function introducedBehaviors(warned: readonly string[] | undefined): readonly string[] {
+  const seen: string[] = [];
+  for (const behavior of warned ?? []) {
+    if (isSpecialBehavior(behavior) && !seen.includes(behavior)) {
+      seen.push(behavior);
+    }
+  }
+  return seen;
+}
+
+function peekNextEnemySpawn(
+  stage: StageWave,
+  burstIndex: number,
+  spawnedInBurst: number,
+): { readonly behavior: EnemyBehaviorId } | null {
+  const burst = stage.bursts[burstIndex];
+  if (!burst || spawnedInBurst >= burst.units.length) {
+    return null;
+  }
+  return burst.units[spawnedInBurst] ?? null;
 }
 
 function beginEnemySpawns(state: SimState): SimState {
@@ -716,6 +779,19 @@ function beginEnemySpawns(state: SimState): SimState {
   }
   if (kindOccupiesStart(state.units, state.grid.start, "enemy")) {
     return state;
+  }
+  const upcoming = burst.units[state.spawnedInBurst];
+  if (
+    upcoming &&
+    isSpecialBehavior(upcoming.behavior) &&
+    !state.introducedBehaviors.includes(upcoming.behavior)
+  ) {
+    return {
+      ...state,
+      introducedBehaviors: [...state.introducedBehaviors, upcoming.behavior],
+      behaviorIntroTimeLeft: BEHAVIOR_INTRO_SEC,
+      spawnCooldown: 0,
+    };
   }
   const spawned = spawnFromBurst(
     state.nextUnitId,

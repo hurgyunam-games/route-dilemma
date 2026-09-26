@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   BESTIARY_LOCKED_NAME,
-  ENEMY_ROLE_LABELS,
   behaviorWarningsForEnemies,
   behaviorWarningsForUnits,
   bestiaryEntries,
@@ -21,9 +20,9 @@ describe("bestiary", () => {
     expect(entries.length).toBeGreaterThan(1);
     expect(entries.every((entry) => !entry.unlocked && !entry.isNew)).toBe(true);
     expect(entries.every((entry) => entry.name === BESTIARY_LOCKED_NAME)).toBe(true);
-    expect(entries.every((entry) => entry.behaviorLabel === null && entry.role === null)).toBe(
-      true,
-    );
+    expect(
+      entries.every((entry) => entry.behaviorLabel === null && entry.story === null),
+    ).toBe(true);
     expect(new Set(entries.map((entry) => entry.sprite)).size).toBeGreaterThan(1);
   });
 
@@ -42,12 +41,12 @@ describe("bestiary", () => {
     expect(locked.isNew).toBe(false);
     expect(locked.name).toBe(BESTIARY_LOCKED_NAME);
     expect(locked.behaviorLabel).toBeNull();
-    expect(locked.role).toBeNull();
+    expect(locked.story).toBeNull();
     expect(unlocked.unlocked).toBe(true);
     expect(unlocked.isNew).toBe(false);
     expect(unlocked.name).toBe(open.name);
     expect(unlocked.behaviorLabel).toBe(ENEMY_BEHAVIOR_LABELS[open.behavior]);
-    expect(unlocked.role).toBe(ENEMY_ROLE_LABELS[open.behavior]);
+    expect(unlocked.story).toBe(open.story);
     expect(unlocked.hue).toBe(open.hue);
   });
 
