@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createCampaign, saveMapTowers } from "./campaign";
+import { STARTER_RESEARCH_POINTS } from "./research";
 import { placeTower } from "./grid";
 import { createMapGrid } from "./maps";
 import {
@@ -114,7 +115,7 @@ describe("campaign save", () => {
     expect(loaded.progress.mapTowers[1]).toEqual(plains.towers);
     expect(loaded.progress.mapRecaptureAt).toEqual({});
     expect(loaded.progress.bestiaryUnlocked).toEqual([]);
-    expect(loaded.progress.researchPoints).toBe(0);
+    expect(loaded.progress.researchPoints).toBe(STARTER_RESEARCH_POINTS);
     expect(loaded.progress.researchBuffs).toEqual([]);
     expect(loaded.progress.warnedBehaviors).toEqual([]);
   });
@@ -145,7 +146,7 @@ describe("campaign save", () => {
     expect(loaded.status).toBe("migrated");
     expect(loaded.saveVersion).toBe(CAMPAIGN_SAVE_VERSION);
     expect(loaded.progress.bestiaryUnlocked).toEqual([]);
-    expect(loaded.progress.researchPoints).toBe(0);
+    expect(loaded.progress.researchPoints).toBe(STARTER_RESEARCH_POINTS);
     expect(loaded.progress.researchBuffs).toEqual([]);
     expect(loaded.progress.warnedBehaviors).toEqual([]);
   });
@@ -172,7 +173,7 @@ describe("campaign save", () => {
     expect(loaded.status).toBe("migrated");
     expect(loaded.saveVersion).toBe(CAMPAIGN_SAVE_VERSION);
     expect(loaded.progress.bestiaryUnlocked).toEqual(["slime-10"]);
-    expect(loaded.progress.researchPoints).toBe(0);
+    expect(loaded.progress.researchPoints).toBe(STARTER_RESEARCH_POINTS);
     expect(loaded.progress.researchBuffs).toEqual([]);
     expect(loaded.progress.warnedBehaviors).toEqual([]);
   });
@@ -190,8 +191,49 @@ describe("campaign save", () => {
     const loaded = parseCampaignSave(v4);
     expect(loaded.status).toBe("migrated");
     expect(loaded.progress.warnedBehaviors).toEqual([]);
-    expect(loaded.progress.researchPoints).toBe(3);
+    expect(loaded.progress.researchPoints).toBe(STARTER_RESEARCH_POINTS);
     expect(loaded.progress.bestiaryUnlocked).toEqual(["slime"]);
+  });
+
+  it("tops up a schema 5 save that cannot yet unlock the research tower", () => {
+    const short = parseCampaignSave(
+      JSON.stringify({
+        version: 5,
+        clearedStage: 1,
+        mapTowers: {},
+        researchPoints: 1,
+        researchBuffs: ["damage"],
+        warnedBehaviors: [],
+      }),
+    );
+    expect(short.status).toBe("migrated");
+    expect(short.progress.researchPoints).toBe(STARTER_RESEARCH_POINTS);
+    expect(short.progress.researchBuffs).toEqual(["damage"]);
+
+    const funded = parseCampaignSave(
+      JSON.stringify({
+        version: 5,
+        clearedStage: 1,
+        mapTowers: {},
+        researchPoints: 20,
+        researchBuffs: [],
+        warnedBehaviors: [],
+      }),
+    );
+    expect(funded.progress.researchPoints).toBe(20);
+
+    const opened = parseCampaignSave(
+      JSON.stringify({
+        version: 5,
+        clearedStage: 1,
+        mapTowers: {},
+        researchPoints: 0,
+        researchBuffs: ["unlockResearch"],
+        warnedBehaviors: [],
+      }),
+    );
+    expect(opened.progress.researchPoints).toBe(0);
+    expect(opened.progress.researchBuffs).toEqual(["unlockResearch"]);
   });
 
   it("round-trips behavior warnings", () => {

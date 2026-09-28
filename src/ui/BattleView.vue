@@ -14,6 +14,7 @@ import {
   getTower,
   hudSnapshot,
   isTowerComplete,
+  isTowerUnlocked,
   setTimeScale,
   simBeginBuild,
   simRemoveTower,
@@ -262,7 +263,13 @@ const buildThumbStyle = (typeId: TowerTypeId) => ({
   backgroundImage: `url(${buildThumbs.value[typeId]})`,
 });
 
+const towerUnlocked = (typeId: TowerTypeId): boolean =>
+  isTowerUnlocked(typeId, props.researchBuffs ?? []);
+
 const buildSpecLines = (def: TowerDef): readonly string[] => {
+  if (!towerUnlocked(def.id)) {
+    return ["연구 트리에서 해금해야 지을 수 있습니다"];
+  }
   if (def.id === "research") {
     return [
       `비용 ${def.cost}`,
@@ -867,7 +874,7 @@ onUnmounted(() => {
               :key="def.id"
               type="button"
               class="type-card"
-              :class="[def.id, { hovered: hoveredBuildType === def.id }]"
+              :class="[def.id, { hovered: hoveredBuildType === def.id, locked: !towerUnlocked(def.id) }]"
               :aria-describedby="hoveredBuildType === def.id ? 'build-type-spec' : undefined"
               @mouseenter="onHoverBuildType(def.id)"
               @focus="onHoverBuildType(def.id)"
@@ -879,6 +886,10 @@ onUnmounted(() => {
                 aria-hidden="true"
               />
               <span class="type-name">{{ def.name }}</span>
+              <span
+                v-if="!towerUnlocked(def.id)"
+                class="type-lock"
+              >연구 필요</span>
             </button>
           </div>
           <div
@@ -1377,9 +1388,19 @@ onUnmounted(() => {
   box-shadow: inset 0 0 0 2px #70c8c0;
 }
 
+.type-card.locked {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
 .type-card.hovered,
 .type-card:focus-visible {
   background: rgba(56, 38, 28, 0.95);
+}
+
+.type-lock {
+  color: #e8c090;
+  font-size: 11px;
 }
 
 .type-thumb {

@@ -55,6 +55,7 @@ import {
 } from "./allies";
 import {
   accrueResearchPoints,
+  isTowerUnlocked,
   modifiedTowerDps,
   modifiedTowerRange,
   researchAllyGoldMul,
@@ -189,14 +190,19 @@ export {
   hasResearchBuff,
   isResearchBuffId,
   isResearchTower,
+  isTowerUnlocked,
+  towerUnlockBuffId,
   modifiedTowerDps,
   modifiedTowerRange,
   researchAllyGoldMul,
   researchDamageMul,
   researchPointRate,
   researchPointRateForLevel,
+  researchPrerequisitesMet,
   researchRangeAdd,
+  researchRequires,
   researchStartGoldBonus,
+  researchUnlockRefusal,
   saveResearchPoints,
   unlockResearchBuff,
   RESEARCH_ALLY_GOLD_MUL,
@@ -206,6 +212,7 @@ export {
   RESEARCH_POINT_PER_SEC,
   RESEARCH_RANGE_ADD,
   RESEARCH_START_GOLD,
+  STARTER_RESEARCH_POINTS,
 } from "./research";
 export type { ResearchBuffDef, ResearchBuffId, ResearchProgress, UnlockResearchResult } from "./research";
 
@@ -506,6 +513,9 @@ export function simBeginBuild(
   }
   if (hasObstacle(state.grid, x, y)) {
     return { ok: false, reason: "여기에 지을 수 없습니다" };
+  }
+  if (!isTowerUnlocked(typeId, state.researchBuffs)) {
+    return { ok: false, reason: "연구로 해금해야 지을 수 있습니다" };
   }
   const cost = towerBuildCost(typeId);
   if (state.gold < cost) {

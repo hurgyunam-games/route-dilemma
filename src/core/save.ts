@@ -10,11 +10,11 @@ import { isMapId, type MapId } from "./maps";
 import { TOWER_MAX_LEVEL, TOWER_TYPE_IDS, type TowerTypeId } from "./towers";
 import type { Tower } from "./grid";
 import { isSpecialBehavior, type SpecialBehaviorId } from "./bestiary";
-import { isResearchBuffId, type ResearchBuffId } from "./research";
+import { isResearchBuffId, STARTER_RESEARCH_POINTS, type ResearchBuffId } from "./research";
 import { version as npmVersion } from "../../package.json";
 
 /** Schema integer. Bump only when the save *shape* changes, then add a migrateStep. */
-export const CAMPAIGN_SAVE_VERSION = 5;
+export const CAMPAIGN_SAVE_VERSION = 6;
 
 /** Debug string written into saves. Comes from package.json. */
 export const APP_VERSION = npmVersion;
@@ -235,6 +235,22 @@ function migrateV4toV5(body: RawSave): RawSave {
   };
 }
 
+/** Old campaigns could build every tower. Give them the research-tower unlock cost once. */
+function migrateV5toV6(body: RawSave): RawSave {
+  const buffs = Array.isArray(body.researchBuffs) ? body.researchBuffs : [];
+  if (buffs.includes("unlockResearch")) {
+    return body;
+  }
+  const points =
+    typeof body.researchPoints === "number" && Number.isFinite(body.researchPoints)
+      ? body.researchPoints
+      : 0;
+  if (points >= STARTER_RESEARCH_POINTS) {
+    return body;
+  }
+  return { ...body, researchPoints: STARTER_RESEARCH_POINTS };
+}
+
 function migrateStep(body: RawSave, fromVersion: number): RawSave | "invalid" {
   switch (fromVersion) {
     case 1:
@@ -245,6 +261,8 @@ function migrateStep(body: RawSave, fromVersion: number): RawSave | "invalid" {
       return migrateV3toV4(body);
     case 4:
       return migrateV4toV5(body);
+    case 5:
+      return migrateV5toV6(body);
     default:
       return "invalid";
   }

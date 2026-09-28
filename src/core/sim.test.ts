@@ -56,6 +56,7 @@ import {
   waveRepairAmount,
   RESEARCH_POINT_PER_SEC,
   RESEARCH_START_GOLD,
+  towerUnlockBuffId,
   type SimState,
 } from "./sim";
 
@@ -64,6 +65,14 @@ const createSim = (...args: Parameters<typeof createLiveSim>): SimState =>
     ...createLiveSim(...args),
     introducedBehaviors: [...SPECIAL_BEHAVIOR_IDS],
   });
+
+const withTowerUnlock = (state: SimState, typeId: Parameters<typeof towerUnlockBuffId>[0]): SimState => {
+  const buffId = towerUnlockBuffId(typeId);
+  if (!buffId || state.researchBuffs.includes(buffId)) {
+    return state;
+  }
+  return { ...state, researchBuffs: [...state.researchBuffs, buffId] };
+};
 
 const tick = (state: SimState, dt: number): SimState => {
   if (state.outcome !== "playing") {
@@ -1419,7 +1428,7 @@ describe("build cost and construction", () => {
   it("does not place melee or cannon when gold is short", () => {
     for (const typeId of ["melee", "cannon"] as const) {
       const cost = towerBuildCost(typeId);
-      const sim = { ...createSim(createGrid(12, 8)), gold: cost - 1 };
+      const sim = withTowerUnlock({ ...createSim(createGrid(12, 8)), gold: cost - 1 }, typeId);
       const result = simBeginBuild(sim, 3, 2, typeId);
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -1449,7 +1458,7 @@ describe("build cost and construction", () => {
 
   it("spends gold to start a wall without giving it an attack", () => {
     const cost = towerBuildCost("wall");
-    let sim = { ...createSim(createGrid(12, 8)), gold: cost };
+    let sim = withTowerUnlock({ ...createSim(createGrid(12, 8)), gold: cost }, "wall");
     const result = simBeginBuild(sim, 3, 2, "wall");
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -2220,9 +2229,28 @@ describe("wave preview", () => {
 });
 
 describe("research tower and global buffs", () => {
+  it("refuses a locked tower even when gold is enough", () => {
+    for (const typeId of ["melee", "cannon", "mage", "wall", "research"] as const) {
+      const sim = { ...createSim(createGrid(12, 8)), gold: towerBuildCost(typeId) };
+      const result = simBeginBuild(sim, 3, 2, typeId);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.reason).toContain("연구로 해금해야");
+      }
+      expect(hasTower(sim.grid, 3, 2)).toBe(false);
+    }
+    const archer = simBeginBuild(
+      { ...createSim(createGrid(12, 8)), gold: towerBuildCost("archer") },
+      3,
+      2,
+      "archer",
+    );
+    expect(archer.ok).toBe(true);
+  });
+
   it("does not place a research tower when gold is short", () => {
     const cost = towerBuildCost("research");
-    const sim = { ...createSim(createGrid(12, 8)), gold: cost - 1 };
+    const sim = withTowerUnlock({ ...createSim(createGrid(12, 8)), gold: cost - 1 }, "research");
     const result = simBeginBuild(sim, 3, 2, "research");
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -2234,7 +2262,7 @@ describe("research tower and global buffs", () => {
 
   it("spends gold to start a research tower that never fires", () => {
     const cost = towerBuildCost("research");
-    let sim = { ...createSim(createGrid(12, 8)), gold: cost };
+    let sim = withTowerUnlock({ ...createSim(createGrid(12, 8)), gold: cost }, "research");
     const result = simBeginBuild(sim, 3, 2, "research");
     expect(result.ok).toBe(true);
     if (!result.ok) {

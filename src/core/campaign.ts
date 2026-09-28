@@ -3,7 +3,7 @@
 import type { EnemyBehaviorId } from "./enemies";
 import { type Tower } from "./grid";
 import { WORLD_MAP_COUNT, WORLD_MAPS, type GameMapDef, type MapId } from "./maps";
-import { type ResearchBuffId } from "./research";
+import { STARTER_RESEARCH_POINTS, type ResearchBuffId } from "./research";
 import { towerMaxHp } from "./towers";
 
 export type MapTowerMap = Readonly<Partial<Record<MapId, readonly Tower[]>>>;
@@ -43,7 +43,7 @@ export function createCampaign(): CampaignProgress {
     mapRecaptureAt: {},
     bestiaryUnlocked: [],
     warnedBehaviors: [],
-    researchPoints: 0,
+    researchPoints: STARTER_RESEARCH_POINTS,
     researchBuffs: [],
   };
 }

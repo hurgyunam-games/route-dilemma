@@ -2,7 +2,17 @@
 
 import { isTowerComplete, type TowerTypeId } from "./towers";
 
-export const RESEARCH_BUFF_IDS = ["damage", "range", "startGold", "allyGold"] as const;
+export const RESEARCH_BUFF_IDS = [
+  "unlockResearch",
+  "unlockWall",
+  "unlockMelee",
+  "unlockMage",
+  "unlockCannon",
+  "damage",
+  "range",
+  "startGold",
+  "allyGold",
+] as const;
 export type ResearchBuffId = (typeof RESEARCH_BUFF_IDS)[number];
 
 export type ResearchBuffDef = {
@@ -10,6 +20,10 @@ export type ResearchBuffDef = {
   readonly name: string;
   readonly description: string;
   readonly cost: number;
+  /** Every listed node must already be owned. Empty means this node is a root. */
+  readonly requires?: readonly ResearchBuffId[];
+  /** When set, buying this node lets every map build that tower. Archer has no node. */
+  readonly unlocks?: TowerTypeId;
 };
 
 /** Points a finished research tower of the given level makes each second. */
@@ -19,30 +33,76 @@ export const RESEARCH_RANGE_ADD = 0.5;
 export const RESEARCH_START_GOLD = 20;
 export const RESEARCH_ALLY_GOLD_MUL = 1.5;
 
+/** Enough to open the research tower, and nothing else. */
+export const STARTER_RESEARCH_POINTS = 4;
+
 export const RESEARCH_BUFFS: readonly ResearchBuffDef[] = [
+  {
+    id: "unlockResearch",
+    name: "연구 타워",
+    description: "연구 타워를 모든 맵에서 지을 수 있습니다.",
+    cost: STARTER_RESEARCH_POINTS,
+    unlocks: "research",
+  },
+  {
+    id: "unlockWall",
+    name: "벽",
+    description: "벽을 모든 맵에서 지을 수 있습니다.",
+    cost: 7,
+    unlocks: "wall",
+    requires: ["unlockResearch"],
+  },
+  {
+    id: "unlockMelee",
+    name: "기사",
+    description: "기사 타워를 모든 맵에서 지을 수 있습니다.",
+    cost: 9,
+    unlocks: "melee",
+    requires: ["unlockWall"],
+  },
+  {
+    id: "unlockMage",
+    name: "마법사",
+    description: "마법사 타워를 모든 맵에서 지을 수 있습니다.",
+    cost: 11,
+    unlocks: "mage",
+    requires: ["unlockMelee", "unlockCannon"],
+  },
+  {
+    id: "unlockCannon",
+    name: "대포",
+    description: "대포 타워를 모든 맵에서 지을 수 있습니다.",
+    cost: 14,
+    unlocks: "cannon",
+    requires: ["unlockWall"],
+  },
   {
     id: "damage",
     name: "화력 연구",
     description: "모든 맵의 타워 공격력이 늘어납니다.",
     cost: 8,
+    requires: ["unlockResearch"],
   },
   {
     id: "range",
     name: "조준 연구",
     description: "모든 맵의 타워 사거리가 늘어납니다.",
     cost: 10,
+    requires: ["damage"],
   },
   {
     id: "startGold",
     name: "보급 연구",
     description: "모든 맵의 시작 골드가 늘어납니다.",
     cost: 6,
+    requires: ["unlockResearch"],
   },
   {
     id: "allyGold",
     name: "수송 연구",
     description: "모든 맵에서 아군이 가져오는 골드가 늘어납니다.",
     cost: 12,
+    requires: ["startGold"],
   },
 ];
 
@@ -72,6 +132,65 @@ export function hasResearchBuff(
   id: ResearchBuffId,
 ): boolean {
   return buffs.includes(id);
+}
+
+export function researchRequires(id: ResearchBuffId): readonly ResearchBuffId[] {
+  return getResearchBuff(id).requires ?? [];
+}
+
+/** True when every parent node is already researched. */
+export function researchPrerequisitesMet(
+  buffs: readonly ResearchBuffId[],
+  id: ResearchBuffId,
+): boolean {
+  return researchRequires(id).every((need) => hasResearchBuff(buffs, need));
+}
+
+export function researchUnlockRefusal(
+  points: number,
+  buffs: readonly ResearchBuffId[],
+  buffId: ResearchBuffId,
+): string | null {
+  if (!isResearchBuffId(buffId)) {
+    return "없는 연구입니다";
+  }
+  if (hasResearchBuff(buffs, buffId)) {
+    return "이미 고른 연구입니다";
+  }
+  const missing = researchRequires(buffId).filter((need) => !hasResearchBuff(buffs, need));
+  if (missing.length > 0) {
+    const names = missing.map((need) => getResearchBuff(need).name).join(", ");
+    return `${names} 연구를 먼저 마쳐야 합니다`;
+  }
+  const cost = getResearchBuff(buffId).cost;
+  if (points < cost) {
+    return `연구 포인트가 부족합니다 (필요 ${cost}, 보유 ${Math.floor(points)})`;
+  }
+  return null;
+}
+
+const UNLOCK_BY_TOWER: Partial<Record<TowerTypeId, ResearchBuffId>> = {
+  melee: "unlockMelee",
+  cannon: "unlockCannon",
+  mage: "unlockMage",
+  wall: "unlockWall",
+  research: "unlockResearch",
+};
+
+export function towerUnlockBuffId(typeId: TowerTypeId): ResearchBuffId | null {
+  return UNLOCK_BY_TOWER[typeId] ?? null;
+}
+
+/** Archer is always available. Every other type needs its research node. */
+export function isTowerUnlocked(
+  typeId: TowerTypeId,
+  buffs: readonly ResearchBuffId[],
+): boolean {
+  const buffId = towerUnlockBuffId(typeId);
+  if (!buffId) {
+    return true;
+  }
+  return hasResearchBuff(buffs, buffId);
 }
 
 export function isResearchTower(typeId: TowerTypeId): boolean {
@@ -173,19 +292,15 @@ export function unlockResearchBuff<T extends ResearchProgress>(
   progress: T,
   buffId: ResearchBuffId,
 ): UnlockResearchResult<T> {
-  if (!isResearchBuffId(buffId)) {
-    return { ok: false, reason: "없는 연구입니다" };
-  }
-  if (hasResearchBuff(progress.researchBuffs, buffId)) {
-    return { ok: false, reason: "이미 고른 버프입니다" };
+  const reason = researchUnlockRefusal(
+    progress.researchPoints,
+    progress.researchBuffs,
+    buffId,
+  );
+  if (reason) {
+    return { ok: false, reason };
   }
   const cost = getResearchBuff(buffId).cost;
-  if (progress.researchPoints < cost) {
-    return {
-      ok: false,
-      reason: `연구 포인트가 부족합니다 (필요 ${cost}, 보유 ${Math.floor(progress.researchPoints)})`,
-    };
-  }
   return {
     ok: true,
     progress: {
