@@ -37,6 +37,7 @@ import {
 } from "./towers";
 import {
   getStageWave,
+  isEnemySpawnActive,
   nextEnemySpawnState,
   phaseDuration,
   spawnDelay,
@@ -131,6 +132,7 @@ export {
   setWaveTable,
   spawnDelay,
   stageWaveEnemyIds,
+  stageWaveEnemyIdsForWave,
   waveEnemyIds,
   waveStageCount,
 } from "./waves";
@@ -681,6 +683,26 @@ function tickOnce(state: SimState, dt: number): SimState {
   units = fired.units;
 
   if (
+    clock.phase === "enemy" &&
+    !(wavePreviewTimeLeft > 0) &&
+    spawnCooldown <= 0
+  ) {
+    const deferred = skipDeferredSpawns(
+      stage,
+      state.stageId,
+      clock.waveIndex,
+      state.waveCount,
+      burstIndex,
+      spawnedInBurst,
+    );
+    if (deferred.skipped) {
+      burstIndex = deferred.burstIndex;
+      spawnedInBurst = deferred.spawnedInBurst;
+      spawnCooldown = 0;
+    }
+  }
+
+  if (
     introTimeLeft === 0 &&
     clock.phase === "enemy" &&
     !(wavePreviewTimeLeft > 0) &&
@@ -768,6 +790,30 @@ function peekNextEnemySpawn(
   return burst.units[spawnedInBurst] ?? null;
 }
 
+/** Step past raiders that this wave does not spawn. The next real enemy follows immediately. */
+function skipDeferredSpawns(
+  stage: StageWave,
+  stageId: number,
+  waveIndex: number,
+  waveCount: number,
+  burstIndex: number,
+  spawnedInBurst: number,
+): { burstIndex: number; spawnedInBurst: number; skipped: boolean } {
+  let nextBurst = burstIndex;
+  let nextSpawned = spawnedInBurst;
+  let skipped = false;
+  while (true) {
+    const upcoming = peekNextEnemySpawn(stage, nextBurst, nextSpawned);
+    if (!upcoming || isEnemySpawnActive(stageId, waveIndex, waveCount, upcoming.behavior)) {
+      return { burstIndex: nextBurst, spawnedInBurst: nextSpawned, skipped };
+    }
+    const cursor = nextEnemySpawnState(stage, nextBurst, nextSpawned);
+    nextBurst = cursor.burstIndex;
+    nextSpawned = cursor.spawnedInBurst;
+    skipped = true;
+  }
+}
+
 function beginEnemySpawns(state: SimState): SimState {
   const stage = getStageWave(state.stageId);
   const burst = stage.bursts[state.burstIndex];
@@ -779,6 +825,22 @@ function beginEnemySpawns(state: SimState): SimState {
   }
   if (kindOccupiesStart(state.units, state.grid.start, "enemy")) {
     return state;
+  }
+  const deferred = skipDeferredSpawns(
+    stage,
+    state.stageId,
+    state.waveIndex,
+    state.waveCount,
+    state.burstIndex,
+    state.spawnedInBurst,
+  );
+  if (deferred.skipped) {
+    return beginEnemySpawns({
+      ...state,
+      burstIndex: deferred.burstIndex,
+      spawnedInBurst: deferred.spawnedInBurst,
+      spawnCooldown: 0,
+    });
   }
   const upcoming = burst.units[state.spawnedInBurst];
   if (

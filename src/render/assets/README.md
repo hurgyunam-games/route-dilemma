@@ -47,5 +47,11 @@ Place the following files here on your machine if you have the rights to use the
 - `sfx-reward.wav` (아군이 Base에 골드를 넣었을 때 한 번)
 - `sfx-collapse.wav` (타워가 적에게 부서질 때 한 번)
 - `sfx-ally-lost.wav` (아군이 잡히거나 시간 안에 못 들어왔을 때 한 번)
+- `bgm-port-town.ogg` (월드맵 BGM. xDeviruchi, Port Town. 루프)
+- `bgm-definitely-our-town.ogg` (맵 1 배틀 BGM. xDeviruchi, Definitely Our Town. 루프)
+- `bgm-shop.ogg` (맵 2 배틀 BGM. xDeviruchi, Shop. 루프)
+- `bgm-mighty-kingdom.ogg` (맵 3 배틀 BGM. xDeviruchi, The Mighty Kingdom. 루프)
+- `bgm-frozen-abyss.ogg` (맵 4 배틀 BGM. xDeviruchi, Frozen Abyss. 루프)
+- `bgm-decisive-battle.ogg` (맵 5 배틀 BGM. xDeviruchi, Decisive Battle 1 - Don't Be Afraid. 루프)
 
-Without these files the app still runs, using painted Start/Base placeholders and short synthesized cues. Missing SFX files fall back to those beeps instead of staying silent.
+Without these files the app still runs, using painted Start/Base placeholders and short synthesized cues. Missing SFX files fall back to those beeps instead of staying silent. Missing BGM stays silent.

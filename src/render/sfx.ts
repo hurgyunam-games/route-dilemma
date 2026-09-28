@@ -1,3 +1,5 @@
+import { getAudioSettings, mixChannelVolume, subscribeAudioSettings } from "./audio-settings";
+
 export type CombatSfxCue = "leak" | "reward" | "collapse" | "allyLost";
 
 const sfxUrls = import.meta.glob("./assets/sfx-*.wav", {
@@ -89,7 +91,15 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
+function sfxVolume(): number {
+  return mixChannelVolume(getAudioSettings(), "sfx");
+}
+
 function playSynth(cue: CombatSfxCue): void {
+  const level = sfxVolume();
+  if (level <= 0) {
+    return;
+  }
   const ctx = getAudioContext();
   if (!ctx) {
     return;
@@ -99,6 +109,10 @@ function playSynth(cue: CombatSfxCue): void {
   });
   const now = ctx.currentTime;
   for (const note of SYNTH[cue]) {
+    const peak = note.gain * level;
+    if (peak <= 0.0002) {
+      continue;
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = note.type;
@@ -106,7 +120,7 @@ function playSynth(cue: CombatSfxCue): void {
     const start = now + note.at;
     const end = start + note.dur;
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(note.gain, start + 0.012);
+    gain.gain.exponentialRampToValueAtTime(peak, start + 0.012);
     gain.gain.exponentialRampToValueAtTime(0.0001, end);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -116,16 +130,28 @@ function playSynth(cue: CombatSfxCue): void {
 }
 
 function playVoice(cue: CombatSfxCue): void {
+  const level = sfxVolume();
+  if (level <= 0) {
+    return;
+  }
   const audio = voice(cue);
   if (!audio) {
     playSynth(cue);
     return;
   }
+  audio.volume = level;
   audio.currentTime = 0;
   void audio.play().catch(() => {
     playSynth(cue);
   });
 }
+
+subscribeAudioSettings(() => {
+  const level = sfxVolume();
+  for (const audio of voices.values()) {
+    audio.volume = level;
+  }
+});
 
 /** Restart the same element instead of stacking new ones. */
 export function playCombatSfx(cue: CombatSfxCue, now = performance.now()): void {
@@ -156,9 +182,11 @@ export function unlockCombatSfx(): void {
         audio.pause();
         audio.currentTime = 0;
         audio.muted = false;
+        audio.volume = sfxVolume();
       })
       .catch(() => {
         audio.muted = false;
+        audio.volume = sfxVolume();
       });
   }
 }

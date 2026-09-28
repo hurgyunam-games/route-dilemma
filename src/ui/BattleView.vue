@@ -18,7 +18,7 @@ import {
   simBeginBuild,
   simRemoveTower,
   simUpgradeTower,
-  stageWaveEnemyIds,
+  stageWaveEnemyIdsForWave,
   tileKind,
   tick,
   TOWER_CATALOG,
@@ -50,12 +50,15 @@ import {
   destroyGameApp,
   setGameView,
 } from "@/render/create-game-app";
+import { startBattleBgm, stopBattleBgm } from "@/render/bgm";
 import { playCombatSfx, unlockCombatSfx } from "@/render/sfx";
 import {
   loadTowerBuildThumbs,
   towerBuildFallbackThumb,
 } from "@/render/tower-thumbs";
 import BestiaryOverlay from "@/ui/BestiaryOverlay.vue";
+import CreditsOverlay from "@/ui/CreditsOverlay.vue";
+import SoundSettingsOverlay from "@/ui/SoundSettingsOverlay.vue";
 import WavePreviewBanner from "@/ui/WavePreviewBanner.vue";
 
 const TIME_CONTROLS: readonly { scale: TimeScale; label: string }[] = [
@@ -111,6 +114,8 @@ const shopError = ref("");
 const towerMenuDetail = ref(false);
 const hoveredBuildType = ref<TowerTypeId | null>(null);
 const bestiaryOpen = ref(false);
+const soundOpen = ref(false);
+const creditsOpen = ref(false);
 const bestiaryFocusId = ref<string | null>(null);
 const previewKnownIds = ref<readonly string[]>([...(props.bestiaryUnlocked ?? [])]);
 const warnedLocal = ref<readonly string[]>([...(props.warnedBehaviors ?? [])]);
@@ -129,6 +134,7 @@ const goldAnimating = ref(false);
 const hpHit = ref(false);
 let app: Application | null = null;
 let raf = 0;
+let battleAlive = true;
 let lastTs = 0;
 let goldGainTimer = 0;
 let hpHitTimer = 0;
@@ -167,7 +173,10 @@ const showWavePreview = computed(
     hud.value.wavePreviewTimeLeft > 0,
 );
 const previewRoster = computed(() =>
-  wavePreviewRoster(stageWaveEnemyIds(props.stageId), previewKnownIds.value),
+  wavePreviewRoster(
+    stageWaveEnemyIdsForWave(props.stageId, hud.value.waveIndex, hud.value.waveCount),
+    previewKnownIds.value,
+  ),
 );
 const outcomeTitle = computed(() =>
   hud.value.outcome === "defeat" ? "Game Over" : "Victory",
@@ -358,7 +367,7 @@ const maybeUnlockPreview = (): void => {
   }
   unlockedWaveKey = key;
   previewKnownIds.value = [...(props.bestiaryUnlocked ?? [])];
-  const ids = stageWaveEnemyIds(sim.stageId);
+  const ids = stageWaveEnemyIdsForWave(sim.stageId, sim.waveIndex, sim.waveCount);
   const fresh = ids.filter((id) => !previewKnownIds.value.includes(id));
   if (fresh.length > 0) {
     newBestiaryIds.value = [...new Set([...newBestiaryIds.value, ...fresh])];
@@ -590,8 +599,19 @@ onMounted(async () => {
     buildThumbs.value = thumbs;
   });
   app = await createGameApp(hostRef.value, sim.grid, sim.units, onTileClick);
+  if (!battleAlive || !hostRef.value) {
+    if (app) {
+      destroyGameApp(app);
+      app = null;
+    }
+    return;
+  }
   unlockCombatSfx();
-  hostRef.value.addEventListener("pointerdown", unlockCombatSfx, { once: true });
+  startBattleBgm(props.mapId);
+  hostRef.value.addEventListener("pointerdown", () => {
+    unlockCombatSfx();
+    startBattleBgm(props.mapId);
+  }, { once: true });
 
   const loop = (ts: number): void => {
     raf = requestAnimationFrame(loop);
@@ -644,6 +664,8 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  battleAlive = false;
+  stopBattleBgm();
   cancelAnimationFrame(raf);
   window.clearTimeout(goldGainTimer);
   window.clearTimeout(hpHitTimer);
@@ -676,6 +698,13 @@ onUnmounted(() => {
           @click="openBestiary"
         >
           도감
+        </button>
+        <button
+          type="button"
+          class="world-map-btn"
+          @click="soundOpen = true"
+        >
+          소리
         </button>
         <div class="hud-main">
           <div
@@ -1000,6 +1029,15 @@ onUnmounted(() => {
       :new-ids="newBestiaryIds"
       :focus-id="bestiaryFocusId"
       @close="closeBestiary"
+    />
+    <SoundSettingsOverlay
+      v-if="soundOpen"
+      @close="soundOpen = false"
+      @credits="creditsOpen = true"
+    />
+    <CreditsOverlay
+      v-if="creditsOpen"
+      @close="creditsOpen = false"
     />
   </div>
 </template>

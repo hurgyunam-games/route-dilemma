@@ -12,7 +12,9 @@ import {
 } from "@/core";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import BestiaryOverlay from "@/ui/BestiaryOverlay.vue";
+import CreditsOverlay from "@/ui/CreditsOverlay.vue";
 import ResearchTreeOverlay from "@/ui/ResearchTreeOverlay.vue";
+import SoundSettingsOverlay from "@/ui/SoundSettingsOverlay.vue";
 
 const props = defineProps<{
   lastMapId: MapId | null;
@@ -31,6 +33,8 @@ const emit = defineEmits<{
 const showDevTools = import.meta.env.DEV;
 const bestiaryOpen = ref(false);
 const researchOpen = ref(false);
+const soundOpen = ref(false);
+const creditsOpen = ref(false);
 const nowMs = ref(Date.now());
 let recaptureTimer = 0;
 
@@ -128,6 +132,20 @@ onUnmounted(() => {
           @click="researchOpen = true"
         >
           연구 트리
+        </button>
+        <button
+          type="button"
+          class="gallery-link"
+          @click="soundOpen = true"
+        >
+          소리
+        </button>
+        <button
+          type="button"
+          class="gallery-link"
+          @click="creditsOpen = true"
+        >
+          출처
         </button>
       </div>
       <p class="research-points">
@@ -236,6 +254,15 @@ onUnmounted(() => {
       :unlocked="progress.researchBuffs"
       @close="researchOpen = false"
       @unlock="emit('unlockResearch', $event)"
+    />
+    <SoundSettingsOverlay
+      v-if="soundOpen"
+      @close="soundOpen = false"
+      @credits="creditsOpen = true"
+    />
+    <CreditsOverlay
+      v-if="creditsOpen"
+      @close="creditsOpen = false"
     />
   </div>
 </template>

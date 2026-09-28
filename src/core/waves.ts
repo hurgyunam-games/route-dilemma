@@ -128,10 +128,40 @@ export function waveEnemyIds(table: WaveTable = liveTable): readonly string[] {
 
 /** Unique catalog ids that appear in this stage's enemy assault. */
 export function stageWaveEnemyIds(stageId: number): readonly string[] {
+  return stageWaveEnemyIdsForWave(stageId, 0, 1);
+}
+
+/** Map 2 saves raiders for the last wave so earlier ally gold can still arrive. */
+export function deferAmbushToLastWave(stageId: number): boolean {
+  const stage = Math.max(1, Math.round(stageId));
+  return ((stage - 1) % WORLD_MAP_COUNT) + 1 === 2;
+}
+
+export function isEnemySpawnActive(
+  stageId: number,
+  waveIndex: number,
+  waveCount: number,
+  behavior: EnemyBehaviorId,
+): boolean {
+  if (behavior !== "ambush" || !deferAmbushToLastWave(stageId)) {
+    return true;
+  }
+  return waveIndex >= Math.max(1, waveCount) - 1;
+}
+
+/** Ids that actually spawn in this wave. Map 2 hides raiders until the last wave. */
+export function stageWaveEnemyIdsForWave(
+  stageId: number,
+  waveIndex: number,
+  waveCount: number,
+): readonly string[] {
   const ids: string[] = [];
   const seen = new Set<string>();
   for (const burst of getStageWave(stageId).bursts) {
     for (const spawn of burst.units) {
+      if (!isEnemySpawnActive(stageId, waveIndex, waveCount, spawn.behavior)) {
+        continue;
+      }
       if (seen.has(spawn.enemyId)) {
         continue;
       }

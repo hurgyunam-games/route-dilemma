@@ -239,6 +239,7 @@ export {
   setWaveTable,
   spawnDelay,
   stageWaveEnemyIds,
+  stageWaveEnemyIdsForWave,
   waveEnemyIds,
   waveStageCount,
 } from "./sim";

@@ -21,6 +21,7 @@ import {
   type ResearchBuffId,
   type Tower,
 } from "@/core";
+import { resumeBgm, startBattleBgm, startWorldBgm } from "@/render/bgm";
 
 const loadSavedCampaign = (): CampaignLoad => {
   try {
@@ -96,6 +97,7 @@ const enterMap = (id: MapId): void => {
   if (!canEnterMap(campaign.value, id, Date.now())) {
     return;
   }
+  startBattleBgm(id);
   selectedMapId.value = id;
   selectedStageId.value = playableStage(campaign.value, id);
   lastMapId.value = id;
@@ -153,6 +155,8 @@ const onSaveResearch = (points: number): void => {
 };
 
 onMounted(() => {
+  startWorldBgm();
+  window.addEventListener("pointerdown", resumeBgm, { once: true });
   if (!import.meta.env.DEV) {
     return;
   }
@@ -160,6 +164,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  window.removeEventListener("pointerdown", resumeBgm);
   window.removeEventListener("hashchange", syncHash);
 });
 </script>

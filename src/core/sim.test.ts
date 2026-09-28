@@ -2020,6 +2020,18 @@ function tileInTowerRange(grid: ReturnType<typeof createGrid>, x: number, y: num
 }
 
 describe("ambush enemies", () => {
+  it("keeps map 2 raiders out until the last wave", () => {
+    const stage = getStageWave(2);
+    const early = advance(createSim(createGrid(12, 8), 2), stage.enemyPhaseSec);
+    expect(early.units.some((unit) => unit.behavior === "ambush")).toBe(false);
+
+    const last = advance(
+      { ...createSim(createGrid(12, 8), 2), waveIndex: BATTLE_WAVE_COUNT - 1 },
+      stage.enemyPhaseSec,
+    );
+    expect(last.units.some((unit) => unit.behavior === "ambush")).toBe(true);
+  });
+
   it("mixes ambush units into the stage wave with normal and breaker enemies", () => {
     const stage = getStageWave(2);
     expect(stage.bursts.some((burst) => burst.units.some((spawn) => spawn.behavior === "ambush"))).toBe(
@@ -2125,7 +2137,7 @@ describe("first special behavior intro", () => {
   });
 
   it("holds again before the first ambush and does not repeat either gap", () => {
-    let sim = advanceUntil(freshBattle(2), (state) => state.behaviorIntroTimeLeft > 0);
+    let sim = advanceUntil(freshBattle(3), (state) => state.behaviorIntroTimeLeft > 0);
     expect(sim.introducedBehaviors).toEqual(["breaker"]);
     sim = liveTick(sim, BEHAVIOR_INTRO_SEC);
     expect(sim.units.some((unit) => unit.behavior === "breaker")).toBe(true);

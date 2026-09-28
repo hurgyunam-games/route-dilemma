@@ -27,6 +27,7 @@ import {
   setWaveTable,
   spawnDelay,
   stageWaveEnemyIds,
+  stageWaveEnemyIdsForWave,
 } from "./waves";
 
 describe("stage wave table", () => {
@@ -47,6 +48,15 @@ describe("stage wave table", () => {
 
   it("lists unique catalog ids for a stage assault in spawn order", () => {
     expect(stageWaveEnemyIds(1)).toEqual(["slime", "goblin", "wisp"]);
+  });
+
+  it("keeps map 2 raiders out of every wave except the last", () => {
+    expect(stageWaveEnemyIdsForWave(2, 0, 3)).not.toContain("goblin-ambush");
+    expect(stageWaveEnemyIdsForWave(2, 1, 3)).not.toContain("goblin-ambush");
+    expect(stageWaveEnemyIdsForWave(2, 2, 3)).toContain("goblin-ambush");
+    expect(stageWaveEnemyIdsForWave(7, 0, 3).some((id) => id.includes("ambush"))).toBe(false);
+    expect(stageWaveEnemyIdsForWave(7, 2, 3).some((id) => id.includes("ambush"))).toBe(true);
+    expect(stageWaveEnemyIdsForWave(3, 0, 3)).toContain("wolf-ambush");
   });
 
   it("defines 20 fixed stages in order", () => {
