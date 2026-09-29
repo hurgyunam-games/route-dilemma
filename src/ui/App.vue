@@ -1,39 +1,49 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onMounted, onUnmounted, ref } from "vue";
 import BattleView from "@/ui/BattleView.vue";
+import SaveListView from "@/ui/SaveListView.vue";
 import WorldMapView from "@/ui/WorldMapView.vue";
 import {
+  addSaveSlot,
   canEnterMap,
   createCampaign,
-  loadCampaign,
-  persistCampaign,
+  loadSaveList,
+  persistSaveList,
   playableStage,
   recordDefeat,
   recordVictory,
+  removeSaveSlot,
   saveMapTowers,
   startMapRecapture,
   towersForMap,
+  updateSaveSlot,
   markBehaviorWarnings,
   unlockBestiaryEnemies,
   unlockResearchBuff,
-  type CampaignLoad,
+  type CampaignLoadStatus,
+  type CampaignProgress,
   type MapId,
   type ResearchBuffId,
+  type SaveListLoad,
   type Tower,
 } from "@/core";
 import { resumeBgm, startBattleBgm, startWorldBgm } from "@/render/bgm";
 
-const loadSavedCampaign = (): CampaignLoad => {
+const loadSavedList = (): SaveListLoad => {
   try {
-    return loadCampaign(window.localStorage);
+    return loadSaveList(window.localStorage);
   } catch {
-    return { status: "invalid", progress: createCampaign(), saveVersion: null };
+    return { status: "invalid", list: { slots: [] }, preserved: {} };
   }
 };
 
-const saved = loadSavedCampaign();
-const campaign = ref(saved.progress);
-const saveStatus = ref(saved.status);
+const saved = loadSavedList();
+const saveList = ref(saved.list);
+const preservedCampaigns = ref(saved.preserved);
+const listStatus = ref<CampaignLoadStatus>(saved.status);
+const activeId = ref<string | null>(null);
+const campaign = ref(createCampaign());
+const saveStatus = ref<CampaignLoadStatus>("ok");
 const selectedMapId = ref<MapId | null>(null);
 const selectedStageId = ref<number | null>(null);
 const lastMapId = ref<MapId | null>(null);
@@ -79,13 +89,69 @@ const leaveTool = (): void => {
   toolPage.value = null;
 };
 
-const commit = (next: typeof campaign.value): void => {
-  campaign.value = next;
-  if (saveStatus.value === "newer") {
+const persistList = (): void => {
+  if (listStatus.value === "newer") {
     return;
   }
   try {
-    if (persistCampaign(window.localStorage, next) && saveStatus.value !== "ok") {
+    persistSaveList(window.localStorage, saveList.value, preservedCampaigns.value);
+  } catch {
+    /* storage may be blocked */
+  }
+};
+
+const openSlot = (id: string): void => {
+  const slot = saveList.value.slots.find((entry) => entry.id === id);
+  if (!slot || slot.status === "newer" || slot.status === "invalid" || listStatus.value === "newer") {
+    return;
+  }
+  activeId.value = id;
+  campaign.value = slot.progress;
+  saveStatus.value = "ok";
+  selectedMapId.value = null;
+  selectedStageId.value = null;
+};
+
+const showSaveList = (): void => {
+  selectedMapId.value = null;
+  selectedStageId.value = null;
+  activeId.value = null;
+};
+
+const onCreateSave = (): void => {
+  if (listStatus.value === "newer") {
+    return;
+  }
+  const added = addSaveSlot(saveList.value, Date.now());
+  saveList.value = added.list;
+  persistList();
+  openSlot(added.slot.id);
+};
+
+const onDeleteSave = (id: string): void => {
+  if (listStatus.value === "newer") {
+    return;
+  }
+  saveList.value = removeSaveSlot(saveList.value, id);
+  if (Object.prototype.hasOwnProperty.call(preservedCampaigns.value, id)) {
+    const next = { ...preservedCampaigns.value };
+    delete next[id];
+    preservedCampaigns.value = next;
+  }
+  if (activeId.value === id) {
+    activeId.value = null;
+  }
+  persistList();
+};
+
+const commit = (next: CampaignProgress): void => {
+  campaign.value = next;
+  if (listStatus.value === "newer" || saveStatus.value === "newer" || activeId.value === null) {
+    return;
+  }
+  saveList.value = updateSaveSlot(saveList.value, activeId.value, next, Date.now());
+  try {
+    if (persistSaveList(window.localStorage, saveList.value, preservedCampaigns.value)) {
       saveStatus.value = "ok";
     }
   } catch {
@@ -204,14 +270,23 @@ onUnmounted(() => {
     @save-research="onSaveResearch"
   />
   <WorldMapView
-    v-else
+    v-else-if="activeId !== null"
     :last-map-id="lastMapId"
     :progress="campaign"
     :save-status="saveStatus"
     @select="enterMap"
+    @saves="showSaveList"
     @gallery="openTool('gallery')"
     @waves="openTool('waves')"
     @enemies="openTool('enemies')"
     @unlock-research="onUnlockResearch"
+  />
+  <SaveListView
+    v-else
+    :slots="saveList.slots"
+    :list-status="listStatus"
+    @create="onCreateSave"
+    @open="openSlot"
+    @remove="onDeleteSave"
   />
 </template>

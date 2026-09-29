@@ -92,13 +92,28 @@ export {
   CAMPAIGN_SAVE_VERSION,
   CAMPAIGN_STORAGE_KEY,
   LEGACY_CAMPAIGN_STORAGE_KEYS,
+  addSaveSlot,
   loadCampaign,
+  loadSaveList,
   parseCampaign,
   parseCampaignSave,
+  parseSaveList,
   persistCampaign,
+  persistSaveList,
+  removeSaveSlot,
+  SAVE_LIST_VERSION,
   serializeCampaign,
+  serializeSaveList,
+  updateSaveSlot,
 } from "./save";
-export type { CampaignLoad, CampaignLoadStatus, CampaignStore } from "./save";
+export type {
+  CampaignLoad,
+  CampaignLoadStatus,
+  CampaignStore,
+  SaveList,
+  SaveListLoad,
+  SaveSlot,
+} from "./save";
 export {
   ALLY_GOLD_REWARD,
   ALLY_GOLD,

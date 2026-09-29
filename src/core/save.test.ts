@@ -8,11 +8,17 @@ import {
   CAMPAIGN_SAVE_VERSION,
   CAMPAIGN_STORAGE_KEY,
   LEGACY_CAMPAIGN_STORAGE_KEYS,
+  SAVE_LIST_VERSION,
+  addSaveSlot,
   loadCampaign,
+  loadSaveList,
   parseCampaign,
   parseCampaignSave,
   persistCampaign,
+  persistSaveList,
+  removeSaveSlot,
   serializeCampaign,
+  updateSaveSlot,
   type CampaignStore,
 } from "./save";
 
@@ -257,5 +263,115 @@ describe("campaign save", () => {
     expect(loaded.status).toBe("ok");
     expect(loaded.progress.researchPoints).toBe(7.5);
     expect(loaded.progress.researchBuffs).toEqual(["startGold", "damage"]);
+  });
+});
+
+describe("save list", () => {
+  it("adds, updates, and removes named slots", () => {
+    const first = addSaveSlot({ slots: [] }, 1_000);
+    const second = addSaveSlot(first.list, 2_000);
+    expect(first.slot.name).toBe("세이브 1");
+    expect(second.slot.name).toBe("세이브 2");
+    expect(second.slot.id).not.toBe(first.slot.id);
+    const updated = updateSaveSlot(
+      second.list,
+      first.slot.id,
+      { ...first.slot.progress, clearedStage: 3 },
+      3_000,
+    );
+    const kept = updated.slots.find((slot) => slot.id === first.slot.id);
+    expect(kept?.progress.clearedStage).toBe(3);
+    expect(kept?.updatedAt).toBe(3_000);
+    expect(updated.slots.find((slot) => slot.id === second.slot.id)?.progress.clearedStage).toBe(0);
+    const removed = removeSaveSlot(updated, first.slot.id);
+    expect(removed.slots.map((slot) => slot.id)).toEqual([second.slot.id]);
+    expect(addSaveSlot(removed, 4_000).slot.name).toBe("세이브 3");
+  });
+
+  it("round-trips every slot through storage", () => {
+    const first = addSaveSlot({ slots: [] }, 1_000);
+    const second = addSaveSlot(first.list, 2_000);
+    const list = updateSaveSlot(
+      second.list,
+      second.slot.id,
+      { ...second.slot.progress, clearedStage: 4 },
+      2_500,
+    );
+    const store = memoryStore();
+    expect(persistSaveList(store, list)).toBe(true);
+    const loaded = loadSaveList(store);
+    expect(loaded.status).toBe("ok");
+    expect(loaded.list.slots.map((slot) => slot.name)).toEqual(["세이브 1", "세이브 2"]);
+    expect(loaded.list.slots[1]?.progress.clearedStage).toBe(4);
+    expect(loaded.list.slots[1]?.updatedAt).toBe(2_500);
+    const body = JSON.parse(store.data[CAMPAIGN_STORAGE_KEY] ?? "") as { listVersion: number };
+    expect(body.listVersion).toBe(SAVE_LIST_VERSION);
+  });
+
+  it("wraps a single campaign save as the first slot", () => {
+    const legacyKey = LEGACY_CAMPAIGN_STORAGE_KEYS[0];
+    const store = memoryStore({
+      [legacyKey]: JSON.stringify({ clearedStage: 2, mapTowers: {} }),
+    });
+    const loaded = loadSaveList(store);
+    expect(loaded.status).toBe("migrated");
+    expect(loaded.list.slots).toHaveLength(1);
+    expect(loaded.list.slots[0]?.name).toBe("세이브 1");
+    expect(loaded.list.slots[0]?.progress.clearedStage).toBe(2);
+    expect(store.data[legacyKey]).toBeUndefined();
+    const again = loadSaveList(store);
+    expect(again.status).toBe("ok");
+    expect(again.list.slots[0]?.progress.clearedStage).toBe(2);
+  });
+
+  it("does not overwrite a newer save list", () => {
+    const raw = JSON.stringify({
+      listVersion: SAVE_LIST_VERSION + 1,
+      slots: [{ id: "future", name: "나중", updatedAt: 9, campaign: { clearedStage: 8 } }],
+    });
+    const store = memoryStore({ [CAMPAIGN_STORAGE_KEY]: raw });
+    const loaded = loadSaveList(store);
+    expect(loaded.status).toBe("newer");
+    expect(loaded.list.slots).toEqual([]);
+    const added = addSaveSlot(loaded.list, 1_000);
+    expect(persistSaveList(store, added.list, loaded.preserved)).toBe(false);
+    expect(store.data[CAMPAIGN_STORAGE_KEY]).toBe(raw);
+  });
+
+  it("writes a newer slot back unchanged when another slot is saved", () => {
+    const newerCampaign = {
+      version: CAMPAIGN_SAVE_VERSION + 1,
+      clearedStage: 4,
+      mapTowers: {},
+    };
+    const store = memoryStore({
+      [CAMPAIGN_STORAGE_KEY]: JSON.stringify({
+        listVersion: SAVE_LIST_VERSION,
+        slots: [
+          {
+            id: "a",
+            name: "세이브 1",
+            updatedAt: 1,
+            campaign: JSON.parse(serializeCampaign({ ...createCampaign(), clearedStage: 2 })) as unknown,
+          },
+          { id: "b", name: "세이브 2", updatedAt: 2, campaign: newerCampaign },
+        ],
+      }),
+    });
+    const loaded = loadSaveList(store);
+    expect(loaded.list.slots[1]?.status).toBe("newer");
+    const next = updateSaveSlot(
+      loaded.list,
+      "a",
+      { ...createCampaign(), clearedStage: 3 },
+      10,
+    );
+    expect(updateSaveSlot(loaded.list, "b", createCampaign(), 11).slots[1]?.status).toBe("newer");
+    expect(persistSaveList(store, next, loaded.preserved)).toBe(true);
+    const raw = JSON.parse(store.data[CAMPAIGN_STORAGE_KEY] ?? "") as {
+      slots: { id: string; campaign: { clearedStage: number; version: number } }[];
+    };
+    expect(raw.slots[0]?.campaign.clearedStage).toBe(3);
+    expect(raw.slots[1]?.campaign).toEqual(newerCampaign);
   });
 });

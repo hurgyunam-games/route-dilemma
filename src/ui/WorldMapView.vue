@@ -24,6 +24,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [id: MapId];
+  saves: [];
   gallery: [];
   waves: [];
   enemies: [];
@@ -119,6 +120,13 @@ onUnmounted(() => {
         스테이지 1–5는 맵 1–5와 하나씩 대응합니다. 스테이지 6부터는 맵 1로 돌아오며, 그 맵에 지은 타워가 남아 있습니다.
       </p>
       <div class="play-links">
+        <button
+          type="button"
+          class="gallery-link"
+          @click="emit('saves')"
+        >
+          세이브 목록
+        </button>
         <button
           type="button"
           class="gallery-link"
