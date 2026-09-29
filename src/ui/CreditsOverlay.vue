@@ -1,38 +1,48 @@
 <script setup lang="ts">
+import { t, type MessageKey } from "@/ui/i18n";
+
 const emit = defineEmits<{
   close: [];
 }>();
 
-const CREDITS = [
+const CREDITS: readonly {
+  kind: MessageKey;
+  author: string;
+  title: string;
+  note: MessageKey | "";
+  href: string;
+}[] = [
   {
-    kind: "음악",
+    kind: "credits.music",
     author: "xDeviruchi",
     title: "16-bit Fantasy & Adventure Music Pack",
-    note: "월드맵: Port Town · 맵 1: Definitely Our Town · 맵 2: Shop · 맵 3: The Mighty Kingdom · 맵 4: Frozen Abyss · 맵 5: Decisive Battle",
+    note: "credits.tracks",
     href: "https://xdeviruchi.itch.io/16-bit-fantasy-adventure-music-pack",
   },
   {
-    kind: "효과음",
+    kind: "credits.sfx",
     author: "Leohpaz",
     title: "RPG Essentials SFX Free",
     note: "",
     href: "https://leohpaz.itch.io/rpg-essentials-sfx-free",
   },
   {
-    kind: "효과음",
+    kind: "credits.sfx",
     author: "Leohpaz",
     title: "Minifantasy Dungeon SFX Pack",
     note: "",
     href: "https://leohpaz.itch.io/minifantasy-dungeon-sfx-pack",
   },
   {
-    kind: "그래픽",
+    kind: "credits.art",
     author: "itch.io",
     title: "Tower Defense Top-Down Pixel Assets",
     note: "",
     href: "https://itch.io/c/3550377/tower-defense-top-down-pixel-assets",
   },
-] as const;
+];
+
+const noteText = (note: MessageKey | ""): string => (note ? t(note) : "");
 </script>
 
 <template>
@@ -44,20 +54,20 @@ const CREDITS = [
       class="credits-panel"
       role="dialog"
       aria-modal="true"
-      aria-label="에셋 출처"
+      :aria-label="t('credits.aria')"
     >
       <header class="credits-head">
-        <h2>에셋 출처</h2>
+        <h2>{{ t("credits.title") }}</h2>
         <button
           type="button"
           class="close"
           @click="emit('close')"
         >
-          닫기
+          {{ t("common.close") }}
         </button>
       </header>
       <p class="credits-lead">
-        이 게임에 쓰는 음악, 효과음, 그림의 출처입니다.
+        {{ t("credits.lead") }}
       </p>
       <ul class="credits-list">
         <li
@@ -65,7 +75,7 @@ const CREDITS = [
           :key="credit.href"
         >
           <p class="credits-kind">
-            {{ credit.kind }}
+            {{ t(credit.kind) }}
           </p>
           <p class="credits-title">
             {{ credit.author }} — {{ credit.title }}
@@ -74,7 +84,7 @@ const CREDITS = [
             v-if="credit.note"
             class="credits-note"
           >
-            {{ credit.note }}
+            {{ noteText(credit.note) }}
           </p>
           <a
             :href="credit.href"

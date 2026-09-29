@@ -4,6 +4,7 @@ import {
   campaignMapStatuses,
   currentStage,
   type CampaignLoadStatus,
+  type CampaignMapStatus,
   type CampaignProgress,
   type GameMapDef,
   type MapId,
@@ -13,8 +14,10 @@ import {
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import BestiaryOverlay from "@/ui/BestiaryOverlay.vue";
 import CreditsOverlay from "@/ui/CreditsOverlay.vue";
+import LocaleSwitch from "@/ui/LocaleSwitch.vue";
 import ResearchTreeOverlay from "@/ui/ResearchTreeOverlay.vue";
 import SoundSettingsOverlay from "@/ui/SoundSettingsOverlay.vue";
+import { mapTitle, t } from "@/ui/i18n";
 
 const props = defineProps<{
   lastMapId: MapId | null;
@@ -50,14 +53,10 @@ const MAP_ACCENTS: Record<MapId, string> = {
 const statuses = computed(() => campaignMapStatuses(props.progress, nowMs.value));
 const stageNow = computed(() => currentStage(props.progress));
 const loopHint = computed(() =>
-  campaignCycle(stageNow.value) > 0
-    ? "돌아온 판은 적이 더 셉니다. 기존 타워만으로는 버티기 어려우니 보강하세요."
-    : "",
+  campaignCycle(stageNow.value) > 0 ? t("world.loopHint") : "",
 );
 const saveNotice = computed(() =>
-  props.saveStatus === "newer"
-    ? "이 세이브는 더 새 게임 버전에서 만들어졌습니다. 진행을 덮어쓰지 않습니다."
-    : "",
+  props.saveStatus === "newer" ? t("world.saveNewer") : "",
 );
 
 type MiniCell = {
@@ -89,7 +88,24 @@ const miniCells = (map: GameMapDef, towers: readonly { x: number; y: number }[])
 };
 
 const recaptureLabel = (remainingMs: number): string =>
-  `탈환 중 ${Math.max(1, Math.ceil(remainingMs / 1000))}초`;
+  t("world.recapture", { sec: Math.max(1, Math.ceil(remainingMs / 1000)) });
+
+const mapAria = (status: CampaignMapStatus): string => {
+  const name = mapTitle(status.map.id);
+  if (!status.unlocked) {
+    return t("world.ariaLocked", { stage: status.stageId, name });
+  }
+  if (status.recapturing) {
+    return t("world.ariaRecapture", {
+      stage: status.stageId,
+      name,
+      recapture: recaptureLabel(status.recaptureRemainingMs),
+    });
+  }
+  return status.cleared
+    ? t("world.ariaEnterCleared", { stage: status.stageId, name })
+    : t("world.ariaEnter", { stage: status.stageId, name });
+};
 
 const onSelect = (id: MapId, unlocked: boolean, recapturing: boolean): void => {
   if (!unlocked || recapturing) {
@@ -112,52 +128,53 @@ onUnmounted(() => {
 <template>
   <div class="world-map">
     <header class="world-head">
-      <h1>월드맵</h1>
+      <h1>{{ t("world.title") }}</h1>
       <p class="stage-now">
-        현재 스테이지 {{ stageNow }}
+        {{ t("world.stageNow", { stage: stageNow }) }}
       </p>
       <p>
-        스테이지 1–5는 맵 1–5와 하나씩 대응합니다. 스테이지 6부터는 맵 1로 돌아오며, 그 맵에 지은 타워가 남아 있습니다.
+        {{ t("world.intro") }}
       </p>
+      <LocaleSwitch class="locale-row" />
       <div class="play-links">
         <button
           type="button"
           class="gallery-link"
           @click="emit('saves')"
         >
-          세이브 목록
+          {{ t("world.saves") }}
         </button>
         <button
           type="button"
           class="gallery-link"
           @click="bestiaryOpen = true"
         >
-          도감
+          {{ t("world.bestiary") }}
         </button>
         <button
           type="button"
           class="gallery-link research-link"
           @click="researchOpen = true"
         >
-          연구 트리
+          {{ t("world.research") }}
         </button>
         <button
           type="button"
           class="gallery-link"
           @click="soundOpen = true"
         >
-          소리
+          {{ t("world.sound") }}
         </button>
         <button
           type="button"
           class="gallery-link"
           @click="creditsOpen = true"
         >
-          출처
+          {{ t("world.credits") }}
         </button>
       </div>
       <p class="research-points">
-        연구 포인트 {{ Math.floor(progress.researchPoints) }}
+        {{ t("research.points", { points: Math.floor(progress.researchPoints) }) }}
       </p>
       <div
         v-if="showDevTools"
@@ -215,17 +232,11 @@ onUnmounted(() => {
           }"
           :style="{ '--accent': MAP_ACCENTS[status.mapId] }"
           :disabled="!status.unlocked || status.recapturing"
-          :aria-label="
-            !status.unlocked
-              ? `스테이지 ${status.stageId} ${status.map.name} 잠김`
-              : status.recapturing
-                ? `스테이지 ${status.stageId} ${status.map.name} ${recaptureLabel(status.recaptureRemainingMs)}`
-                : `스테이지 ${status.stageId} ${status.map.name} 맵으로 배틀 시작${status.cleared ? ', 클리어' : ''}`
-          "
+          :aria-label="mapAria(status)"
           @click="onSelect(status.mapId, status.unlocked, status.recapturing)"
         >
-          <span class="map-index">스테이지 {{ status.stageId }}</span>
-          <span class="map-name">{{ status.map.name }}</span>
+          <span class="map-index">{{ t("world.stage", { stage: status.stageId }) }}</span>
+          <span class="map-name">{{ mapTitle(status.map.id) }}</span>
           <span
             class="mini-grid"
             :style="{
@@ -240,13 +251,13 @@ onUnmounted(() => {
               :class="cell.kind"
             />
           </span>
-          <span class="map-meta">맵 {{ status.mapId }} · {{ status.map.cols }}×{{ status.map.rows }}</span>
+          <span class="map-meta">{{ t("world.mapMeta", { id: status.mapId, cols: status.map.cols, rows: status.map.rows }) }}</span>
           <span class="map-state">
-            <template v-if="!status.unlocked">잠김</template>
+            <template v-if="!status.unlocked">{{ t("world.locked") }}</template>
             <template v-else-if="status.recapturing">{{ recaptureLabel(status.recaptureRemainingMs) }}</template>
-            <template v-else-if="status.current">플레이</template>
-            <template v-else-if="status.cleared">클리어</template>
-            <template v-else>플레이</template>
+            <template v-else-if="status.current">{{ t("world.play") }}</template>
+            <template v-else-if="status.cleared">{{ t("world.cleared") }}</template>
+            <template v-else>{{ t("world.play") }}</template>
           </span>
         </button>
       </li>
@@ -323,6 +334,10 @@ onUnmounted(() => {
 .world-head .save-notice {
   margin: 8px 0 0;
   color: #e08070;
+}
+
+.locale-row {
+  margin-top: 14px;
 }
 
 .play-links,

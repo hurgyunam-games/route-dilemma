@@ -5,6 +5,7 @@ import {
   ENEMY_BEHAVIOR_LABELS,
   getEnemyCatalog,
   tryGetEnemy,
+  type EnemyBehaviorId,
   type EnemyTypeId,
 } from "./enemies";
 

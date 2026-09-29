@@ -10,7 +10,6 @@ import {
   confirmWavePreview,
   createBattleGrid,
   createSim,
-  getGameMap,
   getTower,
   hudSnapshot,
   isTowerComplete,
@@ -25,7 +24,6 @@ import {
   TOWER_CATALOG,
   TOWER_DEFS,
   TOWER_MAX_LEVEL,
-  TOWER_ROLE_LABELS,
   TOWER_TYPE_IDS,
   towerAttack,
   towerDps,
@@ -61,12 +59,22 @@ import BestiaryOverlay from "@/ui/BestiaryOverlay.vue";
 import CreditsOverlay from "@/ui/CreditsOverlay.vue";
 import SoundSettingsOverlay from "@/ui/SoundSettingsOverlay.vue";
 import WavePreviewBanner from "@/ui/WavePreviewBanner.vue";
+import {
+  attackRole,
+  mapTitle,
+  t,
+  towerTitle,
+  translateCommandReason,
+  warningMessage,
+  warningTitle,
+  type MessageKey,
+} from "@/ui/i18n";
 
-const TIME_CONTROLS: readonly { scale: TimeScale; label: string }[] = [
-  { scale: 0, label: "일시정지" },
-  { scale: 1, label: "1배속" },
-  { scale: 2, label: "2배속" },
-  { scale: 3, label: "3배속" },
+const TIME_CONTROLS: readonly { scale: TimeScale; label: MessageKey }[] = [
+  { scale: 0, label: "battle.pause" },
+  { scale: 1, label: "battle.speed1" },
+  { scale: 2, label: "battle.speed2" },
+  { scale: 3, label: "battle.speed3" },
 ];
 
 type Shop =
@@ -146,26 +154,30 @@ const phaseLabel = computed(() =>
   hud.value.phase === "enemy" ? "Enemy Phase" : "Ally Phase",
 );
 const phaseTimeLabel = computed(() => `${hud.value.phaseTimeLeft.toFixed(1)}s`);
-const goldLabel = computed(() => `골드 ${hud.value.gold}`);
-const researchLabel = computed(() => `연구 ${Math.floor(hud.value.researchPoints)}`);
-const baseHpLabel = computed(() => `본진 HP ${hud.value.baseHp}`);
-const leftoverLabel = computed(() =>
-  hud.value.leftoverAllies > 0 ? `남은 아군 ${hud.value.leftoverAllies}` : "",
+const goldLabel = computed(() => t("battle.gold", { gold: hud.value.gold }));
+const researchLabel = computed(() =>
+  t("battle.research", { points: Math.floor(hud.value.researchPoints) }),
 );
-const mapLabel = computed(() => `맵 ${props.mapId} ${getGameMap(props.mapId).name}`);
+const baseHpLabel = computed(() => t("battle.baseHp", { hp: hud.value.baseHp }));
+const leftoverLabel = computed(() =>
+  hud.value.leftoverAllies > 0
+    ? t("battle.leftover", { count: hud.value.leftoverAllies })
+    : "",
+);
+const mapLabel = computed(() =>
+  t("battle.map", { id: props.mapId, name: mapTitle(props.mapId) }),
+);
 const stageLabel = computed(() => {
   const cycle = campaignCycle(hud.value.stageId);
   return cycle > 0
-    ? `스테이지 ${hud.value.stageId} · 사이클 ${cycle + 1}`
-    : `스테이지 ${hud.value.stageId}`;
+    ? t("battle.stageCycle", { stage: hud.value.stageId, cycle: cycle + 1 })
+    : t("battle.stage", { stage: hud.value.stageId });
 });
 const loopHint = computed(() =>
-  campaignCycle(hud.value.stageId) > 0
-    ? "이전 사이클보다 적이 강합니다. 타워를 보강하세요."
-    : "",
+  campaignCycle(hud.value.stageId) > 0 ? t("battle.loopHint") : "",
 );
-const waveLabel = computed(
-  () => `웨이브 ${hud.value.waveIndex + 1} / ${hud.value.waveCount}`,
+const waveLabel = computed(() =>
+  t("battle.wave", { current: hud.value.waveIndex + 1, total: hud.value.waveCount }),
 );
 const showWavePreview = computed(
   () =>
@@ -223,7 +235,7 @@ const selectedTowerName = computed(() => {
   if (!tower) {
     return "";
   }
-  return TOWER_DEFS[tower.typeId].name;
+  return towerTitle(tower.typeId);
 });
 
 const canUpgradeSelected = computed(() => {
@@ -268,24 +280,28 @@ const towerUnlocked = (typeId: TowerTypeId): boolean =>
 
 const buildSpecLines = (def: TowerDef): readonly string[] => {
   if (!towerUnlocked(def.id)) {
-    return ["연구 트리에서 해금해야 지을 수 있습니다"];
+    return [t("battle.needResearch")];
   }
   if (def.id === "research") {
     return [
-      `비용 ${def.cost}`,
-      `체력 ${def.hp}`,
-      "공격 없음 · 연구 포인트 생산",
-      `완성 후 초당 연구 ${researchPointRateForLevel(1)}`,
+      t("battle.cost", { cost: def.cost }),
+      t("battle.hp", { hp: def.hp }),
+      t("battle.specResearch"),
+      t("battle.specResearchRate", { rate: researchPointRateForLevel(1) }),
     ];
   }
   if (def.attack === "none") {
-    return [`비용 ${def.cost}`, `체력 ${def.hp}`, "공격 없음 · 길 차단"];
+    return [
+      t("battle.cost", { cost: def.cost }),
+      t("battle.hp", { hp: def.hp }),
+      t("battle.specWall"),
+    ];
   }
   return [
-    `비용 ${def.cost}`,
-    `체력 ${def.hp}`,
-    `사거리 ${def.range}`,
-    `공격 ${def.dps} · ${TOWER_ROLE_LABELS[def.attack]}`,
+    t("battle.cost", { cost: def.cost }),
+    t("battle.hp", { hp: def.hp }),
+    t("battle.range", { range: def.range }),
+    t("battle.attackLine", { dps: def.dps, role: attackRole(def.attack) }),
   ];
 };
 
@@ -583,7 +599,7 @@ const onDestroy = (): void => {
   if (!shop.value || shop.value.mode !== "upgrade") {
     return;
   }
-  if (!window.confirm("이 타워를 파괴할까요?")) {
+  if (!window.confirm(t("battle.destroyConfirm"))) {
     return;
   }
   const result = simRemoveTower(sim, shop.value.x, shop.value.y);
@@ -697,21 +713,21 @@ onUnmounted(() => {
           class="world-map-btn"
           @click="onLeaveWorldMap"
         >
-          월드맵
+          {{ t("battle.worldMap") }}
         </button>
         <button
           type="button"
           class="world-map-btn"
           @click="openBestiary"
         >
-          도감
+          {{ t("battle.bestiary") }}
         </button>
         <button
           type="button"
           class="world-map-btn"
           @click="soundOpen = true"
         >
-          소리
+          {{ t("battle.sound") }}
         </button>
         <div class="hud-main">
           <div
@@ -744,7 +760,7 @@ onUnmounted(() => {
         <div
           class="time-controls"
           role="group"
-          aria-label="타임 컨트롤러"
+          :aria-label="t('battle.timeControls')"
         >
           <button
             v-for="option in TIME_CONTROLS"
@@ -753,7 +769,7 @@ onUnmounted(() => {
             :class="{ active: hud.timeScale === option.scale }"
             @click="onTimeScale(option.scale)"
           >
-            {{ option.label }}
+            {{ t(option.label) }}
           </button>
         </div>
       </div>
@@ -777,7 +793,7 @@ onUnmounted(() => {
           v-if="!hud.hasPath"
           class="blocked"
         >
-          길이 없습니다
+          {{ t("battle.noPath") }}
         </p>
       </div>
     </div>
@@ -798,8 +814,8 @@ onUnmounted(() => {
         :key="toast.behavior"
         class="behavior-toast-item"
       >
-        <strong>{{ toast.title }}</strong>
-        <span>{{ toast.message }}</span>
+        <strong>{{ warningTitle(toast.behavior) }}</strong>
+        <span>{{ warningMessage(toast.behavior) }}</span>
       </p>
     </div>
     <div
@@ -818,7 +834,7 @@ onUnmounted(() => {
           v-if="hud.outcome === 'defeat'"
           class="outcome-copy"
         >
-          지원군이 이 맵을 탈환할 때까지 다시 들어갈 수 없습니다.
+          {{ t("battle.defeatCopy") }}
         </p>
         <div class="outcome-actions">
           <button
@@ -827,14 +843,14 @@ onUnmounted(() => {
             class="restart-btn"
             @click="onRestart"
           >
-            다시 하기
+            {{ t("battle.again") }}
           </button>
           <button
             type="button"
             class="restart-btn"
             @click="onLeaveWorldMap"
           >
-            월드맵
+            {{ t("battle.worldMap") }}
           </button>
         </div>
       </div>
@@ -848,20 +864,20 @@ onUnmounted(() => {
         class="shop-panel"
         role="dialog"
         aria-modal="true"
-        aria-label="건설할 종류 선택"
+        :aria-label="t('battle.shopAria')"
       >
         <header class="shop-head">
-          <h2>건설할 종류 선택</h2>
+          <h2>{{ t("battle.shopTitle") }}</h2>
           <button
             type="button"
             class="close"
             @click="closeShop"
           >
-            닫기
+            {{ t("common.close") }}
           </button>
         </header>
         <p class="shop-gold">
-          보유 골드 {{ hud.gold }}
+          {{ t("battle.holdGold", { gold: hud.gold }) }}
         </p>
         <div
           class="type-picker"
@@ -885,11 +901,11 @@ onUnmounted(() => {
                 :style="buildThumbStyle(def.id)"
                 aria-hidden="true"
               />
-              <span class="type-name">{{ def.name }}</span>
+              <span class="type-name">{{ towerTitle(def.id) }}</span>
               <span
                 v-if="!towerUnlocked(def.id)"
                 class="type-lock"
-              >연구 필요</span>
+              >{{ t("battle.needUnlock") }}</span>
             </button>
           </div>
           <div
@@ -899,7 +915,7 @@ onUnmounted(() => {
             role="tooltip"
           >
             <template v-if="hoveredBuildDef">
-              <p class="build-spec-name">{{ hoveredBuildDef.name }}</p>
+              <p class="build-spec-name">{{ towerTitle(hoveredBuildDef.id) }}</p>
               <p
                 v-for="line in buildSpecLines(hoveredBuildDef)"
                 :key="line"
@@ -914,7 +930,7 @@ onUnmounted(() => {
           v-if="shopError"
           class="shop-error"
         >
-          {{ shopError }}
+          {{ translateCommandReason(shopError) }}
         </p>
       </div>
     </div>
@@ -923,7 +939,7 @@ onUnmounted(() => {
       class="tower-menu"
       :class="{ 'detail-open': towerMenuDetail }"
       role="dialog"
-      aria-label="타워 메뉴"
+      :aria-label="t('battle.towerMenu')"
     >
       <header class="shop-head">
         <h2>{{ selectedTowerName }}</h2>
@@ -932,7 +948,7 @@ onUnmounted(() => {
           class="close"
           @click="closeShop"
         >
-          닫기
+          {{ t("common.close") }}
         </button>
       </header>
       <div
@@ -942,8 +958,8 @@ onUnmounted(() => {
         <p class="building-note">
           {{
             selectedTower.level > 1
-              ? "업그레이드 중입니다. 끝난 뒤에 다시 업그레이드할 수 있습니다."
-              : "아직 건설 중입니다. 완성된 뒤에 업그레이드할 수 있습니다."
+              ? t("battle.upgrading")
+              : t("battle.building")
           }}
         </p>
         <button
@@ -951,7 +967,7 @@ onUnmounted(() => {
           class="destroy-btn"
           @click="onDestroy"
         >
-          파괴
+          {{ t("battle.destroy") }}
         </button>
       </div>
       <div
@@ -963,40 +979,40 @@ onUnmounted(() => {
           class="tower-detail"
         >
           <p class="type-stat">
-            레벨 {{ upgradePreview.current.level }}
-            · 체력 {{ upgradePreview.current.hp }}
+            {{ t("battle.level", { level: upgradePreview.current.level }) }}
+            · {{ t("battle.hp", { hp: upgradePreview.current.hp }) }}
             <template v-if="towerFires(selectedTower)">
-              · 사거리 {{ upgradePreview.current.range }}
-              · 공격 {{ upgradePreview.current.dps }}
-              · {{ TOWER_ROLE_LABELS[towerAttack(selectedTower)] }}
+              · {{ t("battle.range", { range: upgradePreview.current.range }) }}
+              · {{ t("battle.damage", { dps: upgradePreview.current.dps }) }}
+              · {{ attackRole(towerAttack(selectedTower)) }}
             </template>
             <template v-else-if="selectedTower.typeId === 'research'">
-              · 공격 없음 · 초당 연구 {{ researchPointRateForLevel(selectedTower.level) }}
+              · {{ t("battle.noAttackResearch", { rate: researchPointRateForLevel(selectedTower.level) }) }}
             </template>
             <template v-else>
-              · 공격 없음
+              · {{ t("battle.noAttack") }}
             </template>
           </p>
           <p
             v-if="upgradePreview.next"
             class="type-stat next"
           >
-            다음: 레벨 {{ upgradePreview.next.level }}
-            · 체력 {{ upgradePreview.next.hp }}
+            {{ t("battle.next", { level: upgradePreview.next.level }) }}
+            · {{ t("battle.hp", { hp: upgradePreview.next.hp }) }}
             <template v-if="towerFires(selectedTower)">
-              · 사거리 {{ upgradePreview.next.range }}
-              · 공격 {{ upgradePreview.next.dps }}
+              · {{ t("battle.range", { range: upgradePreview.next.range }) }}
+              · {{ t("battle.damage", { dps: upgradePreview.next.dps }) }}
             </template>
             <template v-else-if="selectedTower.typeId === 'research'">
-              · 초당 연구 {{ researchPointRateForLevel(upgradePreview.next.level) }}
+              · {{ t("battle.researchRate", { rate: researchPointRateForLevel(upgradePreview.next.level) }) }}
             </template>
-            · 비용 {{ upgradePreview.cost }}
+            · {{ t("battle.cost", { cost: upgradePreview.cost }) }}
           </p>
           <p
             v-else
             class="type-stat"
           >
-            최대 레벨입니다
+            {{ t("battle.maxLevel") }}
           </p>
         </div>
         <div class="shop-actions">
@@ -1006,7 +1022,7 @@ onUnmounted(() => {
             class="upgrade-btn"
             @click="onUpgrade"
           >
-            업그레이드
+            {{ t("battle.upgrade") }}
           </button>
           <button
             type="button"
@@ -1015,7 +1031,7 @@ onUnmounted(() => {
             :aria-pressed="towerMenuDetail"
             @click="onToggleDetail"
           >
-            상세
+            {{ t("battle.detail") }}
           </button>
           <button
             v-if="towerMenuDetail"
@@ -1023,7 +1039,7 @@ onUnmounted(() => {
             class="destroy-btn"
             @click="onDestroy"
           >
-            파괴
+            {{ t("battle.destroy") }}
           </button>
         </div>
       </div>
@@ -1031,7 +1047,7 @@ onUnmounted(() => {
         v-if="shopError"
         class="shop-error"
       >
-        {{ shopError }}
+        {{ translateCommandReason(shopError) }}
       </p>
     </div>
     <BestiaryOverlay

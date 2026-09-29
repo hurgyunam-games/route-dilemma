@@ -7,6 +7,7 @@ import {
   type AudioChannel,
   type AudioSettings,
 } from "@/render/audio-settings";
+import { t, type MessageKey } from "@/ui/i18n";
 
 const emit = defineEmits<{
   close: [];
@@ -16,10 +17,10 @@ const emit = defineEmits<{
 const settings = ref<AudioSettings>(getAudioSettings());
 let unsubscribe = (): void => {};
 
-const ROWS: readonly { channel: AudioChannel; label: string }[] = [
-  { channel: "master", label: "마스터" },
-  { channel: "sfx", label: "효과음" },
-  { channel: "bgm", label: "BGM" },
+const ROWS: readonly { channel: AudioChannel; label: MessageKey }[] = [
+  { channel: "master", label: "sound.master" },
+  { channel: "sfx", label: "sound.sfx" },
+  { channel: "bgm", label: "sound.bgm" },
 ];
 
 const percent = (channel: AudioChannel): number => Math.round(settings.value[channel] * 100);
@@ -49,16 +50,16 @@ onUnmounted(() => {
       class="sound-panel"
       role="dialog"
       aria-modal="true"
-      aria-label="사운드 설정"
+      :aria-label="t('sound.aria')"
     >
       <header class="sound-head">
-        <h2>사운드</h2>
+        <h2>{{ t("sound.title") }}</h2>
         <button
           type="button"
           class="close"
           @click="emit('close')"
         >
-          닫기
+          {{ t("common.close") }}
         </button>
       </header>
       <label
@@ -66,27 +67,27 @@ onUnmounted(() => {
         :key="row.channel"
         class="sound-row"
       >
-        <span class="sound-name">{{ row.label }}</span>
+        <span class="sound-name">{{ t(row.label) }}</span>
         <input
           type="range"
           min="0"
           max="100"
           step="1"
           :value="percent(row.channel)"
-          :aria-label="`${row.label} 볼륨`"
+          :aria-label="t('sound.volume', { name: t(row.label) })"
           @input="onInput(row.channel, $event)"
         >
         <span class="sound-pct">{{ percent(row.channel) }}%</span>
       </label>
       <p class="sound-note">
-        마스터는 효과음과 BGM에 함께 곱해집니다. 월드맵과 맵은 서로 다른 곡이 반복됩니다.
+        {{ t("sound.note") }}
       </p>
       <button
         type="button"
         class="credits-btn"
         @click="emit('credits')"
       >
-        에셋 출처
+        {{ t("sound.credits") }}
       </button>
     </div>
   </div>
@@ -149,7 +150,7 @@ onUnmounted(() => {
 
 .sound-row {
   display: grid;
-  grid-template-columns: 64px 1fr 48px;
+  grid-template-columns: minmax(7.5rem, auto) 1fr 48px;
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;

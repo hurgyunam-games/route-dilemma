@@ -4,9 +4,11 @@ import {
   BESTIARY_LOCKED_NAME,
   bestiaryEntries,
   normalizeHue,
+  tryGetEnemy,
   type EnemyTypeId,
 } from "@/core";
 import { enemyWalkPreview, loadEnemyWalkThumbs } from "@/render/enemy-sprites";
+import { behaviorLabel, content, t } from "@/ui/i18n";
 
 const props = defineProps<{
   unlockedIds: readonly string[];
@@ -80,11 +82,26 @@ const spriteArtStyle = (sprite: EnemyTypeId, hue = 0, silhouette = false): CSSPr
 const hasWalkSheet = (sprite: EnemyTypeId): boolean =>
   !walkThumbs.value[sprite] && Boolean(enemyWalkPreview(sprite).url);
 
-const entryLabel = (entry: { unlocked: boolean; isNew: boolean; name: string }): string => {
-  if (!entry.unlocked) {
-    return "아직 열리지 않은 적";
+const shownName = (entry: { id: string; unlocked: boolean; name: string }): string =>
+  entry.unlocked ? content(`enemy.${entry.id}.name`, entry.name) : entry.name;
+
+const shownStory = (entry: { id: string; story: string | null }): string =>
+  entry.story ? content(`enemy.${entry.id}.story`, entry.story) : "";
+
+const shownBehavior = (id: string): string => {
+  const enemy = tryGetEnemy(id);
+  if (!enemy) {
+    return "";
   }
-  return entry.isNew ? `${entry.name} NEW` : entry.name;
+  return t("bestiary.behavior", { label: behaviorLabel(enemy.behavior) });
+};
+
+const entryLabel = (entry: { id: string; unlocked: boolean; isNew: boolean; name: string }): string => {
+  if (!entry.unlocked) {
+    return t("bestiary.lockedAria");
+  }
+  const name = shownName(entry);
+  return entry.isNew ? t("bestiary.namedNew", { name }) : name;
 };
 
 const onSelect = (id: string): void => {
@@ -111,16 +128,16 @@ const scrollFocusedIntoView = async (): Promise<void> => {
       class="bestiary-panel"
       role="dialog"
       aria-modal="true"
-      aria-label="도감"
+      :aria-label="t('bestiary.aria')"
     >
       <header class="bestiary-head">
-        <h2>도감</h2>
+        <h2>{{ t("bestiary.title") }}</h2>
         <button
           type="button"
           class="close"
           @click="emit('close')"
         >
-          닫기
+          {{ t("common.close") }}
         </button>
       </header>
       <div class="bestiary-body">
@@ -153,7 +170,7 @@ const scrollFocusedIntoView = async (): Promise<void> => {
                 class="badge"
               >NEW</span>
             </span>
-            <span class="entry-name">{{ entry.name }}</span>
+            <span class="entry-name">{{ shownName(entry) }}</span>
           </button>
         </div>
         <aside class="bestiary-detail">
@@ -170,13 +187,13 @@ const scrollFocusedIntoView = async (): Promise<void> => {
                 class="badge"
               >NEW</span>
             </span>
-            <h3>{{ selected.name }}</h3>
-            <p>행동 {{ selected.behaviorLabel }}</p>
+            <h3>{{ shownName(selected) }}</h3>
+            <p>{{ shownBehavior(selected.id) }}</p>
             <p
-              v-if="selected.story"
+              v-if="shownStory(selected)"
               class="story"
             >
-              {{ selected.story }}
+              {{ shownStory(selected) }}
             </p>
           </template>
           <template v-else-if="selected">
@@ -192,13 +209,13 @@ const scrollFocusedIntoView = async (): Promise<void> => {
               />
             </span>
             <h3>{{ BESTIARY_LOCKED_NAME }}</h3>
-            <p>아직 모습이 밝혀지지 않았습니다.</p>
+            <p>{{ t("bestiary.unknown") }}</p>
           </template>
           <p
             v-else
             class="hint"
           >
-            적을 고르면 알려진 특징이 나옵니다.
+            {{ t("bestiary.pick") }}
           </p>
         </aside>
       </div>

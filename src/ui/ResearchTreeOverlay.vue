@@ -5,6 +5,7 @@ import {
   hasResearchBuff,
   RESEARCH_BUFFS,
   researchPrerequisitesMet,
+  researchRequires,
   researchUnlockRefusal,
   TOWER_TYPE_IDS,
   type ResearchBuffDef,
@@ -12,6 +13,7 @@ import {
   type TowerTypeId,
 } from "@/core";
 import { loadTowerBuildThumbs, towerBuildFallbackThumb } from "@/render/tower-thumbs";
+import { researchBody, researchTitle, t } from "@/ui/i18n";
 
 const CARD_W = 104;
 const CARD_H = 132;
@@ -53,7 +55,7 @@ const emit = defineEmits<{
   unlock: [id: ResearchBuffId];
 }>();
 
-const error = ref("");
+const errorId = ref<ResearchBuffId | null>(null);
 const selectedId = ref<ResearchBuffId | null>(RESEARCH_BUFFS[0]?.id ?? null);
 const thumbs = ref<Record<TowerTypeId, string>>(
   Object.fromEntries(TOWER_TYPE_IDS.map((id) => [id, towerBuildFallbackThumb(id)])) as Record<
@@ -120,17 +122,17 @@ const parentLabel = (buff: ResearchBuffDef): string => {
   if (requires.length === 0) {
     return "";
   }
-  return requires.map((id) => getResearchBuff(id).name).join(" · ");
+  return requires.map((id) => researchTitle(id)).join(" · ");
 };
 
 const statusLabel = (buff: ResearchBuffDef): string => {
   if (owned(buff.id)) {
-    return buff.unlocks ? "해금됨" : "적용됨";
+    return buff.unlocks ? t("research.unlocked") : t("research.applied");
   }
   if (!parentsReady(buff.id)) {
-    return "선행 필요";
+    return t("research.needParent");
   }
-  return `비용 ${buff.cost}`;
+  return t("research.cost", { cost: buff.cost });
 };
 
 const iconMarkup = (buff: ResearchBuffDef): string => BUFF_ICON[buff.id] ?? "";
@@ -138,11 +140,30 @@ const iconMarkup = (buff: ResearchBuffDef): string => BUFF_ICON[buff.id] ?? "";
 const iconSrc = (buff: ResearchBuffDef): string =>
   buff.unlocks ? thumbs.value[buff.unlocks] : "";
 
-const pointsLabel = computed(() => `연구 포인트 ${Math.floor(props.points)}`);
+const pointsLabel = computed(() => t("research.points", { points: Math.floor(props.points) }));
+
+const refusalMessage = (id: ResearchBuffId): string => {
+  if (hasResearchBuff(props.unlocked, id)) {
+    return t("research.alreadyOwned");
+  }
+  const missing = researchRequires(id).filter((need) => !hasResearchBuff(props.unlocked, need));
+  if (missing.length > 0) {
+    return t("research.needParents", {
+      names: missing.map((need) => researchTitle(need)).join(", "),
+    });
+  }
+  const cost = getResearchBuff(id).cost;
+  if (props.points < cost) {
+    return t("research.shortPoints", { cost, have: Math.floor(props.points) });
+  }
+  return "";
+};
+
+const error = computed(() => (errorId.value ? refusalMessage(errorId.value) : ""));
 
 const onSelect = (id: ResearchBuffId): void => {
   selectedId.value = id;
-  error.value = "";
+  errorId.value = null;
 };
 
 const onUnlock = (): void => {
@@ -151,10 +172,10 @@ const onUnlock = (): void => {
   }
   const reason = researchUnlockRefusal(props.points, props.unlocked, selectedId.value);
   if (reason) {
-    error.value = reason;
+    errorId.value = selectedId.value;
     return;
   }
-  error.value = "";
+  errorId.value = null;
   emit("unlock", selectedId.value);
 };
 </script>
@@ -168,23 +189,23 @@ const onUnlock = (): void => {
       class="research-panel"
       role="dialog"
       aria-modal="true"
-      aria-label="연구 트리"
+      :aria-label="t('research.aria')"
     >
       <header class="research-head">
-        <h2>연구 트리</h2>
+        <h2>{{ t("world.research") }}</h2>
         <button
           type="button"
           class="close"
           @click="emit('close')"
         >
-          닫기
+          {{ t("common.close") }}
         </button>
       </header>
       <p class="points">
         {{ pointsLabel }}
       </p>
       <p class="hint">
-        위쪽 연구를 마쳐야 아래 연구를 할 수 있습니다. 마법사는 기사와 대포가 모두 필요합니다.
+        {{ t("research.hint") }}
       </p>
       <div class="research-body">
         <div class="buff-list">
@@ -232,7 +253,7 @@ const onUnlock = (): void => {
                 v-html="iconMarkup(buff)"
               />
             </span>
-            <span class="buff-name">{{ buff.name }}</span>
+            <span class="buff-name">{{ researchTitle(buff.id) }}</span>
             <span class="buff-cost">{{ statusLabel(buff) }}</span>
           </button>
         </div>
@@ -255,18 +276,18 @@ const onUnlock = (): void => {
               v-html="iconMarkup(selected)"
             />
           </span>
-          <h3>{{ selected.name }}</h3>
-          <p>{{ selected.description }}</p>
+          <h3>{{ researchTitle(selected.id) }}</h3>
+          <p>{{ researchBody(selected.id) }}</p>
           <p
             v-if="parentLabel(selected)"
             class="buff-cost-line"
           >
-            선행 {{ parentLabel(selected) }}
+            {{ t("research.parents", { names: parentLabel(selected) }) }}
           </p>
           <p class="buff-cost-line">
-            <template v-if="owned(selected.id) && selected.unlocks">이미 모든 맵에서 지을 수 있습니다.</template>
-            <template v-else-if="owned(selected.id)">이미 모든 맵에 적용 중입니다.</template>
-            <template v-else>비용 {{ selected.cost }}</template>
+            <template v-if="owned(selected.id) && selected.unlocks">{{ t("research.ownedUnlock") }}</template>
+            <template v-else-if="owned(selected.id)">{{ t("research.ownedBuff") }}</template>
+            <template v-else>{{ t("research.cost", { cost: selected.cost }) }}</template>
           </p>
           <button
             v-if="!owned(selected.id)"
@@ -275,7 +296,7 @@ const onUnlock = (): void => {
             :disabled="!canBuy(selected.id)"
             @click="onUnlock"
           >
-            {{ selected.unlocks ? "타워 해금" : "버프 고르기" }}
+            {{ selected.unlocks ? t("research.unlockTower") : t("research.pickBuff") }}
           </button>
         </div>
       </div>

@@ -6,6 +6,7 @@ import {
   type WavePreviewEntry,
 } from "@/core";
 import { enemyWalkPreview, loadEnemyWalkThumbs } from "@/render/enemy-sprites";
+import { content, t, warningMessage, warningTitle } from "@/ui/i18n";
 
 defineProps<{
   roster: readonly WavePreviewEntry[];
@@ -59,12 +60,19 @@ const spriteArtStyle = (sprite: EnemyTypeId, hue = 0): CSSProperties => {
 const hasWalkSheet = (sprite: EnemyTypeId): boolean =>
   !walkThumbs.value[sprite] && Boolean(enemyWalkPreview(sprite).url);
 
+const shownName = (entry: WavePreviewEntry): string =>
+  content(`enemy.${entry.id}.name`, entry.name);
+
 const entryLabel = (entry: WavePreviewEntry): string => {
-  const name = entry.isNew ? `${entry.name} NEW` : entry.name;
-  if (!entry.warningTitle || !entry.warningMessage) {
+  const name = entry.isNew
+    ? t("bestiary.namedNew", { name: shownName(entry) })
+    : shownName(entry);
+  const title = warningTitle(entry.behavior);
+  const message = warningMessage(entry.behavior);
+  if (!title || !message) {
     return name;
   }
-  return `${name}. ${entry.warningTitle}. ${entry.warningMessage}`;
+  return t("wave.entry", { name, title, message });
 };
 </script>
 
@@ -73,9 +81,9 @@ const entryLabel = (entry: WavePreviewEntry): string => {
     class="wave-preview"
     role="status"
     aria-live="polite"
-    aria-label="이번 공세 적"
+    :aria-label="t('wave.aria')"
   >
-    <p class="title">이번 공세</p>
+    <p class="title">{{ t("wave.title") }}</p>
     <ul class="roster">
       <li
         v-for="entry in roster"
@@ -104,13 +112,13 @@ const entryLabel = (entry: WavePreviewEntry): string => {
               class="badge"
             >NEW</span>
           </span>
-          <span class="name">{{ entry.name }}</span>
+          <span class="name">{{ shownName(entry) }}</span>
           <span
-            v-if="entry.warningTitle"
+            v-if="warningTitle(entry.behavior)"
             class="tip"
           >
-            <strong>{{ entry.warningTitle }}</strong>
-            <span>{{ entry.warningMessage }}</span>
+            <strong>{{ warningTitle(entry.behavior) }}</strong>
+            <span>{{ warningMessage(entry.behavior) }}</span>
           </span>
         </button>
       </li>
@@ -120,7 +128,7 @@ const entryLabel = (entry: WavePreviewEntry): string => {
       class="confirm"
       @click="emit('confirm')"
     >
-      확인
+      {{ t("wave.confirm") }}
     </button>
   </div>
 </template>

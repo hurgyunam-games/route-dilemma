@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { currentStage, type CampaignLoadStatus, type SaveSlot } from "@/core";
 import { computed, ref } from "vue";
+import LocaleSwitch from "@/ui/LocaleSwitch.vue";
+import { formatSavedAt, saveSlotTitle, t } from "@/ui/i18n";
 
 const props = defineProps<{
   slots: readonly SaveSlot[];
@@ -21,25 +23,12 @@ const canOpen = (slot: SaveSlot): boolean =>
 
 const summary = (slot: SaveSlot): string => {
   if (slot.status === "newer") {
-    return "더 새 게임 버전에서 만든 세이브입니다.";
+    return t("save.newer");
   }
   if (slot.status === "invalid") {
-    return "이 세이브를 읽을 수 없습니다.";
+    return t("save.invalid");
   }
-  return `현재 스테이지 ${currentStage(slot.progress)}`;
-};
-
-const savedAt = (ms: number): string => {
-  if (!(ms > 0)) {
-    return "";
-  }
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(ms);
+  return t("save.stage", { stage: currentStage(slot.progress) });
 };
 
 const onOpen = (slot: SaveSlot): void => {
@@ -66,34 +55,35 @@ const onDelete = (id: string): void => {
 <template>
   <div class="save-list">
     <header class="save-head">
-      <h1>세이브</h1>
-      <p>진행을 여러 개 저장하고, 하나를 골라 이어합니다.</p>
+      <h1>{{ t("save.title") }}</h1>
+      <p>{{ t("save.lead") }}</p>
+      <LocaleSwitch class="locale-row" />
       <button
         type="button"
         class="new-game"
         :disabled="listLocked"
         @click="emit('create')"
       >
-        새 게임
+        {{ t("save.new") }}
       </button>
       <p
         v-if="listLocked"
         class="save-notice"
       >
-        이 세이브 목록은 더 새 게임 버전에서 만들어졌습니다. 진행을 덮어쓰지 않습니다.
+        {{ t("save.listNewer") }}
       </p>
       <p
         v-else-if="listStatus === 'invalid'"
         class="save-notice"
       >
-        세이브를 읽지 못해 빈 목록으로 시작합니다.
+        {{ t("save.listInvalid") }}
       </p>
     </header>
     <p
       v-if="slots.length === 0"
       class="empty"
     >
-      저장된 게임이 없습니다.
+      {{ t("save.empty") }}
     </p>
     <ol
       v-else
@@ -108,15 +98,15 @@ const onDelete = (id: string): void => {
           type="button"
           class="slot-card"
           :disabled="!canOpen(slot)"
-          :aria-label="`${slot.name}, ${summary(slot)}`"
+          :aria-label="`${saveSlotTitle(slot.name)}, ${summary(slot)}`"
           @click="onOpen(slot)"
         >
-          <span class="slot-name">{{ slot.name }}</span>
+          <span class="slot-name">{{ saveSlotTitle(slot.name) }}</span>
           <span class="slot-meta">{{ summary(slot) }}</span>
           <span
-            v-if="savedAt(slot.updatedAt)"
+            v-if="formatSavedAt(slot.updatedAt)"
             class="slot-meta"
-          >{{ savedAt(slot.updatedAt) }}</span>
+          >{{ formatSavedAt(slot.updatedAt) }}</span>
         </button>
         <button
           type="button"
@@ -124,7 +114,7 @@ const onDelete = (id: string): void => {
           :disabled="listLocked"
           @click="onDelete(slot.id)"
         >
-          {{ pendingDeleteId === slot.id ? "확인" : "삭제" }}
+          {{ pendingDeleteId === slot.id ? t("save.confirmDelete") : t("save.delete") }}
         </button>
       </li>
     </ol>
@@ -163,6 +153,10 @@ const onDelete = (id: string): void => {
   margin: 0;
   color: #d8cfc6;
   font: 600 14px/1.4 "Segoe UI", sans-serif;
+}
+
+.locale-row {
+  margin-top: 14px;
 }
 
 .new-game,
